@@ -19,7 +19,7 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     currency: 'USD',
-    gasPrice: 60, 
+    gasPrice: 60,
   },
   networks,
   namedAccounts: {
@@ -27,7 +27,7 @@ const config: HardhatUserConfig = {
     purchaser: 0,
   },
   solidity: {
-    version: "0.8.6",
+    version: "0.8.16",
     settings: {
       optimizer: {
         enabled: true,
