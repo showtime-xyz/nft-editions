@@ -26,11 +26,21 @@ TODO
 
 TODO (not deployed yet)
 
-### Deploying:
-(Replace network with desired network)
+### Getting started
 
-`hardhat deploy --network rinkeby`
+```sh
+# install hardhat
+yarn add --dev hardhat
 
-### Verifying:
+# build
+npx hardhat compile
 
-`hardhat sourcify --network rinkeby && hardhat etherscan-verify --network rinkeby`
+# test
+npx hardhat test
+
+# deploy (replace with desired network)
+hardhat deploy --network mumbai
+
+# verify
+hardhat sourcify --network rinkeby && hardhat etherscan-verify --network rinkeby
+```
