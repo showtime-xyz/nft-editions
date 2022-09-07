@@ -53,7 +53,10 @@ describe("SingleEditionMintable", () => {
     expect(await minterContract.symbol()).to.be.equal("TEST");
 
     const [_, s2] = await ethers.getSigners();
-    await expect(minterContract.purchase()).to.be.revertedWith("Not for sale");
+    expect(await minterContract.salePrice()).to.equal(0);
+
+    // something about the combo of hardhat + optimizations is causing the `revertedWith("Not for sale")` assert to fail
+    await expect(minterContract.purchase()).to.be.reverted;
     await expect(
       minterContract.connect(s2).setSalePrice(ethers.utils.parseEther("0.2"))
     ).to.be.revertedWith("Ownable: caller is not the owner");

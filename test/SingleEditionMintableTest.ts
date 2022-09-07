@@ -124,6 +124,8 @@ describe("SingleEditionMintable", () => {
         JSON.stringify({
           name: "Testing Token 1/10",
           description: "This is a testing token for all",
+          seller_fee_basis_points: 10,
+          fee_recipient: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
           animation_url:
             "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy?id=1",
           properties: { number: 1, name: "Testing Token" },
@@ -199,6 +201,8 @@ describe("SingleEditionMintable", () => {
         JSON.stringify({
           name: "Testing Token 1",
           description: "This is a testing token for all",
+          seller_fee_basis_points: 0,
+          fee_recipient: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
           animation_url:
             "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy?id=1",
           properties: { number: 1, name: "Testing Token" },
@@ -294,7 +298,7 @@ describe("SingleEditionMintable", () => {
           200,
           200
         );
-    
+
         const editionResult = await dynamicSketch.getEditionAtId(1);
         const minterContractNew = (await ethers.getContractAt(
           "SingleEditionMintable",
@@ -380,6 +384,8 @@ describe("SingleEditionMintable", () => {
         JSON.stringify({
           name: "Testing Token 10/10",
           description: "This is a testing token for all",
+          seller_fee_basis_points: 10,
+          fee_recipient: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
           animation_url:
             "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy?id=10",
           properties: { number: 10, name: "Testing Token" },

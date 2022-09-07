@@ -44,7 +44,9 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         string memory imageUrl,
         string memory animationUrl,
         uint256 tokenOfEdition,
-        uint256 editionSize
+        uint256 editionSize,
+        uint256 royaltyBPS,
+        address royaltyRecipient
     ) external pure returns (string memory) {
         string memory _tokenMediaData = tokenMediaData(
             imageUrl,
@@ -56,7 +58,9 @@ contract SharedNFTLogic is IPublicSharedMetadata {
             description,
             _tokenMediaData,
             tokenOfEdition,
-            editionSize
+            editionSize,
+            royaltyBPS,
+            royaltyRecipient
         );
         return encodeMetadataJSON(json);
     }
@@ -72,7 +76,9 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         string memory description,
         string memory mediaData,
         uint256 tokenOfEdition,
-        uint256 editionSize
+        uint256 editionSize,
+        uint256 royaltyBPS,
+        address royaltyRecipient
     ) public pure returns (bytes memory) {
         bytes memory editionSizeText;
         if (editionSize > 0) {
@@ -91,6 +97,11 @@ contract SharedNFTLogic is IPublicSharedMetadata {
                 '", "',
                 'description": "',
                 description,
+                // this is for opensea since they don't respect ERC2981 right now
+                '", "seller_fee_basis_points": ',
+                numberToString(royaltyBPS),
+                ', "fee_recipient": "',
+                StringsUpgradeable.toHexString(royaltyRecipient),
                 '", "',
                 mediaData,
                 'properties": {"number": ',

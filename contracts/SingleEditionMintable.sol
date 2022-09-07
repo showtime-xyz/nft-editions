@@ -124,7 +124,7 @@ contract SingleEditionMintable is
      */
 
     /**
-      @dev This allows the user to purchase a edition edition
+      @dev This allows the user to purchase an edition
            at the given price in the contract.
      */
     function purchase() external payable returns (uint256) {
@@ -137,7 +137,7 @@ contract SingleEditionMintable is
     }
 
     /**
-      @param _salePrice if sale price is 0 sale is stopped, otherwise that amount 
+      @param _salePrice if sale price is 0 sale is stopped, otherwise that amount
                        of ETH is needed to start the sale.
       @dev This sets a simple ETH sales price
            Setting a sales price allows users to mint the edition until it sells out.
@@ -243,7 +243,7 @@ contract SingleEditionMintable is
 
     /**
         @param tokenId Token ID to burn
-        User burn function for token id 
+        User burn function for token id
      */
     function burn(uint256 tokenId) public {
         require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
@@ -324,7 +324,9 @@ contract SingleEditionMintable is
                 imageUrl,
                 animationUrl,
                 tokenId,
-                editionSize
+                editionSize,
+                royaltyBPS,
+                owner()
             );
     }
 
