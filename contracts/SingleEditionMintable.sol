@@ -69,6 +69,8 @@ contract SingleEditionMintable is
     // Global constructor for factory
     constructor(SharedNFTLogic _sharedNFTLogic) {
         sharedNFTLogic = _sharedNFTLogic;
+
+        _disableInitializers();
     }
 
     /**
