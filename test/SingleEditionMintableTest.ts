@@ -9,6 +9,21 @@ import {
   SingleEditionMintable,
 } from "../typechain";
 
+function parseMetadataURI(uri: string): any {
+  const parsedURI = parseDataURI(uri);
+  if (!parsedURI) {
+    throw "No parsed uri";
+  }
+
+  expect(parsedURI.mimeType.type).to.equal("application");
+  expect(parsedURI.mimeType.subtype).to.equal("json");
+
+  // Check metadata from edition
+  const uriData = Buffer.from(parsedURI.body).toString("utf-8");
+  const metadata = JSON.parse(uriData);
+  return metadata;
+}
+
 describe("SingleEditionMintable", () => {
   let signer: SignerWithAddress;
   let signerAddress: string;
@@ -125,21 +140,7 @@ describe("SingleEditionMintable", () => {
         );
 
       const tokenURI = await minterContract.tokenURI(1);
-      console.log(tokenURI);
-      const parsedTokenURI = parseDataURI(tokenURI);
-      if (!parsedTokenURI) {
-        throw "No parsed token uri";
-      }
-
-      // Check metadata from edition
-      const uriData = Buffer.from(parsedTokenURI.body).toString("utf-8");
-      const metadata = JSON.parse(uriData);
-
-      expect(parsedTokenURI.mimeType.type).to.equal("application");
-      expect(parsedTokenURI.mimeType.subtype).to.equal("json");
-      // expect(parsedTokenURI.mimeType.parameters.get("charset")).to.equal(
-      //   "utf-8"
-      // );
+      const metadata = parseMetadataURI(tokenURI);
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
           name: "Testing Token 1/10",
@@ -195,26 +196,12 @@ describe("SingleEditionMintable", () => {
       expect(await minterContract.totalSupply()).to.be.equal(2);
 
       const tokenURI = await minterContract.tokenURI(1);
-      const parsedTokenURI = parseDataURI(tokenURI);
-      if (!parsedTokenURI) {
-        throw "No parsed token uri";
-      }
-
       const tokenURI2 = await minterContract.tokenURI(2);
-      const parsedTokenURI2 = parseDataURI(tokenURI2);
+      const metadata = parseMetadataURI(tokenURI);
+      const metadata2 = parseMetadataURI(tokenURI2);
 
-      // Check metadata from edition
-      const uriData = Buffer.from(parsedTokenURI.body).toString("utf-8");
-      const metadata = JSON.parse(uriData);
-
-      const uriData2 = Buffer.from(parsedTokenURI2?.body || "").toString(
-        "utf-8"
-      );
-      const metadata2 = JSON.parse(uriData2);
       expect(metadata2.name).to.be.equal("Testing Token 2");
 
-      expect(parsedTokenURI.mimeType.type).to.equal("application");
-      expect(parsedTokenURI.mimeType.subtype).to.equal("json");
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
           name: "Testing Token 1",
@@ -384,18 +371,8 @@ describe("SingleEditionMintable", () => {
       ).to.be.revertedWith("Sold out");
 
       const tokenURI = await minterContract.tokenURI(10);
-      const parsedTokenURI = parseDataURI(tokenURI);
-      if (!parsedTokenURI) {
-        throw "No parsed token uri";
-      }
+      const metadata = parseMetadataURI(tokenURI);
 
-      // Check metadata from edition
-      const uriData = Buffer.from(parsedTokenURI.body).toString("utf-8");
-      console.log({ tokenURI, uriData });
-      const metadata = JSON.parse(uriData);
-
-      expect(parsedTokenURI.mimeType.type).to.equal("application");
-      expect(parsedTokenURI.mimeType.subtype).to.equal("json");
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
           name: "Testing Token 10/10",
