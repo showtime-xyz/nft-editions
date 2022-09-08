@@ -330,6 +330,16 @@ contract SingleEditionMintable is
             );
     }
 
+    function contractURI() public view returns (string memory) {
+        return sharedNFTLogic.encodeContractURIJSON(
+            name(),
+            description,
+            imageUrl,
+            royaltyBPS,
+            owner()
+        );
+    }
+
     function supportsInterface(bytes4 interfaceId)
         public
         view
