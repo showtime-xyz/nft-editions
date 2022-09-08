@@ -102,9 +102,10 @@ describe("SingleEditionMintable", () => {
     // TODO(iain): check bps
     expect(await minterContract.owner()).to.be.equal(signerAddress);
   });
-  describe("with a edition", () => {
+  describe("with an edition", () => {
     let signer1: SignerWithAddress;
     let minterContract: SingleEditionMintable;
+
     beforeEach(async () => {
       signer1 = (await ethers.getSigners())[1];
       await dynamicSketch.createEdition(
@@ -125,11 +126,19 @@ describe("SingleEditionMintable", () => {
         editionResult
       )) as SingleEditionMintable;
     });
-    it("creates a new edition", async () => {
-      expect(await signer1.getBalance()).to.eq(
-        ethers.utils.parseEther("10000")
-      );
 
+    it("has the expected contractURI", async () => {
+      const contractURI = await minterContract.contractURI();
+      const metadata = parseMetadataURI(contractURI);
+      expect(metadata.name).to.equal("Testing Token");
+      expect(metadata.description).to.equal("This is a testing token for all");
+      // the edition only specified an animation url and no image url
+      expect(metadata.image).to.be.undefined;
+      expect(metadata.seller_fee_basis_points).to.equal(10);
+      expect(metadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
+    });
+
+    it("can mint", async () => {
       // Mint first edition
       await expect(minterContract.mintEdition(signerAddress))
         .to.emit(minterContract, "Transfer")
@@ -151,15 +160,16 @@ describe("SingleEditionMintable", () => {
         })
       );
     });
+
     it("creates an unbounded edition", async () => {
       // no limit for edition size
       await dynamicSketch.createEdition(
-        "Testing Token",
+        "Testing Unbounded Token",
         "TEST",
         "This is a testing token for all",
-        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
         "",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
         "0x0000000000000000000000000000000000000000000000000000000000000000",
         0,
         0
@@ -171,7 +181,15 @@ describe("SingleEditionMintable", () => {
         editionResult
       )) as SingleEditionMintable;
 
-      expect(await minterContract.totalSupply()).to.be.equal(0);
+      const contractURI = await minterContract.contractURI();
+      const contractMetadata = parseMetadataURI(contractURI);
+      expect(contractMetadata.name).to.equal("Testing Unbounded Token");
+      expect(contractMetadata.description).to.equal("This is a testing token for all");
+      expect(contractMetadata.image).to.equal("https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy");
+      expect(contractMetadata.seller_fee_basis_points).to.equal(0);
+      expect(contractMetadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
+
+      expect(await minterContract.totalSupply()).to.equal(0);
 
       // Mint first edition
       await expect(minterContract.mintEdition(signerAddress))
@@ -200,18 +218,19 @@ describe("SingleEditionMintable", () => {
       const metadata = parseMetadataURI(tokenURI);
       const metadata2 = parseMetadataURI(tokenURI2);
 
-      expect(metadata2.name).to.be.equal("Testing Token 2");
+      expect(metadata2.name).to.be.equal("Testing Unbounded Token 2");
 
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
-          name: "Testing Token 1",
+          name: "Testing Unbounded Token 1",
           description: "This is a testing token for all",
-          animation_url:
+          image:
             "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy?id=1",
-          properties: { number: 1, name: "Testing Token" },
+          properties: { number: 1, name: "Testing Unbounded Token" },
         })
       );
     });
+
     it("creates an authenticated edition", async () => {
       await minterContract.mintEdition(await signer1.getAddress());
       expect(await minterContract.ownerOf(1)).to.equal(
@@ -226,6 +245,7 @@ describe("SingleEditionMintable", () => {
       await minterContract.connect(signer1).burn(1);
       await expect(minterContract.ownerOf(1)).to.be.reverted;
     });
+
     it("does not allow re-initialization", async () => {
       await expect(
         minterContract.initialize(
@@ -246,6 +266,7 @@ describe("SingleEditionMintable", () => {
         await signer1.getAddress()
       );
     });
+
     it("creates a set of editions", async () => {
       const [s1, s2, s3] = await ethers.getSigners();
       await minterContract.mintEditions([

@@ -101,6 +101,40 @@ contract SharedNFTLogic is IPublicSharedMetadata {
             );
     }
 
+    /// Encodes contract level metadata into base64-data uri format
+    /// @dev see https://docs.opensea.io/docs/contract-level-metadata
+    /// @dev borrowed from https://github.com/ourzora/zora-drops-contracts/blob/main/src/utils/NFTMetadataRenderer.sol
+    function encodeContractURIJSON(
+        string memory name,
+        string memory description,
+        string memory imageURI,
+        uint256 royaltyBPS,
+        address royaltyRecipient
+    ) public pure returns (string memory) {
+        bytes memory imageSpace = bytes("");
+        if (bytes(imageURI).length > 0) {
+            imageSpace = abi.encodePacked('", "image": "', imageURI);
+        }
+        return
+            string(
+                encodeMetadataJSON(
+                    abi.encodePacked(
+                        '{"name": "',
+                        name,
+                        '", "description": "',
+                        description,
+                        // this is for opensea since they don't respect ERC2981 right now
+                        '", "seller_fee_basis_points": ',
+                        StringsUpgradeable.toString(royaltyBPS),
+                        ', "fee_recipient": "',
+                        StringsUpgradeable.toHexString(royaltyRecipient),
+                        imageSpace,
+                        '"}'
+                    )
+                )
+            );
+    }
+
     /// Encodes the argument json bytes into base64-data uri format
     /// @param json Raw json to base64 and turn into a data-uri
     function encodeMetadataJSON(bytes memory json)
