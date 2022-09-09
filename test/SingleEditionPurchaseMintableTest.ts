@@ -32,7 +32,23 @@ describe("SingleEditionMintable", () => {
   });
 
   it("purchases a edition", async () => {
-    await dynamicSketch.createEdition(
+    let createEdition = async function(factory: SingleEditionMintableCreator, args: any): Promise<SingleEditionMintable> {
+      // first simulate the call to get the output
+      // @ts-ignore
+      const editionAddress = await factory.callStatic.createEdition(...args);
+
+      // then actually call the function to create the edition
+      // @ts-ignore
+      await factory.createEdition(...args);
+
+      const edition = (await ethers.getContractAt(
+        "SingleEditionMintable",
+        editionAddress
+      )) as SingleEditionMintable;
+      return edition;
+    }
+
+    const minterContract = await createEdition(dynamicSketch, [
       "Testing Token",
       "TEST",
       "This is a testing token for all",
@@ -41,14 +57,8 @@ describe("SingleEditionMintable", () => {
       "",
       "0x0000000000000000000000000000000000000000000000000000000000000000",
       10,
-      10
-    );
-
-    const editionResult = await dynamicSketch.getEditionAtId(0);
-    const minterContract = (await ethers.getContractAt(
-      "SingleEditionMintable",
-      editionResult
-    )) as SingleEditionMintable;
+      10,
+    ]);
     expect(await minterContract.name()).to.be.equal("Testing Token");
     expect(await minterContract.symbol()).to.be.equal("TEST");
 
