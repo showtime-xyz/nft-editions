@@ -63,6 +63,8 @@ contract SingleEditionMintable is
     // Price for sale
     uint256 public salePrice;
 
+    bool public isTransferable;
+
     // NFT rendering logic contract
     SharedNFTLogic private immutable sharedNFTLogic;
 
@@ -98,7 +100,8 @@ contract SingleEditionMintable is
         string memory _imageUrl,
         bytes32 _imageHash,
         uint256 _editionSize,
-        uint256 _royaltyBPS
+        uint256 _royaltyBPS,
+        bool _isTransferable
     ) public initializer {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
@@ -113,6 +116,7 @@ contract SingleEditionMintable is
         royaltyBPS = _royaltyBPS;
         // Set edition id start to be 1 not 0
         atEditionId.increment();
+        isTransferable = _isTransferable;
     }
 
 
@@ -241,6 +245,14 @@ contract SingleEditionMintable is
         }
         // atEditionId is one-indexed hence the need to remove one here
         return editionSize + 1 - atEditionId.current();
+    }
+
+    function _transfer(address from, address to, uint256 tokenId)
+        internal
+        override
+    {
+        require(isTransferable, "Not transferable");
+        super._transfer(from, to, tokenId);
     }
 
     /**

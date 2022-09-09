@@ -52,7 +52,8 @@ contract SingleEditionMintableCreator {
         string memory _imageUrl,
         bytes32 _imageHash,
         uint256 _editionSize,
-        uint256 _royaltyBPS
+        uint256 _royaltyBPS,
+        bool _isTransferable
     ) external returns (uint256) {
         uint256 newId = atContract.current();
         address newContract = ClonesUpgradeable.cloneDeterministic(
@@ -69,7 +70,8 @@ contract SingleEditionMintableCreator {
             _imageUrl,
             _imageHash,
             _editionSize,
-            _royaltyBPS
+            _royaltyBPS,
+            _isTransferable
         );
         emit CreatedEdition(newId, msg.sender, _editionSize, newContract);
         // Returns the ID of the recently created minting contract
