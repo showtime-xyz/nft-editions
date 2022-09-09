@@ -410,4 +410,46 @@ describe("SingleEditionMintable", () => {
       );
     });
   });
+
+  describe("with a non transferable edition", () => {
+    let signer1: SignerWithAddress;
+    let edition: SingleEditionMintable;
+
+    beforeEach(async () => {
+      signer1 = (await ethers.getSigners())[1];
+      const args = [
+        "Testing Non Transferable Token",
+        "TEST",
+        "This is a testing token for all",
+        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        10,
+        10,
+        /* isTransferable */ false
+      ];
+
+      edition = await createEdition(dynamicSketch, args);
+    });
+
+    it("isTransferable() returns false", async () => {
+      expect(await edition.isTransferable()).to.be.false;
+    });
+
+    it("transferFrom(address,address,uint256) reverts", async () => {
+      await edition.mintEdition(signerAddress);
+      await expect(
+        edition.transferFrom(signer.address, signer1.address, 1)
+      ).to.be.revertedWith("Not transferable");
+    });
+
+    it("safeTransferFrom(address,address,uint256) reverts", async () => {
+      await edition.mintEdition(signerAddress);
+      await expect(
+        edition["safeTransferFrom(address,address,uint256)"](signer.address, signer1.address, 1)
+      ).to.be.revertedWith("Not transferable");
+    });
+  });
+
 });
