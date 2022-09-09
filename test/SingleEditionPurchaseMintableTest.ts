@@ -41,7 +41,8 @@ describe("SingleEditionMintable", () => {
       "",
       "0x0000000000000000000000000000000000000000000000000000000000000000",
       10,
-      10
+      10,
+      true
     );
 
     const editionResult = await dynamicSketch.getEditionAtId(0);
