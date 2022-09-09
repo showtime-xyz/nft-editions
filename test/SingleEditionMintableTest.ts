@@ -30,6 +30,22 @@ describe("SingleEditionMintable", () => {
   let dynamicSketch: SingleEditionMintableCreator;
   let editionImpl: SingleEditionMintable;
 
+  let createEdition = async function(factory: SingleEditionMintableCreator, args: any): Promise<SingleEditionMintable> {
+    // first simulate the call to get the output
+    // @ts-ignore
+    const editionAddress = await factory.callStatic.createEdition(...args);
+
+    // then actually call the function to create the edition
+    // @ts-ignore
+    await factory.createEdition(...args);
+
+    const edition = (await ethers.getContractAt(
+      "SingleEditionMintable",
+      editionAddress
+    )) as SingleEditionMintable;
+    return edition;
+  }
+
   beforeEach(async () => {
     const { SingleEditionMintableCreator, SingleEditionMintable } = await deployments.fixture([
       "SingleEditionMintableCreator",
@@ -61,13 +77,13 @@ describe("SingleEditionMintable", () => {
         "uri",
         "0x0000000000000000000000000000000000000000000000000000000000000000",
         12,
-        12
+        12,
       )
     ).to.be.revertedWith("Initializable: contract is already initialized");
   });
 
   it("makes a new edition", async () => {
-    await dynamicSketch.createEdition(
+    const args = [
       "Testing Token",
       "TEST",
       "This is a testing token for all",
@@ -77,14 +93,10 @@ describe("SingleEditionMintable", () => {
       "0x0000000000000000000000000000000000000000000000000000000000000000",
       // 1% royalty since BPS
       10,
-      10
-    );
+      10,
+    ];
 
-    const editionResult = await dynamicSketch.getEditionAtId(0);
-    const minterContract = (await ethers.getContractAt(
-      "SingleEditionMintable",
-      editionResult
-    )) as SingleEditionMintable;
+    const minterContract = await createEdition(dynamicSketch, args);
     expect(await minterContract.name()).to.be.equal("Testing Token");
     expect(await minterContract.symbol()).to.be.equal("TEST");
     const editionUris = await minterContract.getURIs();
@@ -108,7 +120,7 @@ describe("SingleEditionMintable", () => {
 
     beforeEach(async () => {
       signer1 = (await ethers.getSigners())[1];
-      await dynamicSketch.createEdition(
+      const args = [
         "Testing Token",
         "TEST",
         "This is a testing token for all",
@@ -117,14 +129,10 @@ describe("SingleEditionMintable", () => {
         "",
         "0x0000000000000000000000000000000000000000000000000000000000000000",
         10,
-        10
-      );
+        10,
+      ];
 
-      const editionResult = await dynamicSketch.getEditionAtId(0);
-      minterContract = (await ethers.getContractAt(
-        "SingleEditionMintable",
-        editionResult
-      )) as SingleEditionMintable;
+      minterContract = await createEdition(dynamicSketch, args);
     });
 
     it("has the expected contractURI", async () => {
@@ -163,7 +171,7 @@ describe("SingleEditionMintable", () => {
 
     it("creates an unbounded edition", async () => {
       // no limit for edition size
-      await dynamicSketch.createEdition(
+      let args = [
         "Testing Unbounded Token",
         "TEST",
         "This is a testing token for all",
@@ -172,14 +180,10 @@ describe("SingleEditionMintable", () => {
         "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
         "0x0000000000000000000000000000000000000000000000000000000000000000",
         0,
-        0
-      );
+        0,
+      ];
 
-      const editionResult = await dynamicSketch.getEditionAtId(1);
-      minterContract = (await ethers.getContractAt(
-        "SingleEditionMintable",
-        editionResult
-      )) as SingleEditionMintable;
+      minterContract = await createEdition(dynamicSketch, args);
 
       const contractURI = await minterContract.contractURI();
       const contractMetadata = parseMetadataURI(contractURI);
@@ -258,7 +262,7 @@ describe("SingleEditionMintable", () => {
           "uri",
           "0x0000000000000000000000000000000000000000000000000000000000000000",
           12,
-          12
+          12,
         )
       ).to.be.revertedWith("Initializable: contract is already initialized");
       await minterContract.mintEdition(await signer1.getAddress());
@@ -309,9 +313,10 @@ describe("SingleEditionMintable", () => {
           await signer1.getAddress()
         );
       });
+
       it("sets the correct royalty amount", async () => {
-        await dynamicSketch.createEdition(
-          "Testing Token",
+        let args = [
+          "Testing 2% Royalty Token",
           "TEST",
           "This is a testing token for all",
           "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
@@ -320,25 +325,21 @@ describe("SingleEditionMintable", () => {
           "0x0000000000000000000000000000000000000000000000000000000000000000",
           // 2% royalty since BPS
           200,
-          200
-        );
+          200,
+        ];
 
-        const editionResult = await dynamicSketch.getEditionAtId(1);
-        const minterContractNew = (await ethers.getContractAt(
-          "SingleEditionMintable",
-          editionResult
-        )) as SingleEditionMintable;
-
+        const minterContractNew = await createEdition(dynamicSketch, args);
         await minterContractNew.mintEdition(signerAddress);
         expect((await minterContractNew.royaltyInfo(1, ethers.utils.parseEther("1.0")))[1]).to.be.equal(
           ethers.utils.parseEther("0.02")
         );
       });
     });
+
     it("mints a large batch", async () => {
       // no limit for edition size
-      await dynamicSketch.createEdition(
-        "Testing Token",
+      let args = [
+        "Testing Unlimited Token",
         "TEST",
         "This is a testing token for all",
         "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
@@ -346,14 +347,10 @@ describe("SingleEditionMintable", () => {
         "",
         "0x0000000000000000000000000000000000000000000000000000000000000000",
         0,
-        0
-      );
+        0,
+      ];
 
-      const editionResult = await dynamicSketch.getEditionAtId(1);
-      minterContract = (await ethers.getContractAt(
-        "SingleEditionMintable",
-        editionResult
-      )) as SingleEditionMintable;
+      minterContract = await createEdition(dynamicSketch, args);
 
       const [s1, s2, s3] = await ethers.getSigners();
       const [s1a, s2a, s3a] = [
