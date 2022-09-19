@@ -32,9 +32,7 @@ contract SingleEditionMintableCreator {
     /// @param _symbol Symbol of the edition contract
     /// @param _description Metadata: Description of the edition entry
     /// @param _animationUrl Metadata: Animation url (optional) of the edition entry
-    /// @param _animationHash Metadata: SHA-256 Hash of the animation (if no animation url, can be 0x0)
     /// @param _imageUrl Metadata: Image url (semi-required) of the edition entry
-    /// @param _imageHash Metadata: SHA-256 hash of the Image of the edition entry (if not image, can be 0x0)
     /// @param _editionSize Total size of the edition (number of possible editions)
     /// @param _royaltyBPS BPS amount of royalty
     function createEdition(
@@ -42,9 +40,7 @@ contract SingleEditionMintableCreator {
         string memory _symbol,
         string memory _description,
         string memory _animationUrl,
-        bytes32 _animationHash,
         string memory _imageUrl,
-        bytes32 _imageHash,
         uint256 _editionSize,
         uint256 _royaltyBPS
     ) external returns (address newContract) {
@@ -59,9 +55,7 @@ contract SingleEditionMintableCreator {
             _symbol,
             _description,
             _animationUrl,
-            _animationHash,
             _imageUrl,
-            _imageHash,
             _editionSize,
             _royaltyBPS
         );
