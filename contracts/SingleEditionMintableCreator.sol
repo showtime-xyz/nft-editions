@@ -17,6 +17,13 @@ import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/Clone
 import "./SingleEditionMintable.sol";
 
 contract SingleEditionMintableCreator {
+    event CreatedEdition(
+        uint256 indexed editionId,
+        address indexed creator,
+        uint256 editionSize,
+        address editionContractAddress
+    );
+
     /// Address for implementation of SingleEditionMintable to clone
     address public implementation;
 
@@ -79,13 +86,4 @@ contract SingleEditionMintableCreator {
                 )
             );
     }
-
-    /// Emitted when a edition is created reserving the corresponding token IDs.
-    /// @param editionId ID of newly created edition
-    event CreatedEdition(
-        uint256 indexed editionId,
-        address indexed creator,
-        uint256 editionSize,
-        address editionContractAddress
-    );
 }
