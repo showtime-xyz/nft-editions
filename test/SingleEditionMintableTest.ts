@@ -114,6 +114,7 @@ describe("SingleEditionMintable", () => {
     // TODO(iain): check bps
     expect(await minterContract.owner()).to.be.equal(signerAddress);
   });
+
   describe("with an edition", () => {
     let signer1: SignerWithAddress;
     let minterContract: SingleEditionMintable;
@@ -167,6 +168,22 @@ describe("SingleEditionMintable", () => {
           properties: { number: 1, name: "Testing Token" },
         })
       );
+    });
+
+    it("can not create another edition with the same parameters", async () => {
+      const args = [
+        "Testing Token",
+        "TEST",
+        "This is a testing token for all",
+        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        10,
+        10,
+      ];
+
+      await expect(createEdition(dynamicSketch, args)).to.be.revertedWith("ERC1167: create2 failed");
     });
 
     it("creates an unbounded edition", async () => {
