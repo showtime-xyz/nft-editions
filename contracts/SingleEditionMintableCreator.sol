@@ -13,16 +13,10 @@
 pragma solidity ^0.8.6;
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
-import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
 import "./SingleEditionMintable.sol";
 
 contract SingleEditionMintableCreator {
-    using CountersUpgradeable for CountersUpgradeable.Counter;
-
-    /// Counter for current contract id upgraded
-    CountersUpgradeable.Counter private atContract;
-
     /// Address for implementation of SingleEditionMintable to clone
     address public implementation;
 
@@ -53,11 +47,11 @@ contract SingleEditionMintableCreator {
         bytes32 _imageHash,
         uint256 _editionSize,
         uint256 _royaltyBPS
-    ) external returns (uint256) {
-        uint256 newId = atContract.current();
-        address newContract = ClonesUpgradeable.cloneDeterministic(
+    ) external returns (address newContract) {
+        bytes32 salt = keccak256(abi.encodePacked(msg.sender, _name, _symbol, _animationUrl, _imageUrl));
+        newContract = ClonesUpgradeable.cloneDeterministic(
             implementation,
-            bytes32(abi.encodePacked(newId))
+            salt
         );
         SingleEditionMintable(newContract).initialize(
             msg.sender,
@@ -71,11 +65,7 @@ contract SingleEditionMintableCreator {
             _editionSize,
             _royaltyBPS
         );
-        emit CreatedEdition(newId, msg.sender, _editionSize, newContract);
-        // Returns the ID of the recently created minting contract
-        // Also increments for the next contract creation call
-        atContract.increment();
-        return newId;
+        emit CreatedEdition(uint256(salt), msg.sender, _editionSize, newContract);
     }
 
     /// Get edition given the created ID
@@ -90,7 +80,7 @@ contract SingleEditionMintableCreator {
             SingleEditionMintable(
                 ClonesUpgradeable.predictDeterministicAddress(
                     implementation,
-                    bytes32(abi.encodePacked(editionId)),
+                    bytes32(editionId),
                     address(this)
                 )
             );
