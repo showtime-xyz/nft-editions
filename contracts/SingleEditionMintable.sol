@@ -33,8 +33,6 @@ contract SingleEditionMintable is
     OwnableUpgradeable
 {
     using CountersUpgradeable for CountersUpgradeable.Counter;
-    event PriceChanged(uint256 amount);
-    event EditionSold(uint256 price, address owner);
 
     // metadata
     string public description;
@@ -91,7 +89,7 @@ contract SingleEditionMintable is
         string memory _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS
-    ) public initializer {
+    ) public initializer override {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
         // Set ownership to original sender of contract call
@@ -181,7 +179,7 @@ contract SingleEditionMintable is
 
     /// @notice User burn function for token id
     /// @param tokenId Token ID to burn
-    function burn(uint256 tokenId) public {
+    function burn(uint256 tokenId) public override {
         require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
         _burn(tokenId);
     }
@@ -222,15 +220,6 @@ contract SingleEditionMintable is
     /*//////////////////////////////////////////////////////////////
                         METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function owner()
-        public
-        view
-        override(OwnableUpgradeable, IEditionSingleMintable)
-        returns (address)
-    {
-        return super.owner();
-    }
 
     /// Returns the number of minted tokens within the edition
     function totalSupply() public view override returns (uint256) {
