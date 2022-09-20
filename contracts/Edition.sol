@@ -193,7 +193,7 @@ contract Edition is
         tokenId = atEditionId.current();
         require(editionSize == 0 || tokenId <= editionSize, "Sold out");
 
-        _mint(recipient, tokenId);
+        _safeMint(recipient, tokenId);
         atEditionId.increment();
     }
 
@@ -206,7 +206,7 @@ contract Edition is
         uint256 endAt = startAt + recipients.length - 1;
         require(editionSize == 0 || endAt <= editionSize, "Sold out");
         while (atEditionId.current() <= endAt) {
-            _mint(
+            _safeMint(
                 recipients[atEditionId.current() - startAt],
                 atEditionId.current()
             );
