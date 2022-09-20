@@ -4,7 +4,7 @@ pragma solidity ^0.8.6;
 
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {Base64} from "base64-sol/base64.sol";
-import {IPublicSharedMetadata} from "./IPublicSharedMetadata.sol";
+import {IPublicSharedMetadata} from "./interfaces/IPublicSharedMetadata.sol";
 
 /// Shared NFT logic for rendering metadata associated with editions
 /// @dev Can safely be used for generic base64Encode and numberToString functions
