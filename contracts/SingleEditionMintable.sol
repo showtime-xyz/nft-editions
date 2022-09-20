@@ -19,7 +19,7 @@ import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cou
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import {SharedNFTLogic} from "./SharedNFTLogic.sol";
-import {IEditionSingleMintable} from "./IEditionSingleMintable.sol";
+import {IEditionSingleMintable} from "./interfaces/IEditionSingleMintable.sol";
 
 /// This is a smart contract for handling dynamic contract minting.
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
@@ -106,20 +106,9 @@ contract SingleEditionMintable is
     }
 
 
-    /// @dev returns the number of minted tokens within the edition
-    function totalSupply() public view returns (uint256) {
-        return atEditionId.current() - 1;
-    }
-
-    /// @dev This allows the user to purchase a single edition at the configured sale price
-    function purchase() external payable returns (uint256) {
-        require(salePrice > 0, "Not for sale");
-        require(msg.value == salePrice, "Wrong price");
-        address[] memory toMint = new address[](1);
-        toMint[0] = msg.sender;
-        emit EditionSold(salePrice, msg.sender);
-        return _mintEditions(toMint);
-    }
+    /*//////////////////////////////////////////////////////////////
+                CREATOR / COLLECTION OWNER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice This sets a simple ETH sales price
     /// Setting a sales price allows users to mint the edition until it sells out.
@@ -134,46 +123,6 @@ contract SingleEditionMintable is
     function withdraw() external onlyOwner {
         // No need for gas limit to trusted address.
         AddressUpgradeable.sendValue(payable(owner()), address(this).balance);
-    }
-
-    /// @dev This helper function checks if the msg.sender is allowed to mint
-    function _isAllowedToMint() internal view returns (bool) {
-        if (owner() == msg.sender) {
-            return true;
-        }
-        if (allowedMinters[address(0x0)]) {
-            return true;
-        }
-        return allowedMinters[msg.sender];
-    }
-
-    /// @param to address to send the newly minted edition to
-    /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
-    function mintEdition(address to) external override returns (uint256) {
-        require(_isAllowedToMint(), "Needs to be an allowed minter");
-        address[] memory toMint = new address[](1);
-        toMint[0] = to;
-        return _mintEditions(toMint);
-    }
-
-    /// @param recipients list of addresses to send the newly minted editions to
-    /// @dev This mints multiple editions to the given list of addresses.
-    function mintEditions(address[] memory recipients)
-        external
-        override
-        returns (uint256)
-    {
-        require(_isAllowedToMint(), "Needs to be an allowed minter");
-        return _mintEditions(recipients);
-    }
-
-    function owner()
-        public
-        view
-        override(OwnableUpgradeable, IEditionSingleMintable)
-        returns (address)
-    {
-        return super.owner();
     }
 
     /// @notice Sets the approved minting status of the given address.
@@ -195,14 +144,39 @@ contract SingleEditionMintable is
         animationUrl = _animationUrl;
     }
 
-    /// Returns the number of editions allowed to mint (max_uint256 when open edition)
-    function numberCanMint() public view override returns (uint256) {
-        // Return max int if open edition
-        if (editionSize == 0) {
-            return type(uint256).max;
-        }
-        // atEditionId is one-indexed hence the need to remove one here
-        return editionSize + 1 - atEditionId.current();
+
+    /*//////////////////////////////////////////////////////////////
+                    COLLECTOR / TOKEN OWNER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev This allows the user to purchase a single edition at the configured sale price
+    function purchase() external payable returns (uint256) {
+        require(salePrice > 0, "Not for sale");
+        require(msg.value == salePrice, "Wrong price");
+        address[] memory toMint = new address[](1);
+        toMint[0] = msg.sender;
+        emit EditionSold(salePrice, msg.sender);
+        return _mintEditions(toMint);
+    }
+
+        /// @param to address to send the newly minted edition to
+    /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
+    function mintEdition(address to) external override returns (uint256) {
+        require(_isAllowedToMint(), "Needs to be an allowed minter");
+        address[] memory toMint = new address[](1);
+        toMint[0] = to;
+        return _mintEditions(toMint);
+    }
+
+    /// @param recipients list of addresses to send the newly minted editions to
+    /// @dev This mints multiple editions to the given list of addresses.
+    function mintEditions(address[] memory recipients)
+        external
+        override
+        returns (uint256)
+    {
+        require(_isAllowedToMint(), "Needs to be an allowed minter");
+        return _mintEditions(recipients);
     }
 
     /// @notice User burn function for token id
@@ -211,6 +185,10 @@ contract SingleEditionMintable is
         require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
         _burn(tokenId);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @dev Private function to mint without any access checks
     function _mintEditions(address[] memory recipients)
@@ -228,6 +206,45 @@ contract SingleEditionMintable is
             atEditionId.increment();
         }
         return atEditionId.current();
+    }
+
+    /// @dev This helper function checks if the msg.sender is allowed to mint
+    function _isAllowedToMint() internal view returns (bool) {
+        if (owner() == msg.sender) {
+            return true;
+        }
+        if (allowedMinters[address(0x0)]) {
+            return true;
+        }
+        return allowedMinters[msg.sender];
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        METADATA FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function owner()
+        public
+        view
+        override(OwnableUpgradeable, IEditionSingleMintable)
+        returns (address)
+    {
+        return super.owner();
+    }
+
+    /// Returns the number of minted tokens within the edition
+    function totalSupply() public view override returns (uint256) {
+        return atEditionId.current() - 1;
+    }
+
+    /// Returns the number of editions left to mint (max_uint256 when open edition)
+    function maxSupply() public view override returns (uint256) {
+        // Return max int if open edition
+        if (editionSize == 0) {
+            return type(uint256).max;
+        }
+
+        return editionSize;
     }
 
     /// @notice Get URIs for edition NFT

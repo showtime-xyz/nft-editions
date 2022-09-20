@@ -363,7 +363,8 @@ describe("SingleEditionMintable", () => {
     it("stops after editions are sold out", async () => {
       const [_, signer1] = await ethers.getSigners();
 
-      expect(await minterContract.numberCanMint()).to.be.equal(10);
+      expect(await minterContract.totalSupply()).to.be.equal(0);
+      expect(await minterContract.maxSupply()).to.be.equal(10);
 
       // Mint first edition
       for (var i = 1; i <= 10; i++) {
@@ -376,7 +377,7 @@ describe("SingleEditionMintable", () => {
           );
       }
 
-      expect(await minterContract.numberCanMint()).to.be.equal(0);
+      expect(await minterContract.totalSupply()).to.be.equal(10);
 
       await expect(
         minterContract.mintEdition(signerAddress)
