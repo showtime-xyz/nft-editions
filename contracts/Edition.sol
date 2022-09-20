@@ -151,19 +151,15 @@ contract Edition is
     function purchase() external payable returns (uint256) {
         require(salePrice > 0, "Not for sale");
         require(msg.value == salePrice, "Wrong price");
-        address[] memory toMint = new address[](1);
-        toMint[0] = msg.sender;
         emit EditionSold(salePrice, msg.sender);
-        return _mintEditions(toMint);
+        return _mintEdition(msg.sender);
     }
 
         /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
     function mintEdition(address to) external override returns (uint256) {
         require(_isAllowedToMint(), "Needs to be an allowed minter");
-        address[] memory toMint = new address[](1);
-        toMint[0] = to;
-        return _mintEditions(toMint);
+        return _mintEdition(to);
     }
 
     /// @param recipients list of addresses to send the newly minted editions to
@@ -189,6 +185,19 @@ contract Edition is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Private function to mint without any access checks
+    /// @return tokenId the id of the newly minted token
+    function _mintEdition(address recipient)
+        internal
+        returns (uint256 tokenId)
+    {
+        tokenId = atEditionId.current();
+        require(editionSize == 0 || tokenId <= editionSize, "Sold out");
+
+        _mint(recipient, tokenId);
+        atEditionId.increment();
+    }
+
+    /// @dev Private function to batch mint without any access checks
     function _mintEditions(address[] memory recipients)
         internal
         returns (uint256)
