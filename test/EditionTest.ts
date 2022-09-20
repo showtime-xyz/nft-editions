@@ -5,8 +5,8 @@ import parseDataURI from "data-urls";
 
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  SingleEditionMintableCreator,
-  SingleEditionMintable,
+  EditionCreator,
+  Edition,
 } from "../typechain";
 
 function parseMetadataURI(uri: string): any {
@@ -24,13 +24,13 @@ function parseMetadataURI(uri: string): any {
   return metadata;
 }
 
-describe("SingleEditionMintable", () => {
+describe("Edition", () => {
   let signer: SignerWithAddress;
   let signerAddress: string;
-  let dynamicSketch: SingleEditionMintableCreator;
-  let editionImpl: SingleEditionMintable;
+  let dynamicSketch: EditionCreator;
+  let editionImpl: Edition;
 
-  let createEdition = async function(factory: SingleEditionMintableCreator, args: any): Promise<SingleEditionMintable> {
+  let createEdition = async function(factory: EditionCreator, args: any): Promise<Edition> {
     // first simulate the call to get the output
     // @ts-ignore
     const editionAddress = await factory.callStatic.createEdition(...args);
@@ -40,26 +40,26 @@ describe("SingleEditionMintable", () => {
     await factory.createEdition(...args);
 
     const edition = (await ethers.getContractAt(
-      "SingleEditionMintable",
+      "Edition",
       editionAddress
-    )) as SingleEditionMintable;
+    )) as Edition;
     return edition;
   }
 
   beforeEach(async () => {
-    const { SingleEditionMintableCreator, SingleEditionMintable } = await deployments.fixture([
-      "SingleEditionMintableCreator",
-      "SingleEditionMintable",
+    const { EditionCreator, Edition } = await deployments.fixture([
+      "EditionCreator",
+      "Edition",
     ]);
     dynamicSketch = (await ethers.getContractAt(
-      "SingleEditionMintableCreator",
-      SingleEditionMintableCreator.address
-    )) as SingleEditionMintableCreator;
+      "EditionCreator",
+      EditionCreator.address
+    )) as EditionCreator;
 
     editionImpl = (await ethers.getContractAt(
-      "SingleEditionMintable",
-      SingleEditionMintable.address
-    )) as SingleEditionMintable;
+      "Edition",
+      Edition.address
+    )) as Edition;
 
     signer = (await ethers.getSigners())[0];
     signerAddress = await signer.getAddress();
@@ -106,7 +106,7 @@ describe("SingleEditionMintable", () => {
 
   describe("with an edition", () => {
     let signer1: SignerWithAddress;
-    let minterContract: SingleEditionMintable;
+    let minterContract: Edition;
 
     beforeEach(async () => {
       signer1 = (await ethers.getSigners())[1];

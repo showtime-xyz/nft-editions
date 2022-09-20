@@ -5,34 +5,34 @@ import parseDataURI from "data-urls";
 
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  SingleEditionMintableCreator,
-  SingleEditionMintable,
+  EditionCreator,
+  Edition,
 } from "../typechain";
 
-describe("SingleEditionMintable", () => {
+describe("Edition", () => {
   let signer: SignerWithAddress;
   let signerAddress: string;
-  let dynamicSketch: SingleEditionMintableCreator;
+  let dynamicSketch: EditionCreator;
 
   beforeEach(async () => {
-    const { SingleEditionMintableCreator } = await deployments.fixture([
-      "SingleEditionMintableCreator",
-      "SingleEditionMintable",
+    const { EditionCreator } = await deployments.fixture([
+      "EditionCreator",
+      "Edition",
     ]);
-    const dynamicMintableAddress = (
-      await deployments.get("SingleEditionMintable")
+    const dynamicAddress = (
+      await deployments.get("Edition")
     ).address;
     dynamicSketch = (await ethers.getContractAt(
-      "SingleEditionMintableCreator",
-      SingleEditionMintableCreator.address
-    )) as SingleEditionMintableCreator;
+      "EditionCreator",
+      EditionCreator.address
+    )) as EditionCreator;
 
     signer = (await ethers.getSigners())[0];
     signerAddress = await signer.getAddress();
   });
 
   it("purchases a edition", async () => {
-    let createEdition = async function(factory: SingleEditionMintableCreator, args: any): Promise<SingleEditionMintable> {
+    let createEdition = async function(factory: EditionCreator, args: any): Promise<Edition> {
       // first simulate the call to get the output
       // @ts-ignore
       const editionAddress = await factory.callStatic.createEdition(...args);
@@ -42,9 +42,9 @@ describe("SingleEditionMintable", () => {
       await factory.createEdition(...args);
 
       const edition = (await ethers.getContractAt(
-        "SingleEditionMintable",
+        "Edition",
         editionAddress
-      )) as SingleEditionMintable;
+      )) as Edition;
       return edition;
     }
 
