@@ -14,16 +14,10 @@ pragma solidity ^0.8.6;
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import "./SingleEditionMintable.sol";
+import {ISingleEditionMintableCreator} from "./interfaces/ISingleEditionMintableCreator.sol";
+import {IEditionSingleMintable} from "./interfaces/IEditionSingleMintable.sol";
 
-contract SingleEditionMintableCreator {
-    event CreatedEdition(
-        uint256 indexed editionId,
-        address indexed creator,
-        uint256 editionSize,
-        address editionContractAddress
-    );
-
+contract SingleEditionMintableCreator is ISingleEditionMintableCreator {
     /// Address for implementation of SingleEditionMintable to clone
     address public implementation;
 
@@ -50,13 +44,14 @@ contract SingleEditionMintableCreator {
         string memory _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS
-    ) external returns (address newContract) {
+    ) external override returns (IEditionSingleMintable newContract) {
         bytes32 salt = keccak256(abi.encodePacked(msg.sender, _name, _symbol, _animationUrl, _imageUrl));
-        newContract = ClonesUpgradeable.cloneDeterministic(
+        newContract = IEditionSingleMintable(ClonesUpgradeable.cloneDeterministic(
             implementation,
             salt
-        );
-        SingleEditionMintable(newContract).initialize(
+        ));
+
+        newContract.initialize(
             msg.sender,
             _name,
             _symbol,
@@ -66,7 +61,8 @@ contract SingleEditionMintableCreator {
             _editionSize,
             _royaltyBPS
         );
-        emit CreatedEdition(uint256(salt), msg.sender, _editionSize, newContract);
+
+        emit CreatedEdition(uint256(salt), msg.sender, _editionSize, address(newContract));
     }
 
     /// Get edition given the created ID
@@ -75,10 +71,11 @@ contract SingleEditionMintableCreator {
     function getEditionAtId(uint256 editionId)
         external
         view
-        returns (SingleEditionMintable)
+        override
+        returns (IEditionSingleMintable)
     {
         return
-            SingleEditionMintable(
+            IEditionSingleMintable(
                 ClonesUpgradeable.predictDeterministicAddress(
                     implementation,
                     bytes32(editionId),
