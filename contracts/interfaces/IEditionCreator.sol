@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { IEditionSingleMintable } from "./IEditionSingleMintable.sol";
+import { IEdition } from "./IEdition.sol";
 
-interface ISingleEditionMintableCreator {
+interface IEditionCreator {
     event CreatedEdition(
         uint256 indexed editionId,
         address indexed creator,
@@ -20,10 +20,10 @@ interface ISingleEditionMintableCreator {
         string memory _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS
-    ) external returns (IEditionSingleMintable);
+    ) external returns (IEdition);
 
     /// Get edition given the created ID
     /// @param editionId id of edition to get contract for
     /// @return SingleEditionMintable Edition NFT contract
-    function getEditionAtId(uint256 editionId) external view returns (IEditionSingleMintable);
+    function getEditionAtId(uint256 editionId) external view returns (IEdition);
 }

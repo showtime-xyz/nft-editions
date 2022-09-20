@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
 
-interface IEditionSingleMintable {
+interface IEdition {
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
 

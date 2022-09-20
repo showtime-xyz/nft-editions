@@ -19,16 +19,16 @@ import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cou
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import {SharedNFTLogic} from "./SharedNFTLogic.sol";
-import {IEditionSingleMintable} from "./interfaces/IEditionSingleMintable.sol";
+import {IEdition} from "./interfaces/IEdition.sol";
 
 /// This is a smart contract for handling dynamic contract minting.
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
 /// @dev This is a fork of [ZORA Editions](https://github.com/ourzora/nft-editions)
 /// @dev to support [Showtime Free NFT Drops](https://github.com/showtime-xyz/nft-editions)
 /// @author iain nash, karmacoma
-contract SingleEditionMintable is
+contract Edition is
     ERC721Upgradeable,
-    IEditionSingleMintable,
+    IEdition,
     IERC2981Upgradeable,
     OwnableUpgradeable
 {
