@@ -99,9 +99,9 @@ describe("Edition", () => {
     expect(editionUris[1]).to.be.equal(
       "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy"
     );
-    expect(await minterContract.editionSize()).to.be.equal(10);
+    expect(await minterContract.editionSize()).to.equal(10);
     // TODO(iain): check bps
-    expect(await minterContract.owner()).to.be.equal(signerAddress);
+    expect(await minterContract.owner()).to.equal(signerAddress);
   });
 
   describe("with an edition", () => {
