@@ -15,40 +15,37 @@ pragma solidity ^0.8.6;
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import {SharedNFTLogic} from "./SharedNFTLogic.sol";
 import {IEdition} from "./interfaces/IEdition.sol";
 
-/// This is a smart contract for handling dynamic contract minting.
+/// @notice This is a smart contract for handling dynamic contract minting.
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
-/// @dev This is a fork of [ZORA Editions](https://github.com/ourzora/nft-editions)
-/// @dev to support [Showtime Free NFT Drops](https://github.com/showtime-xyz/nft-editions)
-/// @author iain nash, karmacoma
+/// @dev This is a fork of ZORA Editions for Showtime Drops
+/// @author iain nash [ZORA Editions](https://github.com/ourzora/nft-editions)
+/// @author karmacoma [Showtime Drops](https://github.com/showtime-xyz/nft-editions)
 contract Edition is
     ERC721Upgradeable,
     IEdition,
     IERC2981Upgradeable,
     OwnableUpgradeable
 {
-    using CountersUpgradeable for CountersUpgradeable.Counter;
-
     // metadata
     string public description;
 
     // Media Urls
     // animation_url field in the metadata
-    string private animationUrl;
+    string public animationUrl;
 
     // Image in the metadata
-    string private imageUrl;
+    string public imageUrl;
 
     // Total size of edition that can be minted
     uint256 public editionSize;
 
-    // Current token id minted
-    CountersUpgradeable.Counter private atEditionId;
+    // How many tokens have been currently minted
+    uint256 public totalSupply;
 
     // Royalty amount in bps
     uint256 royaltyBPS;
@@ -99,13 +96,11 @@ contract Edition is
         imageUrl = _imageUrl;
         editionSize = _editionSize;
         royaltyBPS = _royaltyBPS;
-        // Set edition id start to be 1 not 0
-        atEditionId.increment();
     }
 
 
     /*//////////////////////////////////////////////////////////////
-                CREATOR / COLLECTION OWNER FUNCTIONS
+                  CREATOR / COLLECTION OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice This sets a simple ETH sales price
@@ -144,13 +139,14 @@ contract Edition is
 
 
     /*//////////////////////////////////////////////////////////////
-                    COLLECTOR / TOKEN OWNER FUNCTIONS
+                   COLLECTOR / TOKEN OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @dev This allows the user to purchase a single edition at the configured sale price
     function purchase() external payable returns (uint256) {
         require(salePrice > 0, "Not for sale");
         require(msg.value == salePrice, "Wrong price");
+
         emit EditionSold(salePrice, msg.sender);
         return _mintEdition(msg.sender);
     }
@@ -159,6 +155,7 @@ contract Edition is
     /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
     function mintEdition(address to) external override returns (uint256) {
         require(_isAllowedToMint(), "Needs to be an allowed minter");
+
         return _mintEdition(to);
     }
 
@@ -181,38 +178,52 @@ contract Edition is
     }
 
     /*//////////////////////////////////////////////////////////////
-                        INTERNAL FUNCTIONS
+                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Private function to mint without any access checks
+    /// @dev guarantees that totalSupply can not exceed maxSupply
+    function updateTotalSupply(uint256 _totalSupply) private {
+        require(_totalSupply <= maxSupply(), "Sold out");
+        totalSupply = _totalSupply;
+    }
+
+    /// @dev Private function to mint without any access checks or supply checks
     /// @return tokenId the id of the newly minted token
     function _mintEdition(address recipient)
         internal
         returns (uint256 tokenId)
     {
-        tokenId = atEditionId.current();
-        require(editionSize == 0 || tokenId <= editionSize, "Sold out");
+        // can not realistically overflow
+        unchecked {
+            updateTotalSupply(totalSupply + 1);
+        }
 
+        tokenId = totalSupply;
         _safeMint(recipient, tokenId);
-        atEditionId.increment();
     }
 
     /// @dev Private function to batch mint without any access checks
     function _mintEditions(address[] memory recipients)
         internal
-        returns (uint256)
+        returns (uint256 lastTokenId)
     {
-        uint256 startAt = atEditionId.current();
-        uint256 endAt = startAt + recipients.length - 1;
-        require(editionSize == 0 || endAt <= editionSize, "Sold out");
-        while (atEditionId.current() <= endAt) {
-            _safeMint(
-                recipients[atEditionId.current() - startAt],
-                atEditionId.current()
-            );
-            atEditionId.increment();
+        unchecked {
+            uint256 n = recipients.length;
+            uint256 startingTokenId = totalSupply + 1;
+            lastTokenId = totalSupply + n;
+
+            for (uint256 i = 0; i < n; ) {
+                _safeMint(
+                    recipients[i],
+                    startingTokenId + i
+                );
+
+                ++i;
+            }
         }
-        return atEditionId.current();
+
+        // only update storage outside of the loop
+        updateTotalSupply(lastTokenId);
     }
 
     /// @dev This helper function checks if the msg.sender is allowed to mint
@@ -229,11 +240,6 @@ contract Edition is
     /*//////////////////////////////////////////////////////////////
                         METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// Returns the number of minted tokens within the edition
-    function totalSupply() public view override returns (uint256) {
-        return atEditionId.current() - 1;
-    }
 
     /// Returns the number of editions left to mint (max_uint256 when open edition)
     function maxSupply() public view override returns (uint256) {
