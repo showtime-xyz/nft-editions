@@ -251,19 +251,6 @@ contract Edition is
         return editionSize;
     }
 
-    /// @notice Get URIs for edition NFT
-    /// @return imageUrl, animationUrl
-    function getURIs()
-        public
-        view
-        returns (
-            string memory,
-            string memory
-        )
-    {
-        return (imageUrl, animationUrl);
-    }
-
     /// @notice Get royalty information for token
     /// @param _salePrice Sale price for the token
     function royaltyInfo(uint256, uint256 _salePrice)

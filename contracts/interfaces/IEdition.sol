@@ -5,19 +5,15 @@ interface IEdition {
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
 
+    function animationUrl() external view returns (string memory);
+
     function burn(uint256 tokenId) external;
 
     function description() external view returns (string memory);
 
     function editionSize() external view returns (uint256);
 
-    function getURIs()
-        external
-        view
-        returns (
-            string memory,
-            string memory
-        );
+    function imageUrl() external view returns (string memory);
 
     function initialize(
         address _owner,
