@@ -143,7 +143,6 @@ describe("Edition", () => {
       expect(metadata.external_link).to.equal("https://example.com");
     });
 
-
     it("can mint", async () => {
       // Mint first edition
       await expect(minterContract.mintEdition(signerAddress))

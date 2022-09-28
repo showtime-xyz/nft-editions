@@ -39,10 +39,10 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     /// @param tokenOfEdition Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createMetadataEdition(
-        string memory name,
-        string memory description,
-        string memory imageUrl,
-        string memory animationUrl,
+        string calldata name,
+        string calldata description,
+        string calldata imageUrl,
+        string calldata animationUrl,
         uint256 tokenOfEdition,
         uint256 editionSize
     ) external pure returns (string memory) {
@@ -51,7 +51,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
             animationUrl,
             tokenOfEdition
         );
-        bytes memory json = createMetadataJSON(
+        string memory json = createMetadataJSON(
             name,
             description,
             _tokenMediaData,
@@ -68,21 +68,21 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     /// @param tokenOfEdition Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createMetadataJSON(
-        string memory name,
-        string memory description,
+        string calldata name,
+        string calldata description,
         string memory mediaData,
         uint256 tokenOfEdition,
         uint256 editionSize
-    ) public pure returns (bytes memory) {
-        bytes memory editionSizeText;
+    ) public pure returns (string memory) {
+        string memory editionSizeText;
         if (editionSize > 0) {
-            editionSizeText = abi.encodePacked(
+            editionSizeText = string.concat(
                 "/",
                 numberToString(editionSize)
             );
         }
         return
-            abi.encodePacked(
+            string.concat(
                 '{"name": "',
                 name,
                 " ",
@@ -112,52 +112,47 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         uint256 royaltyBPS,
         address royaltyRecipient
     ) public pure returns (string memory) {
-        bytes memory imageSpace = bytes("");
+        string memory imageSpace = "";
         if (bytes(imageURI).length > 0) {
-            imageSpace = abi.encodePacked('", "image": "', imageURI);
+            imageSpace = string.concat('", "image": "', imageURI);
         }
 
-        bytes memory externalURLSpace = bytes("");
+        string memory externalURLSpace = "";
         if (bytes(externalURL).length > 0) {
-            externalURLSpace = abi.encodePacked('", "external_link": "', externalURL);
+            externalURLSpace = string.concat('", "external_link": "', externalURL);
         }
 
         return
-            string(
-                encodeMetadataJSON(
-                    abi.encodePacked(
-                        '{"name": "',
-                        name,
-                        '", "description": "',
-                        description,
-                        // this is for opensea since they don't respect ERC2981 right now
-                        '", "seller_fee_basis_points": ',
-                        StringsUpgradeable.toString(royaltyBPS),
-                        ', "fee_recipient": "',
-                        StringsUpgradeable.toHexString(royaltyRecipient),
-                        imageSpace,
-                        externalURLSpace,
-                        '"}'
-                    )
+            encodeMetadataJSON(
+                string.concat(
+                    '{"name": "',
+                    name,
+                    '", "description": "',
+                    description,
+                    // this is for opensea since they don't respect ERC2981 right now
+                    '", "seller_fee_basis_points": ',
+                    StringsUpgradeable.toString(royaltyBPS),
+                    ', "fee_recipient": "',
+                    StringsUpgradeable.toHexString(royaltyRecipient),
+                    imageSpace,
+                    externalURLSpace,
+                    '"}'
                 )
             );
     }
 
     /// Encodes the argument json bytes into base64-data uri format
     /// @param json Raw json to base64 and turn into a data-uri
-    function encodeMetadataJSON(bytes memory json)
+    function encodeMetadataJSON(string memory json)
         public
         pure
         override
         returns (string memory)
     {
-        return
-            string(
-                abi.encodePacked(
-                    "data:application/json;base64,",
-                    base64Encode(json)
-                )
-            );
+        return string.concat(
+            "data:application/json;base64,",
+            base64Encode(bytes(json))
+        );
     }
 
     /// Generates edition metadata from storage information as base64-json blob
@@ -172,44 +167,29 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         bool hasImage = bytes(imageUrl).length > 0;
         bool hasAnimation = bytes(animationUrl).length > 0;
         if (hasImage && hasAnimation) {
-            return
-                string(
-                    abi.encodePacked(
-                        'image": "',
-                        imageUrl,
-                        "?id=",
-                        numberToString(tokenOfEdition),
-                        '", "animation_url": "',
-                        animationUrl,
-                        "?id=",
-                        numberToString(tokenOfEdition),
-                        '", "'
-                    )
-                );
+            return string.concat(
+                'image": "', imageUrl,
+                "?id=", numberToString(tokenOfEdition),
+                '", "animation_url": "', animationUrl,
+                "?id=", numberToString(tokenOfEdition),
+                '", "'
+            );
         }
         if (hasImage) {
-            return
-                string(
-                    abi.encodePacked(
-                        'image": "',
-                        imageUrl,
-                        "?id=",
-                        numberToString(tokenOfEdition),
-                        '", "'
-                    )
-                );
+            return string.concat(
+                'image": "', imageUrl,
+                "?id=", numberToString(tokenOfEdition),
+                '", "'
+            );
         }
         if (hasAnimation) {
-            return
-                string(
-                    abi.encodePacked(
-                        'animation_url": "',
-                        animationUrl,
-                        "?id=",
-                        numberToString(tokenOfEdition),
-                        '", "'
-                    )
-                );
+            return string.concat(
+                'animation_url": "',
+                animationUrl,
+                "?id=",
+                numberToString(tokenOfEdition),
+                '", "'
+            );
         }
 
         return "";
