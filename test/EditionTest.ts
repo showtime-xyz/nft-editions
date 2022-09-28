@@ -94,9 +94,8 @@ describe("Edition", () => {
     const minterContract = await createEdition(dynamicSketch, args);
     expect(await minterContract.name()).to.be.equal("Testing Token");
     expect(await minterContract.symbol()).to.be.equal("TEST");
-    const editionUris = await minterContract.getURIs();
-    expect(editionUris[0]).to.be.equal("");
-    expect(editionUris[1]).to.be.equal(
+    expect(await minterContract.imageUrl()).to.equal("");
+    expect(await minterContract.animationUrl()).to.equal(
       "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy"
     );
     expect(await minterContract.editionSize()).to.equal(10);
@@ -291,6 +290,7 @@ describe("Edition", () => {
       await expect(minterContract.mintEditions([signerAddress])).to.be.reverted;
       await expect(minterContract.mintEdition(signerAddress)).to.be.reverted;
     });
+
     it("returns interfaces correctly", async () => {
       // ERC2891 interface
       expect(await minterContract.supportsInterface("0x2a55205a")).to.be.true;
@@ -359,7 +359,9 @@ describe("Edition", () => {
         toAddresses.push(s3a);
       }
       await minterContract.mintEditions(toAddresses);
+      expect(await minterContract.totalSupply()).to.equal(300);
     });
+
     it("stops after editions are sold out", async () => {
       const [_, signer1] = await ethers.getSigners();
 
