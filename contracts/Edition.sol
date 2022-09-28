@@ -161,7 +161,7 @@ contract Edition is
 
     /// @param recipients list of addresses to send the newly minted editions to
     /// @dev This mints multiple editions to the given list of addresses.
-    function mintEditions(address[] memory recipients)
+    function mintEditions(address[] calldata recipients)
         external
         override
         returns (uint256)
@@ -203,7 +203,7 @@ contract Edition is
     }
 
     /// @dev Private function to batch mint without any access checks
-    function _mintEditions(address[] memory recipients)
+    function _mintEditions(address[] calldata recipients)
         internal
         returns (uint256)
     {
