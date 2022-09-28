@@ -79,11 +79,11 @@ contract Edition is
     /// @param _royaltyBPS BPS of the royalty set on the contract. Can be 0 for no royalty.
     function initialize(
         address _owner,
-        string memory _name,
-        string memory _symbol,
-        string memory _description,
-        string memory _animationUrl,
-        string memory _imageUrl,
+        string calldata _name,
+        string calldata _symbol,
+        string calldata _description,
+        string calldata _animationUrl,
+        string calldata _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS
     ) public initializer override {
@@ -238,7 +238,7 @@ contract Edition is
     }
 
     /*//////////////////////////////////////////////////////////////
-                        METADATA FUNCTIONS
+                           METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// Returns the number of editions left to mint (max_uint256 when open edition)
