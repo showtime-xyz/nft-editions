@@ -240,6 +240,7 @@ describe("Edition", () => {
         await signer1.getAddress()
       );
     });
+
     it("allows user burn", async () => {
       await minterContract.mintEdition(await signer1.getAddress());
       expect(await minterContract.ownerOf(1)).to.equal(
@@ -299,6 +300,7 @@ describe("Edition", () => {
       // ERC721 interface
       expect(await minterContract.supportsInterface("0x80ac58cd")).to.be.true;
     });
+
     describe("royalty 2981", () => {
       it("follows royalty payout for owner", async () => {
         await minterContract.mintEdition(signerAddress);
