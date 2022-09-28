@@ -11,7 +11,7 @@ interface IPublicSharedMetadata {
 
     /// Encodes the argument json bytes into base64-data uri format
     /// @param json Raw json to base64 and turn into a data-uri
-    function encodeMetadataJSON(bytes memory json)
+    function encodeMetadataJSON(string memory json)
         external
         pure
         returns (string memory);
