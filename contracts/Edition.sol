@@ -41,6 +41,9 @@ contract Edition is
     // Image in the metadata
     string public imageUrl;
 
+    // URL that will appear below the asset's image on OpenSea
+    string public externalUrl;
+
     // Total size of edition that can be minted
     uint256 public editionSize;
 
@@ -137,6 +140,10 @@ contract Edition is
         animationUrl = _animationUrl;
     }
 
+    /// @notice Updates the external_url field in the metadata
+    function setExternalUrl(string calldata _externalUrl) public onlyOwner {
+        externalUrl = _externalUrl;
+    }
 
     /*//////////////////////////////////////////////////////////////
                    COLLECTOR / TOKEN OWNER FUNCTIONS
@@ -288,13 +295,14 @@ contract Edition is
     }
 
     function contractURI() public view returns (string memory) {
-        return sharedNFTLogic.encodeContractURIJSON(
-            name(),
-            description,
-            imageUrl,
-            royaltyBPS,
-            owner()
-        );
+        return sharedNFTLogic.encodeContractURIJSON({
+            name: name(),
+            description: description,
+            imageURI: imageUrl,
+            externalURL: externalUrl,
+            royaltyBPS: royaltyBPS,
+            royaltyRecipient: owner()
+        });
     }
 
     function supportsInterface(bytes4 interfaceId)

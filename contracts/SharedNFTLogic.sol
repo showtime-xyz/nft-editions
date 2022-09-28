@@ -105,9 +105,10 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     /// @dev see https://docs.opensea.io/docs/contract-level-metadata
     /// @dev borrowed from https://github.com/ourzora/zora-drops-contracts/blob/main/src/utils/NFTMetadataRenderer.sol
     function encodeContractURIJSON(
-        string memory name,
-        string memory description,
-        string memory imageURI,
+        string calldata name,
+        string calldata description,
+        string calldata imageURI,
+        string calldata externalURL,
         uint256 royaltyBPS,
         address royaltyRecipient
     ) public pure returns (string memory) {
@@ -115,6 +116,12 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         if (bytes(imageURI).length > 0) {
             imageSpace = abi.encodePacked('", "image": "', imageURI);
         }
+
+        bytes memory externalURLSpace = bytes("");
+        if (bytes(externalURL).length > 0) {
+            externalURLSpace = abi.encodePacked('", "external_link": "', externalURL);
+        }
+
         return
             string(
                 encodeMetadataJSON(
@@ -129,6 +136,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
                         ', "fee_recipient": "',
                         StringsUpgradeable.toHexString(royaltyRecipient),
                         imageSpace,
+                        externalURLSpace,
                         '"}'
                     )
                 )
