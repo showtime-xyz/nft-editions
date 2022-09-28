@@ -205,25 +205,25 @@ contract Edition is
     /// @dev Private function to batch mint without any access checks
     function _mintEditions(address[] memory recipients)
         internal
-        returns (uint256 lastTokenId)
+        returns (uint256)
     {
-        unchecked {
-            uint256 n = recipients.length;
-            uint256 startingTokenId = totalSupply + 1;
-            lastTokenId = totalSupply + n;
+        uint256 n = recipients.length;
+        require(n > 0, "No recipients");
 
+        uint256 tokenId;
+
+        unchecked {
             for (uint256 i = 0; i < n; ) {
-                _safeMint(
-                    recipients[i],
-                    startingTokenId + i
-                );
+                tokenId = totalSupply + i + 1;
+                _safeMint(recipients[i], tokenId);
 
                 ++i;
             }
         }
 
         // only update storage outside of the loop
-        updateTotalSupply(lastTokenId);
+        updateTotalSupply(tokenId);
+        return tokenId;
     }
 
     /// @dev This helper function checks if the msg.sender is allowed to mint
