@@ -133,6 +133,17 @@ describe("Edition", () => {
       expect(metadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
     });
 
+    it("can set the external URL", async () => {
+      await minterContract.setExternalUrl("https://example.com");
+      expect(await minterContract.externalUrl()).to.equal("https://example.com");
+
+      // when it has been set, we see it reflected in contractURI()
+      const contractURI = await minterContract.contractURI();
+      const metadata = parseMetadataURI(contractURI);
+      expect(metadata.external_link).to.equal("https://example.com");
+    });
+
+
     it("can mint", async () => {
       // Mint first edition
       await expect(minterContract.mintEdition(signerAddress))
