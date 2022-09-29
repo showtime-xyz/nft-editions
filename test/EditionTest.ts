@@ -152,6 +152,20 @@ describe("Edition", () => {
       expect(metadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
     });
 
+    it("lets the owner call setImageUrl()", async () => {
+      await minterContract.setImageUrl("https://example.com/imageUrl");
+      expect(await minterContract.imageUrl()).to.equal("https://example.com/imageUrl");
+    });
+
+    it("does not let a non-owner call setImageUrl()", async () => {
+      await expect(minterContract.connect(signer1).setImageUrl("https://example.com/imageUrl")).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("lets the owner call setAnimationUrl()", async () => {
+      await minterContract.setAnimationUrl("https://example.com/animationUrl");
+      expect(await minterContract.animationUrl()).to.equal("https://example.com/animationUrl");
+    });
+
     describe("when we set the external URL", () => {
       beforeEach(async () => {
         await minterContract.setExternalUrl("https://example.com");

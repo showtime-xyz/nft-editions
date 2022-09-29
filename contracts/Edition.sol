@@ -131,14 +131,17 @@ contract Edition is
         allowedMinters[minter] = allowed;
     }
 
-    /// @dev Allows for updates of edition urls by the owner of the edition.
-    function updateEditionURLs(
-        string memory _imageUrl,
-        string memory _animationUrl
-    ) public onlyOwner {
-        imageUrl = _imageUrl;
+    /// @dev Allows the owner to update the animation url for the edition
+    function setAnimationUrl(string calldata _animationUrl) public override onlyOwner {
         animationUrl = _animationUrl;
     }
+
+
+    /// @dev Allows the owner to update the image url for the edition
+    function setImageUrl(string calldata _imageUrl) public override onlyOwner {
+        imageUrl = _imageUrl;
+    }
+
 
     /// @notice Updates the external_url field in the metadata
     function setExternalUrl(string calldata _externalUrl) public onlyOwner {
