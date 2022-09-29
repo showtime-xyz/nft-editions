@@ -158,17 +158,30 @@ describe("Edition", () => {
       expect(await minterContract.externalUrl()).to.equal("https://example.com");
 
       // then we see it reflected in contractURI()
-      const contractURI = await minterContract.contractURI();
-      const metadata = parseMetadataURI(contractURI);
+      let contractURI = await minterContract.contractURI();
+      let metadata = parseMetadataURI(contractURI);
       expect(metadata.external_link).to.equal("https://example.com");
 
       // when we mint a token
       await minterContract.mintEdition(signerAddress);
 
       // then we see the external url reflected in tokenURI()
-      const tokenURI = await minterContract.tokenURI(1);
-      const tokenMetadata = parseMetadataURI(tokenURI);
+      let tokenURI = await minterContract.tokenURI(1);
+      let tokenMetadata = parseMetadataURI(tokenURI);
       expect(tokenMetadata.external_url).to.equal("https://example.com");
+
+      // when we set the external url to an empty string
+      await minterContract.setExternalUrl("");
+
+      // then we no longer see it in contractURI()
+      contractURI = await minterContract.contractURI();
+      metadata = parseMetadataURI(contractURI);
+      expect(metadata.external_link).to.be.undefined;
+
+      // and we no longer see it in tokenURI()
+      tokenURI = await minterContract.tokenURI(1);
+      tokenMetadata = parseMetadataURI(tokenURI);
+      expect(tokenMetadata.external_url).to.be.undefined;
     });
 
     it("can mint", async () => {
