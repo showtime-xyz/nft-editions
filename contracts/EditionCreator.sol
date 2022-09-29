@@ -37,11 +37,11 @@ contract EditionCreator is IEditionCreator {
     /// @param _editionSize Total size of the edition (number of possible editions)
     /// @param _royaltyBPS BPS amount of royalty
     function createEdition(
-        string memory _name,
-        string memory _symbol,
-        string memory _description,
-        string memory _animationUrl,
-        string memory _imageUrl,
+        string calldata _name,
+        string calldata _symbol,
+        string calldata _description,
+        string calldata _animationUrl,
+        string calldata _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS
     ) external override returns (IEdition newContract) {
