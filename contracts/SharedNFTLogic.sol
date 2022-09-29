@@ -43,6 +43,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         string calldata description,
         string calldata imageUrl,
         string calldata animationUrl,
+        string calldata externalUrl,
         uint256 tokenOfEdition,
         uint256 editionSize
     ) external pure returns (string memory) {
@@ -54,6 +55,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         string memory json = createMetadataJSON(
             name,
             description,
+            externalUrl,
             _tokenMediaData,
             tokenOfEdition,
             editionSize
@@ -70,6 +72,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     function createMetadataJSON(
         string calldata name,
         string calldata description,
+        string calldata externalURL,
         string memory mediaData,
         uint256 tokenOfEdition,
         uint256 editionSize
@@ -81,6 +84,12 @@ contract SharedNFTLogic is IPublicSharedMetadata {
                 numberToString(editionSize)
             );
         }
+
+        string memory externalURLText = "";
+        if (bytes(externalURL).length > 0) {
+            externalURLText = string.concat('", "external_url": "', externalURL);
+        }
+
         return
             string.concat(
                 '{"name": "',
@@ -91,6 +100,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
                 '", "',
                 'description": "',
                 description,
+                externalURLText,
                 '", "',
                 mediaData,
                 'properties": {"number": ',
@@ -170,7 +180,6 @@ contract SharedNFTLogic is IPublicSharedMetadata {
 
         if (hasImage) {
             buffer = string.concat(
-                buffer,
                 'image": "', imageUrl,
                 "?id=", numberToString(tokenOfEdition),
                 '", "'

@@ -289,6 +289,7 @@ contract Edition is
                 description,
                 imageUrl,
                 animationUrl,
+                externalUrl,
                 tokenId,
                 editionSize
             );
