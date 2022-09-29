@@ -153,13 +153,22 @@ describe("Edition", () => {
     });
 
     it("can set the external URL", async () => {
+      // when the external url is set
       await minterContract.setExternalUrl("https://example.com");
       expect(await minterContract.externalUrl()).to.equal("https://example.com");
 
-      // when it has been set, we see it reflected in contractURI()
+      // then we see it reflected in contractURI()
       const contractURI = await minterContract.contractURI();
       const metadata = parseMetadataURI(contractURI);
       expect(metadata.external_link).to.equal("https://example.com");
+
+      // when we mint a token
+      await minterContract.mintEdition(signerAddress);
+
+      // then we see the external url reflected in tokenURI()
+      const tokenURI = await minterContract.tokenURI(1);
+      const tokenMetadata = parseMetadataURI(tokenURI);
+      expect(tokenMetadata.external_url).to.equal("https://example.com");
     });
 
     it("can mint", async () => {
