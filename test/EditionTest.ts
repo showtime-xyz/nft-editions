@@ -99,8 +99,27 @@ describe("Edition", () => {
       "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy"
     );
     expect(await minterContract.editionSize()).to.equal(10);
-    // TODO(iain): check bps
     expect(await minterContract.owner()).to.equal(signerAddress);
+
+    let { receiver, royaltyAmount } = await minterContract.royaltyInfo(1, 20000);
+    expect(receiver).to.equal(signerAddress);
+    expect(royaltyAmount).to.equal(20);
+  });
+
+  it("makes a new edition with both an imageUrl and an animationUrl", async () => {
+    const args = [
+      "Testing Token",
+      "TEST",
+      "This is a testing token for all",
+      "https://example.com/animationUrl",
+      "https://example.com/imageUrl",
+      10,
+      10,
+    ];
+
+    const edition = await createEdition(dynamicSketch, args);
+    expect(await edition.animationUrl()).to.equal("https://example.com/animationUrl");
+    expect(await edition.imageUrl()).to.equal("https://example.com/imageUrl");
   });
 
   describe("with an edition", () => {
