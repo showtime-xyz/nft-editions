@@ -152,36 +152,46 @@ describe("Edition", () => {
       expect(metadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
     });
 
-    it("can set the external URL", async () => {
-      // when the external url is set
-      await minterContract.setExternalUrl("https://example.com");
-      expect(await minterContract.externalUrl()).to.equal("https://example.com");
+    describe("when we set the external URL", () => {
+      beforeEach(async () => {
+        await minterContract.setExternalUrl("https://example.com");
+        expect(await minterContract.externalUrl()).to.equal("https://example.com");
+      });
 
-      // then we see it reflected in contractURI()
-      let contractURI = await minterContract.contractURI();
-      let metadata = parseMetadataURI(contractURI);
-      expect(metadata.external_link).to.equal("https://example.com");
+      it("contractURI() reflects it as external_link", async () => {
+        const contractURI = await minterContract.contractURI();
+        const metadata = parseMetadataURI(contractURI);
+        expect(metadata.external_link).to.equal("https://example.com");
+      });
 
-      // when we mint a token
-      await minterContract.mintEdition(signerAddress);
+      it("tokenURI() reflects it as external_url", async () => {
+        await minterContract.mintEdition(signerAddress);
+        const tokenURI = await minterContract.tokenURI(1);
+        const metadata = parseMetadataURI(tokenURI);
+        expect(metadata.external_url).to.equal("https://example.com");
+      });
 
-      // then we see the external url reflected in tokenURI()
-      let tokenURI = await minterContract.tokenURI(1);
-      let tokenMetadata = parseMetadataURI(tokenURI);
-      expect(tokenMetadata.external_url).to.equal("https://example.com");
+      it("it can be unset", async () => {
+        await minterContract.setExternalUrl("");
+        expect(await minterContract.externalUrl()).to.equal("");
 
-      // when we set the external url to an empty string
-      await minterContract.setExternalUrl("");
+        // then we no longer see it in contractURI()
+        const contractURI = await minterContract.contractURI();
+        const metadata = parseMetadataURI(contractURI);
+        expect(metadata.external_link).to.be.undefined;
 
-      // then we no longer see it in contractURI()
-      contractURI = await minterContract.contractURI();
-      metadata = parseMetadataURI(contractURI);
-      expect(metadata.external_link).to.be.undefined;
+        // and we no longer see it in tokenURI()
+        await minterContract.mintEdition(signerAddress);
+        const tokenURI = await minterContract.tokenURI(1);
+        const tokenMetadata = parseMetadataURI(tokenURI);
+        expect(tokenMetadata.external_url).to.be.undefined;
+      });
 
-      // and we no longer see it in tokenURI()
-      tokenURI = await minterContract.tokenURI(1);
-      tokenMetadata = parseMetadataURI(tokenURI);
-      expect(tokenMetadata.external_url).to.be.undefined;
+      it("can only be set by the owner", async () => {
+        await expect(
+          minterContract.connect(signer1).setExternalUrl("https://attacker.com")
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
     });
 
     it("can mint", async () => {
