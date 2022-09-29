@@ -38,16 +38,16 @@ interface IEdition {
 
     function salePrice() external view returns (uint256);
 
+    function setAnimationUrl(string calldata animationUrl) external;
+
     function setApprovedMinter(address minter, bool allowed) external;
+
+    function setImageUrl(string calldata imageUrl) external;
 
     function setSalePrice(uint256 _salePrice) external;
 
     function totalSupply() external view returns (uint256);
 
-    function updateEditionURLs(
-        string memory _imageUrl,
-        string memory _animationUrl
-    ) external;
 
     function withdraw() external;
 }
