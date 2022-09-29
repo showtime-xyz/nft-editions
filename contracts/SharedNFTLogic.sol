@@ -166,32 +166,26 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     ) public pure returns (string memory) {
         bool hasImage = bytes(imageUrl).length > 0;
         bool hasAnimation = bytes(animationUrl).length > 0;
-        if (hasImage && hasAnimation) {
-            return string.concat(
-                'image": "', imageUrl,
-                "?id=", numberToString(tokenOfEdition),
-                '", "animation_url": "', animationUrl,
-                "?id=", numberToString(tokenOfEdition),
-                '", "'
-            );
-        }
+        string memory buffer = "";
+
         if (hasImage) {
-            return string.concat(
+            buffer = string.concat(
+                buffer,
                 'image": "', imageUrl,
                 "?id=", numberToString(tokenOfEdition),
-                '", "'
-            );
-        }
-        if (hasAnimation) {
-            return string.concat(
-                'animation_url": "',
-                animationUrl,
-                "?id=",
-                numberToString(tokenOfEdition),
                 '", "'
             );
         }
 
-        return "";
+        if (hasAnimation) {
+            buffer = string.concat(
+                buffer,
+                'animation_url": "', animationUrl,
+                "?id=", numberToString(tokenOfEdition),
+                '", "'
+            );
+        }
+
+        return buffer;
     }
 }
