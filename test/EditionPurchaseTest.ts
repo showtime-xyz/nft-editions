@@ -56,6 +56,7 @@ describe("Edition", () => {
       "",
       10,
       10,
+      24 * 3600
     ]);
     expect(await minterContract.name()).to.be.equal("Testing Token");
     expect(await minterContract.symbol()).to.be.equal("TEST");

@@ -23,7 +23,8 @@ interface IEdition {
         string memory _animationUrl,
         string memory _imageUrl,
         uint256 _editionSize,
-        uint256 _royaltyBPS
+        uint256 _royaltyBPS,
+        uint256 metadataGracePeriod
     ) external;
 
     function maxSupply() external view returns (uint256);
@@ -41,6 +42,8 @@ interface IEdition {
     function setAnimationUrl(string calldata animationUrl) external;
 
     function setApprovedMinter(address minter, bool allowed) external;
+
+    function setDescription(string calldata description) external;
 
     function setImageUrl(string calldata imageUrl) external;
 

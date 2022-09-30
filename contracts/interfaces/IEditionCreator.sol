@@ -19,7 +19,8 @@ interface IEditionCreator {
         string memory _animationUrl,
         string memory _imageUrl,
         uint256 _editionSize,
-        uint256 _royaltyBPS
+        uint256 _royaltyBPS,
+        uint256 _metadataGracePeriodSeconds
     ) external returns (IEdition);
 
     /// Get edition given the created ID

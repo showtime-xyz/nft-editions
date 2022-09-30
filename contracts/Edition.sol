@@ -62,6 +62,9 @@ contract Edition is
     // NFT rendering logic contract
     SharedNFTLogic private immutable sharedNFTLogic;
 
+    // the metadata can be update by the owner up to this timestamp
+    uint256 internal endOfMetadataGracePeriod;
+
     // Global constructor for factory
     constructor(SharedNFTLogic _sharedNFTLogic) {
         sharedNFTLogic = _sharedNFTLogic;
@@ -80,6 +83,7 @@ contract Edition is
     /// @param _animationUrl Animation URL of the edition. Not required, but if omitted image URL needs to be included. This follows the opensea spec for NFTs
     /// @param _editionSize Number of editions that can be minted in total. If 0, unlimited editions can be minted.
     /// @param _royaltyBPS BPS of the royalty set on the contract. Can be 0 for no royalty.
+    /// @param metadataGracePeriodSeconds The amount of time in seconds that the metadata can be updated after the contract is deployed, 0 to have no grace period
     function initialize(
         address _owner,
         string calldata _name,
@@ -88,7 +92,8 @@ contract Edition is
         string calldata _animationUrl,
         string calldata _imageUrl,
         uint256 _editionSize,
-        uint256 _royaltyBPS
+        uint256 _royaltyBPS,
+        uint256 metadataGracePeriodSeconds
     ) public initializer override {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
@@ -99,12 +104,21 @@ contract Edition is
         imageUrl = _imageUrl;
         editionSize = _editionSize;
         royaltyBPS = _royaltyBPS;
+
+        if (metadataGracePeriodSeconds > 0) {
+            endOfMetadataGracePeriod = block.timestamp + metadataGracePeriodSeconds;
+        }
     }
 
 
     /*//////////////////////////////////////////////////////////////
                   CREATOR / COLLECTION OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    modifier notFrozen() {
+        require(!isMetadataFrozen(), "metadata is frozen");
+        _;
+    }
 
     /// @notice This sets a simple ETH sales price
     /// Setting a sales price allows users to mint the edition until it sells out.
@@ -131,19 +145,22 @@ contract Edition is
         allowedMinters[minter] = allowed;
     }
 
+    function setDescription(string calldata _description) public override onlyOwner notFrozen {
+        description = _description;
+    }
+
     /// @dev Allows the owner to update the animation url for the edition
-    function setAnimationUrl(string calldata _animationUrl) public override onlyOwner {
+    function setAnimationUrl(string calldata _animationUrl) public override onlyOwner notFrozen {
         animationUrl = _animationUrl;
     }
 
-
     /// @dev Allows the owner to update the image url for the edition
-    function setImageUrl(string calldata _imageUrl) public override onlyOwner {
+    function setImageUrl(string calldata _imageUrl) public override onlyOwner notFrozen {
         imageUrl = _imageUrl;
     }
 
-
     /// @notice Updates the external_url field in the metadata
+    /// @notice can be updated by the owner regardless of the grace period
     function setExternalUrl(string calldata _externalUrl) public onlyOwner {
         externalUrl = _externalUrl;
     }
@@ -250,6 +267,12 @@ contract Edition is
     /*//////////////////////////////////////////////////////////////
                            METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// Returns whether metadata (image URL, animation URL, description) can be updated
+    /// The external URL can be updated at any time
+    function isMetadataFrozen() public view returns (bool) {
+        return block.timestamp > endOfMetadataGracePeriod;
+    }
 
     /// Returns the number of editions left to mint (max_uint256 when open edition)
     function maxSupply() public view override returns (uint256) {

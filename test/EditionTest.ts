@@ -30,6 +30,26 @@ describe("Edition", () => {
   let dynamicSketch: EditionCreator;
   let editionImpl: Edition;
 
+  const DEFAULT_NAME = "Testing Token";
+  const DEFAULT_SYMBOL = "TEST";
+  const DEFAULT_DESCRIPTION = "This is a testing token for all";
+  const DEFAULT_ANIMATION_URL = "";
+  const DEFAULT_IMAGE_URL = "ipfs://someImageHash";
+  const DEFAULT_MAX_SUPPLY = 10;
+  const DEFAULT_ROYALTIES_BPS = 1000;
+  const DEFAULT_METADATA_GRACE_PERIOD = 24 * 3600;
+
+  const DEFAULT_ARGS = [
+    DEFAULT_NAME,
+    DEFAULT_SYMBOL,
+    DEFAULT_DESCRIPTION,
+    DEFAULT_ANIMATION_URL,
+    DEFAULT_IMAGE_URL,
+    DEFAULT_MAX_SUPPLY,
+    DEFAULT_ROYALTIES_BPS,
+    DEFAULT_METADATA_GRACE_PERIOD,
+  ];
+
   let createEdition = async function(factory: EditionCreator, args: any): Promise<Edition> {
     // first simulate the call to get the output
     // @ts-ignore
@@ -67,59 +87,34 @@ describe("Edition", () => {
 
   it("does not allow re-initialization of the implementation contract", async () => {
     await expect(
-      editionImpl.initialize(
-        signerAddress,
-        "test name",
-        "SYM",
-        "description",
-        "animation",
-        "uri",
-        12,
-        12,
-      )
+      // @ts-ignore
+      editionImpl.initialize(signerAddress, ...DEFAULT_ARGS)
     ).to.be.revertedWith("Initializable: contract is already initialized");
   });
 
   it("makes a new edition", async () => {
-    const args = [
-      "Testing Token",
-      "TEST",
-      "This is a testing token for all",
-      "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
-      "",
-      10,
-      10,
-    ];
-
-    const minterContract = await createEdition(dynamicSketch, args);
-    expect(await minterContract.name()).to.be.equal("Testing Token");
-    expect(await minterContract.symbol()).to.be.equal("TEST");
-    expect(await minterContract.imageUrl()).to.equal("");
-    expect(await minterContract.animationUrl()).to.equal(
-      "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy"
-    );
-    expect(await minterContract.editionSize()).to.equal(10);
+    const minterContract = await createEdition(dynamicSketch, DEFAULT_ARGS);
+    expect(await minterContract.name()).to.be.equal(DEFAULT_NAME);
+    expect(await minterContract.symbol()).to.be.equal(DEFAULT_SYMBOL);
+    expect(await minterContract.imageUrl()).to.equal(DEFAULT_IMAGE_URL);
+    expect(await minterContract.animationUrl()).to.equal(DEFAULT_ANIMATION_URL);
+    expect(await minterContract.editionSize()).to.equal(DEFAULT_MAX_SUPPLY);
     expect(await minterContract.owner()).to.equal(signerAddress);
 
-    let { receiver, royaltyAmount } = await minterContract.royaltyInfo(1, 20000);
+    let salePrice = 20000;
+    let { receiver, royaltyAmount } = await minterContract.royaltyInfo(/* tokenId */ 1, salePrice);
     expect(receiver).to.equal(signerAddress);
-    expect(royaltyAmount).to.equal(20);
+    expect(royaltyAmount).to.equal(salePrice * DEFAULT_ROYALTIES_BPS / 10000);
   });
 
   it("makes a new edition with both an imageUrl and an animationUrl", async () => {
-    const args = [
-      "Testing Token",
-      "TEST",
-      "This is a testing token for all",
-      "https://example.com/animationUrl",
-      "https://example.com/imageUrl",
-      10,
-      10,
-    ];
+    const args = [...DEFAULT_ARGS];
+    args[3] = "https://example.com/animationUrl";
+    args[4] = "https://example.com/imageUrl";
 
     const edition = await createEdition(dynamicSketch, args);
-    expect(await edition.animationUrl()).to.equal("https://example.com/animationUrl");
-    expect(await edition.imageUrl()).to.equal("https://example.com/imageUrl");
+    expect(await edition.animationUrl()).to.equal(args[3]);
+    expect(await edition.imageUrl()).to.equal(args[4]);
   });
 
   describe("with an edition", () => {
@@ -128,42 +123,72 @@ describe("Edition", () => {
 
     beforeEach(async () => {
       signer1 = (await ethers.getSigners())[1];
-      const args = [
-        "Testing Token",
-        "TEST",
-        "This is a testing token for all",
-        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
-        "",
-        10,
-        10,
-      ];
-
-      minterContract = await createEdition(dynamicSketch, args);
+      minterContract = await createEdition(dynamicSketch, DEFAULT_ARGS);
     });
 
     it("has the expected contractURI", async () => {
       const contractURI = await minterContract.contractURI();
       const metadata = parseMetadataURI(contractURI);
-      expect(metadata.name).to.equal("Testing Token");
-      expect(metadata.description).to.equal("This is a testing token for all");
-      // the edition only specified an animation url and no image url
-      expect(metadata.image).to.be.undefined;
-      expect(metadata.seller_fee_basis_points).to.equal(10);
+      expect(metadata.name).to.equal(DEFAULT_NAME);
+      expect(metadata.description).to.equal(DEFAULT_DESCRIPTION);
+
+      expect(metadata.image_url).to.be.undefined;
+      expect(metadata.image).to.equal(DEFAULT_IMAGE_URL);
+      expect(metadata.seller_fee_basis_points).to.equal(DEFAULT_ROYALTIES_BPS);
       expect(metadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
     });
 
-    it("lets the owner call setImageUrl()", async () => {
-      await minterContract.setImageUrl("https://example.com/imageUrl");
-      expect(await minterContract.imageUrl()).to.equal("https://example.com/imageUrl");
+    describe("during the grace period", () => {
+      it("lets the owner call setImageUrl()", async () => {
+        await minterContract.setImageUrl("https://example.com/imageUrl");
+        expect(await minterContract.imageUrl()).to.equal("https://example.com/imageUrl");
+      });
+
+      it("lets the owner call setAnimationUrl()", async () => {
+        await minterContract.setAnimationUrl("https://example.com/animationUrl");
+        expect(await minterContract.animationUrl()).to.equal("https://example.com/animationUrl");
+      });
+
+      it("lets the owner call setDescription()", async () => {
+        await minterContract.setDescription("New description");
+        expect(await minterContract.description()).to.equal("New description");
+      });
+
+      it("does not let a non-owner call setAnimationUrl()", async () => {
+        await expect(minterContract.connect(signer1).setAnimationUrl("")).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("does not let a non-owner call setImageUrl()", async () => {
+        await expect(minterContract.connect(signer1).setImageUrl("")).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("does not let a non-owner call setDescription()", async () => {
+        await expect(minterContract.connect(signer1).setDescription("")).to.be.revertedWith("Ownable: caller is not the owner");
+      });
     });
 
-    it("does not let a non-owner call setImageUrl()", async () => {
-      await expect(minterContract.connect(signer1).setImageUrl("https://example.com/imageUrl")).to.be.revertedWith("Ownable: caller is not the owner");
-    });
+    describe("after the grace period", () => {
+      beforeEach(async () => {
+        // warp time forward to after the grace period
+        await ethers.provider.send("evm_increaseTime", [DEFAULT_METADATA_GRACE_PERIOD + 1]);
+      });
 
-    it("lets the owner call setAnimationUrl()", async () => {
-      await minterContract.setAnimationUrl("https://example.com/animationUrl");
-      expect(await minterContract.animationUrl()).to.equal("https://example.com/animationUrl");
+      it("does not let the owner call setImageUrl()", async () => {
+        await expect(minterContract.setImageUrl("")).to.be.revertedWith("metadata is frozen");
+      });
+
+      it("does not let the owner call setAnimationUrl()", async () => {
+        await expect(minterContract.setAnimationUrl("")).to.be.revertedWith("metadata is frozen");
+      });
+
+      it("does not let the owner call setDescription()", async () => {
+        await expect(minterContract.setDescription("")).to.be.revertedWith("metadata is frozen");
+      });
+
+      it("lets the owner call setExternalUrl()", async () => {
+        await minterContract.setExternalUrl("https://example.com/externalUrl");
+        expect(await minterContract.externalUrl()).to.equal("https://example.com/externalUrl");
+      });
     });
 
     describe("when we set the external URL", () => {
@@ -222,49 +247,32 @@ describe("Edition", () => {
       const metadata = parseMetadataURI(tokenURI);
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
-          name: "Testing Token 1/10",
-          description: "This is a testing token for all",
-          animation_url:
-            "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy?id=1",
-          properties: { number: 1, name: "Testing Token" },
+          name: DEFAULT_NAME + " 1/10",
+          description: DEFAULT_DESCRIPTION,
+          image: DEFAULT_IMAGE_URL + "?id=1",
+          properties: { number: 1, name: DEFAULT_NAME },
         })
       );
     });
 
     it("can not create another edition with the same parameters", async () => {
-      const args = [
-        "Testing Token",
-        "TEST",
-        "This is a testing token for all",
-        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
-        "",
-        10,
-        10,
-      ];
-
-      await expect(createEdition(dynamicSketch, args)).to.be.revertedWith("ERC1167: create2 failed");
+      await expect(createEdition(dynamicSketch, DEFAULT_ARGS)).to.be.revertedWith("ERC1167: create2 failed");
     });
 
     it("creates an unbounded edition", async () => {
       // no limit for edition size
-      let args = [
-        "Testing Unbounded Token",
-        "TEST",
-        "This is a testing token for all",
-        "",
-        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
-        0,
-        0,
-      ];
+      let args = [...DEFAULT_ARGS];
+      args[0] = "Testing Unbounded Edition";
+      args[5] = 0;
 
       minterContract = await createEdition(dynamicSketch, args);
 
       const contractURI = await minterContract.contractURI();
       const contractMetadata = parseMetadataURI(contractURI);
-      expect(contractMetadata.name).to.equal("Testing Unbounded Token");
-      expect(contractMetadata.description).to.equal("This is a testing token for all");
-      expect(contractMetadata.image).to.equal("https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy");
-      expect(contractMetadata.seller_fee_basis_points).to.equal(0);
+      expect(contractMetadata.name).to.equal("Testing Unbounded Edition");
+      expect(contractMetadata.description).to.equal(DEFAULT_DESCRIPTION);
+      expect(contractMetadata.image).to.equal(DEFAULT_IMAGE_URL);
+      expect(contractMetadata.seller_fee_basis_points).to.equal(DEFAULT_ROYALTIES_BPS);
       expect(contractMetadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
 
       expect(await minterContract.totalSupply()).to.equal(0);
@@ -296,15 +304,14 @@ describe("Edition", () => {
       const metadata = parseMetadataURI(tokenURI);
       const metadata2 = parseMetadataURI(tokenURI2);
 
-      expect(metadata2.name).to.be.equal("Testing Unbounded Token 2");
+      expect(metadata2.name).to.be.equal("Testing Unbounded Edition 2");
 
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
-          name: "Testing Unbounded Token 1",
-          description: "This is a testing token for all",
-          image:
-            "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy?id=1",
-          properties: { number: 1, name: "Testing Unbounded Token" },
+          name: "Testing Unbounded Edition 1",
+          description: DEFAULT_DESCRIPTION,
+          image: DEFAULT_IMAGE_URL + "?id=1",
+          properties: { number: 1, name: "Testing Unbounded Edition" },
         })
       );
     });
@@ -329,15 +336,11 @@ describe("Edition", () => {
       await expect(
         minterContract.initialize(
           signerAddress,
-          "test name",
-          "SYM",
-          "description",
-          "animation",
-            "uri",
-            12,
-          12,
+          // @ts-ignore
+          ...DEFAULT_ARGS,
         )
       ).to.be.revertedWith("Initializable: contract is already initialized");
+
       await minterContract.mintEdition(await signer1.getAddress());
       expect(await minterContract.ownerOf(1)).to.equal(
         await signer1.getAddress()
@@ -390,16 +393,9 @@ describe("Edition", () => {
       });
 
       it("sets the correct royalty amount", async () => {
-        let args = [
-          "Testing 2% Royalty Token",
-          "TEST",
-          "This is a testing token for all",
-          "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
-            "",
-            // 2% royalty since BPS
-          200,
-          200,
-        ];
+        let args = [...DEFAULT_ARGS];
+        args[0] = "Edition w/ 2% royalties";
+        args[6] = 200; // 2% royalties
 
         const minterContractNew = await createEdition(dynamicSketch, args);
         await minterContractNew.mintEdition(signerAddress);
@@ -411,15 +407,9 @@ describe("Edition", () => {
 
     it("mints a large batch", async () => {
       // no limit for edition size
-      let args = [
-        "Testing Unlimited Token",
-        "TEST",
-        "This is a testing token for all",
-        "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
-        "",
-        0,
-        0,
-      ];
+      let args = [...DEFAULT_ARGS];
+      args[0] = "Unbounded Edition";
+      args[5] = 0;
 
       minterContract = await createEdition(dynamicSketch, args);
 
@@ -469,8 +459,7 @@ describe("Edition", () => {
         JSON.stringify({
           name: "Testing Token 10/10",
           description: "This is a testing token for all",
-          animation_url:
-            "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy?id=10",
+          image: DEFAULT_IMAGE_URL + "?id=10",
           properties: { number: 10, name: "Testing Token" },
         })
       );
