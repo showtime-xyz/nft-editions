@@ -28,7 +28,7 @@ contract EditionCreator is IEditionCreator {
     }
 
     /// Creates a new edition contract as a factory with a deterministic address
-    /// Important: None of these fields (except the Url fields with the same hash) can be changed after calling
+    /// Important: most of these fields can not be changed after calling
     /// @param _name Name of the edition contract
     /// @param _symbol Symbol of the edition contract
     /// @param _description Metadata: Description of the edition entry
@@ -36,6 +36,8 @@ contract EditionCreator is IEditionCreator {
     /// @param _imageUrl Metadata: Image url (semi-required) of the edition entry
     /// @param _editionSize Total size of the edition (number of possible editions)
     /// @param _royaltyBPS BPS amount of royalty
+    /// @param _metadataGracePeriodSeconds Number of seconds after minting that metadata can be updated by the owner, 0 to have no grace period
+    /// @return newContract The address of the created edition
     function createEdition(
         string calldata _name,
         string calldata _symbol,
@@ -43,7 +45,8 @@ contract EditionCreator is IEditionCreator {
         string calldata _animationUrl,
         string calldata _imageUrl,
         uint256 _editionSize,
-        uint256 _royaltyBPS
+        uint256 _royaltyBPS,
+        uint256 _metadataGracePeriodSeconds
     ) external override returns (IEdition newContract) {
         bytes32 salt = keccak256(abi.encodePacked(msg.sender, _name, _symbol, _animationUrl, _imageUrl));
         newContract = IEdition(ClonesUpgradeable.cloneDeterministic(
@@ -59,7 +62,8 @@ contract EditionCreator is IEditionCreator {
             _animationUrl,
             _imageUrl,
             _editionSize,
-            _royaltyBPS
+            _royaltyBPS,
+            _metadataGracePeriodSeconds
         );
 
         emit CreatedEdition(uint256(salt), msg.sender, _editionSize, address(newContract));
