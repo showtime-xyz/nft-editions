@@ -4,31 +4,10 @@ pragma solidity ^0.8.6;
 
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {Base64} from "base64-sol/base64.sol";
-import {IPublicSharedMetadata} from "./interfaces/IPublicSharedMetadata.sol";
 
 /// Shared NFT logic for rendering metadata associated with editions
-/// @dev Can safely be used for generic base64Encode and numberToString functions
-contract SharedNFTLogic is IPublicSharedMetadata {
-    /// @param unencoded bytes to base64-encode
-    function base64Encode(bytes memory unencoded)
-        public
-        pure
-        override
-        returns (string memory)
-    {
-        return Base64.encode(unencoded);
-    }
-
-    /// Proxy to openzeppelin's toString function
-    /// @param value number to return as a string
-    function numberToString(uint256 value)
-        public
-        pure
-        override
-        returns (string memory)
-    {
-        return StringsUpgradeable.toString(value);
-    }
+contract SharedNFTLogic {
+    using StringsUpgradeable for uint256;
 
     /// Generate edition metadata from storage information as base64-json blob
     /// Combines the media data and metadata
@@ -36,7 +15,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     /// @param description Description of NFT in metadata
     /// @param imageUrl URL of image to render for edition
     /// @param animationUrl URL of animation to render for edition
-    /// @param tokenOfEdition Token ID for specific token
+    /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createMetadataEdition(
         string calldata name,
@@ -44,20 +23,20 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         string calldata imageUrl,
         string calldata animationUrl,
         string calldata externalUrl,
-        uint256 tokenOfEdition,
+        uint256 tokenId,
         uint256 editionSize
     ) external pure returns (string memory) {
         string memory _tokenMediaData = tokenMediaData(
             imageUrl,
             animationUrl,
-            tokenOfEdition
+            tokenId
         );
         string memory json = createMetadataJSON(
             name,
             description,
             externalUrl,
             _tokenMediaData,
-            tokenOfEdition,
+            tokenId,
             editionSize
         );
         return encodeMetadataJSON(json);
@@ -67,21 +46,21 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     /// @param name Name of NFT in metadata
     /// @param description Description of NFT in metadata
     /// @param mediaData Data for media to include in json object
-    /// @param tokenOfEdition Token ID for specific token
+    /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createMetadataJSON(
         string calldata name,
         string calldata description,
         string calldata externalURL,
         string memory mediaData,
-        uint256 tokenOfEdition,
+        uint256 tokenId,
         uint256 editionSize
     ) public pure returns (string memory) {
         string memory editionSizeText;
         if (editionSize > 0) {
             editionSizeText = string.concat(
                 "/",
-                numberToString(editionSize)
+                editionSize.toString()
             );
         }
 
@@ -90,12 +69,14 @@ contract SharedNFTLogic is IPublicSharedMetadata {
             externalURLText = string.concat('", "external_url": "', externalURL);
         }
 
+        string memory tokenIdString = tokenId.toString();
+
         return
             string.concat(
                 '{"name": "',
                 name,
                 " ",
-                numberToString(tokenOfEdition),
+                tokenIdString,
                 editionSizeText,
                 '", "',
                 'description": "',
@@ -104,7 +85,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
                 '", "',
                 mediaData,
                 'properties": {"number": ',
-                numberToString(tokenOfEdition),
+                tokenIdString,
                 ', "name": "',
                 name,
                 '"}}'
@@ -156,12 +137,11 @@ contract SharedNFTLogic is IPublicSharedMetadata {
     function encodeMetadataJSON(string memory json)
         public
         pure
-        override
         returns (string memory)
     {
         return string.concat(
             "data:application/json;base64,",
-            base64Encode(bytes(json))
+            Base64.encode(bytes(json))
         );
     }
 
@@ -181,7 +161,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
         if (hasImage) {
             buffer = string.concat(
                 'image": "', imageUrl,
-                "?id=", numberToString(tokenOfEdition),
+                "?id=", tokenOfEdition.toString(),
                 '", "'
             );
         }
@@ -190,7 +170,7 @@ contract SharedNFTLogic is IPublicSharedMetadata {
             buffer = string.concat(
                 buffer,
                 'animation_url": "', animationUrl,
-                "?id=", numberToString(tokenOfEdition),
+                "?id=", tokenOfEdition.toString(),
                 '", "'
             );
         }
