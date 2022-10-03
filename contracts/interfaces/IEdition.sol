@@ -4,6 +4,10 @@ pragma solidity ^0.8.6;
 interface IEdition {
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
+    event DescriptionUpdated(string oldDescription);
+    event AnimationUrlUpdated(string oldAnimationUrl);
+    event ImageUrlUpdated(string oldImageUrl);
+    event ExternalUrlUpdated(string oldExternalUrl);
 
     function animationUrl() external view returns (string memory);
 
