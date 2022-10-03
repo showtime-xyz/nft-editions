@@ -146,22 +146,37 @@ contract Edition is
     }
 
     function setDescription(string calldata _description) public override onlyOwner notFrozen {
+        // log the current description
+        emit DescriptionUpdated(description);
+
+        // switch to the new one
         description = _description;
     }
 
     /// @dev Allows the owner to update the animation url for the edition
     function setAnimationUrl(string calldata _animationUrl) public override onlyOwner notFrozen {
+        // log the current animation url
+        emit AnimationUrlUpdated(animationUrl);
+
+        // switch to the new one
         animationUrl = _animationUrl;
     }
 
     /// @dev Allows the owner to update the image url for the edition
     function setImageUrl(string calldata _imageUrl) public override onlyOwner notFrozen {
+        // log the current image url
+        emit ImageUrlUpdated(imageUrl);
+
+        // switch to the new one
         imageUrl = _imageUrl;
     }
 
     /// @notice Updates the external_url field in the metadata
     /// @notice can be updated by the owner regardless of the grace period
     function setExternalUrl(string calldata _externalUrl) public onlyOwner {
+        // log the current external url
+        emit ExternalUrlUpdated(externalUrl);
+
         externalUrl = _externalUrl;
     }
 

@@ -50,7 +50,7 @@ describe("Edition", () => {
     DEFAULT_METADATA_GRACE_PERIOD,
   ];
 
-  let createEdition = async function(factory: EditionCreator, args: any): Promise<Edition> {
+  let createEdition = async function (factory: EditionCreator, args: any): Promise<Edition> {
     // first simulate the call to get the output
     // @ts-ignore
     const editionAddress = await factory.callStatic.createEdition(...args);
@@ -140,30 +140,42 @@ describe("Edition", () => {
 
     describe("during the grace period", () => {
       it("lets the owner call setImageUrl()", async () => {
-        await minterContract.setImageUrl("https://example.com/imageUrl");
+        await expect(minterContract.setImageUrl("https://example.com/imageUrl"))
+          .to.emit(minterContract, "ImageUrlUpdated")
+          .withArgs(DEFAULT_IMAGE_URL);
+
         expect(await minterContract.imageUrl()).to.equal("https://example.com/imageUrl");
       });
 
       it("lets the owner call setAnimationUrl()", async () => {
-        await minterContract.setAnimationUrl("https://example.com/animationUrl");
+        await expect(minterContract.setAnimationUrl("https://example.com/animationUrl"))
+          .to.emit(minterContract, "AnimationUrlUpdated")
+          .withArgs(DEFAULT_ANIMATION_URL);
+
         expect(await minterContract.animationUrl()).to.equal("https://example.com/animationUrl");
       });
 
       it("lets the owner call setDescription()", async () => {
-        await minterContract.setDescription("New description");
+        await expect(minterContract.setDescription("New description"))
+          .to.emit(minterContract, "DescriptionUpdated")
+          .withArgs(DEFAULT_DESCRIPTION);
+
         expect(await minterContract.description()).to.equal("New description");
       });
 
       it("does not let a non-owner call setAnimationUrl()", async () => {
-        await expect(minterContract.connect(signer1).setAnimationUrl("")).to.be.revertedWith("Ownable: caller is not the owner");
+        await expect(minterContract.connect(signer1).setAnimationUrl(""))
+          .to.be.revertedWith("Ownable: caller is not the owner");
       });
 
       it("does not let a non-owner call setImageUrl()", async () => {
-        await expect(minterContract.connect(signer1).setImageUrl("")).to.be.revertedWith("Ownable: caller is not the owner");
+        await expect(minterContract.connect(signer1).setImageUrl(""))
+          .to.be.revertedWith("Ownable: caller is not the owner");
       });
 
       it("does not let a non-owner call setDescription()", async () => {
-        await expect(minterContract.connect(signer1).setDescription("")).to.be.revertedWith("Ownable: caller is not the owner");
+        await expect(minterContract.connect(signer1).setDescription(""))
+          .to.be.revertedWith("Ownable: caller is not the owner");
       });
     });
 
@@ -193,7 +205,8 @@ describe("Edition", () => {
 
     describe("when we set the external URL", () => {
       beforeEach(async () => {
-        await minterContract.setExternalUrl("https://example.com");
+        await expect(minterContract.setExternalUrl("https://example.com"))
+          .to.emit(minterContract, "ExternalUrlUpdated").withArgs("");
         expect(await minterContract.externalUrl()).to.equal("https://example.com");
       });
 
