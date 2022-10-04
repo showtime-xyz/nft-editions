@@ -3,10 +3,10 @@
 pragma solidity ^0.8.6;
 
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-import {Base64} from "base64-sol/base64.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
-/// Shared NFT logic for rendering metadata associated with editions
-contract SharedNFTLogic {
+/// logic for rendering metadata associated with editions
+library NFTMetadataRenderer {
     using StringsUpgradeable for uint256;
 
     /// Generate edition metadata from storage information as base64-json blob
@@ -18,14 +18,14 @@ contract SharedNFTLogic {
     /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createMetadataEdition(
-        string calldata name,
-        string calldata description,
-        string calldata imageUrl,
-        string calldata animationUrl,
-        string calldata externalUrl,
+        string memory name,
+        string storage description,
+        string storage imageUrl,
+        string storage animationUrl,
+        string storage externalUrl,
         uint256 tokenId,
         uint256 editionSize
-    ) external pure returns (string memory) {
+    ) internal view returns (string memory) {
         string memory _tokenMediaData = tokenMediaData(
             imageUrl,
             animationUrl,
@@ -49,13 +49,13 @@ contract SharedNFTLogic {
     /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createMetadataJSON(
-        string calldata name,
-        string calldata description,
-        string calldata externalURL,
+        string memory name,
+        string storage description,
+        string storage externalURL,
         string memory mediaData,
         uint256 tokenId,
         uint256 editionSize
-    ) public pure returns (string memory) {
+    ) internal view returns (string memory) {
         string memory editionSizeText;
         if (editionSize > 0) {
             editionSizeText = string.concat(
@@ -96,13 +96,13 @@ contract SharedNFTLogic {
     /// @dev see https://docs.opensea.io/docs/contract-level-metadata
     /// @dev borrowed from https://github.com/ourzora/zora-drops-contracts/blob/main/src/utils/NFTMetadataRenderer.sol
     function encodeContractURIJSON(
-        string calldata name,
-        string calldata description,
-        string calldata imageURI,
-        string calldata externalURL,
+        string memory name,
+        string storage description,
+        string storage imageURI,
+        string storage externalURL,
         uint256 royaltyBPS,
         address royaltyRecipient
-    ) public pure returns (string memory) {
+    ) internal view returns (string memory) {
         string memory imageSpace = "";
         if (bytes(imageURI).length > 0) {
             imageSpace = string.concat('", "image": "', imageURI);
@@ -135,7 +135,7 @@ contract SharedNFTLogic {
     /// Encodes the argument json bytes into base64-data uri format
     /// @param json Raw json to base64 and turn into a data-uri
     function encodeMetadataJSON(string memory json)
-        public
+        internal
         pure
         returns (string memory)
     {
@@ -153,7 +153,7 @@ contract SharedNFTLogic {
         string memory imageUrl,
         string memory animationUrl,
         uint256 tokenOfEdition
-    ) public pure returns (string memory) {
+    ) internal pure returns (string memory) {
         bool hasImage = bytes(imageUrl).length > 0;
         bool hasAnimation = bytes(animationUrl).length > 0;
         string memory buffer = "";
