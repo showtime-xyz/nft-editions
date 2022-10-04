@@ -321,7 +321,7 @@ contract Edition is
         require(_exists(tokenId), "No token");
 
         return
-            NFTMetadataRenderer.createMetadataEdition(
+            NFTMetadataRenderer.createTokenMetadata(
                 name(),
                 description,
                 imageUrl,
@@ -333,7 +333,7 @@ contract Edition is
     }
 
     function contractURI() public view returns (string memory) {
-        return NFTMetadataRenderer.encodeContractURIJSON({
+        return NFTMetadataRenderer.createContractMetadata({
             name: name(),
             description: description,
             imageURI: imageUrl,
