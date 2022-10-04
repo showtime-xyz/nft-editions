@@ -17,7 +17,7 @@ import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-u
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {SharedNFTLogic} from "./SharedNFTLogic.sol";
+import {NFTMetadataRenderer} from "./NFTMetadataRenderer.sol";
 import {IEdition} from "./interfaces/IEdition.sol";
 
 /// @notice This is a smart contract for handling dynamic contract minting.
@@ -59,16 +59,11 @@ contract Edition is
     // Price for sale
     uint256 public salePrice;
 
-    // NFT rendering logic contract
-    SharedNFTLogic private immutable sharedNFTLogic;
-
     // the metadata can be update by the owner up to this timestamp
     uint256 internal endOfMetadataGracePeriod;
 
     // Global constructor for factory
-    constructor(SharedNFTLogic _sharedNFTLogic) {
-        sharedNFTLogic = _sharedNFTLogic;
-
+    constructor() {
         _disableInitializers();
     }
 
@@ -179,6 +174,7 @@ contract Edition is
 
         externalUrl = _externalUrl;
     }
+
 
     /*//////////////////////////////////////////////////////////////
                    COLLECTOR / TOKEN OWNER FUNCTIONS
@@ -325,7 +321,7 @@ contract Edition is
         require(_exists(tokenId), "No token");
 
         return
-            sharedNFTLogic.createMetadataEdition(
+            NFTMetadataRenderer.createMetadataEdition(
                 name(),
                 description,
                 imageUrl,
@@ -337,7 +333,7 @@ contract Edition is
     }
 
     function contractURI() public view returns (string memory) {
-        return sharedNFTLogic.encodeContractURIJSON({
+        return NFTMetadataRenderer.encodeContractURIJSON({
             name: name(),
             description: description,
             imageURI: imageUrl,
