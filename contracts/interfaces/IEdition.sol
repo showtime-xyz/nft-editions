@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
 
+struct StringAttribute {
+    string name;
+    string value;
+}
+
 interface IEdition {
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
@@ -9,15 +14,9 @@ interface IEdition {
     event ImageUrlUpdated(string oldImageUrl);
     event ExternalUrlUpdated(string oldExternalUrl);
 
-    function animationUrl() external view returns (string memory);
-
     function burn(uint256 tokenId) external;
 
-    function description() external view returns (string memory);
-
     function editionSize() external view returns (uint256);
-
-    function imageUrl() external view returns (string memory);
 
     function initialize(
         address _owner,
@@ -54,7 +53,6 @@ interface IEdition {
     function setSalePrice(uint256 _salePrice) external;
 
     function totalSupply() external view returns (uint256);
-
 
     function withdraw() external;
 }

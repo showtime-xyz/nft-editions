@@ -20,6 +20,7 @@ function parseMetadataURI(uri: string): any {
 
   // Check metadata from edition
   const uriData = Buffer.from(parsedURI.body).toString("utf-8");
+  console.log({ uriData });
   const metadata = JSON.parse(uriData);
   return metadata;
 }
@@ -124,6 +125,77 @@ describe("Edition", () => {
     beforeEach(async () => {
       signer1 = (await ethers.getSigners())[1];
       minterContract = await createEdition(dynamicSketch, DEFAULT_ARGS);
+    });
+
+    describe("custom properties", () => {
+      beforeEach(async () => {
+        await minterContract.mintEdition(signerAddress);
+      });
+
+      it("does not let non-owner set string attributes", async () => {
+        await expect(
+          minterContract.connect(signer1).setStringProperties(["name1", "name2"], ["value1", "value2"])
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("rejects empty attribute names", async () => {
+        await expect(
+          minterContract.setStringProperties(["name1", ""], ["value1", "value2"])
+        ).to.be.revertedWith("bad attribute");
+      });
+
+      it("rejects empty attribute values", async () => {
+        await expect(
+          minterContract.setStringProperties(["name1", "name2"], ["value1", ""])
+        ).to.be.revertedWith("bad attribute");
+      });
+
+      it("rejects string attributes where the names and values don't match in length", async () => {
+        await expect(
+          minterContract.setStringProperties(["name1", "name2"], ["value1"])
+        ).to.be.revertedWith("length mismatch");
+      });
+
+      it("reflects a single string attribute in the metadata", async () => {
+        await minterContract.setStringProperties(["name"], ["value"]);
+        let metadata = parseMetadataURI(await minterContract.tokenURI(1));
+
+        expect(metadata.properties).to.deep.equal({
+          name: "value",
+        });
+      });
+
+      it("reflects multiple string attributes in the metadata", async () => {
+        await minterContract.setStringProperties(["name1", "name2"], ["value1", "value2"]);
+        let metadata = parseMetadataURI(await minterContract.tokenURI(1));
+
+        expect(metadata.properties).to.deep.equal({
+          name1: "value1",
+          name2: "value2",
+        });
+      });
+
+      it("can set and then erase string attributes", async () => {
+        // setup: set multiple attributes
+        await minterContract.setStringProperties(["name1", "name2"], ["value1", "value2"]);
+
+        // when we set new attributes
+        await minterContract.setStringProperties(["name1"], ["newValue"]);
+        let metadata = parseMetadataURI(await minterContract.tokenURI(1));
+
+        // then the old ones are either deleted or updated
+        expect(metadata.properties).to.deep.equal({
+          name1: "newValue", // name 1 has been updated
+          // name2 has been deleted
+        });
+
+        // when we set attributes to empty arrays
+        await minterContract.setStringProperties([], []);
+        metadata = parseMetadataURI(await minterContract.tokenURI(1));
+
+        // then they should be removed
+        expect(metadata.properties).to.deep.equal({});
+      });
     });
 
     it("has the expected contractURI", async () => {
@@ -263,7 +335,7 @@ describe("Edition", () => {
           name: DEFAULT_NAME + " 1/10",
           description: DEFAULT_DESCRIPTION,
           image: DEFAULT_IMAGE_URL + "?id=1",
-          properties: { number: 1, name: DEFAULT_NAME },
+          properties: { },
         })
       );
     });
@@ -324,7 +396,7 @@ describe("Edition", () => {
           name: "Testing Unbounded Edition 1",
           description: DEFAULT_DESCRIPTION,
           image: DEFAULT_IMAGE_URL + "?id=1",
-          properties: { number: 1, name: "Testing Unbounded Edition" },
+          properties: { },
         })
       );
     });
@@ -473,7 +545,7 @@ describe("Edition", () => {
           name: "Testing Token 10/10",
           description: "This is a testing token for all",
           image: DEFAULT_IMAGE_URL + "?id=10",
-          properties: { number: 10, name: "Testing Token" },
+          properties: { },
         })
       );
     });
