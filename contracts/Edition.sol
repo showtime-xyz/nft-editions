@@ -17,8 +17,8 @@ import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-u
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {NFTMetadataRenderer} from "./NFTMetadataRenderer.sol";
-import {IEdition} from "./interfaces/IEdition.sol";
+import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
+import {IEdition, StringAttribute} from "./interfaces/IEdition.sol";
 
 /// @notice This is a smart contract for handling dynamic contract minting.
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
@@ -26,24 +26,12 @@ import {IEdition} from "./interfaces/IEdition.sol";
 /// @author iain nash [ZORA Editions](https://github.com/ourzora/nft-editions)
 /// @author karmacoma [Showtime Drops](https://github.com/showtime-xyz/nft-editions)
 contract Edition is
+    EditionMetadataRenderer,
     ERC721Upgradeable,
     IEdition,
     IERC2981Upgradeable,
     OwnableUpgradeable
 {
-    // metadata
-    string public description;
-
-    // Media Urls
-    // animation_url field in the metadata
-    string public animationUrl;
-
-    // Image in the metadata
-    string public imageUrl;
-
-    // URL that will appear below the asset's image on OpenSea
-    string public externalUrl;
-
     // Total size of edition that can be minted
     uint256 public editionSize;
 
@@ -89,7 +77,7 @@ contract Edition is
         uint256 _editionSize,
         uint256 _royaltyBPS,
         uint256 metadataGracePeriodSeconds
-    ) public initializer override {
+    ) public override initializer {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
         // Set ownership to original sender of contract call
@@ -101,10 +89,11 @@ contract Edition is
         royaltyBPS = _royaltyBPS;
 
         if (metadataGracePeriodSeconds > 0) {
-            endOfMetadataGracePeriod = block.timestamp + metadataGracePeriodSeconds;
+            endOfMetadataGracePeriod =
+                block.timestamp +
+                metadataGracePeriodSeconds;
         }
     }
-
 
     /*//////////////////////////////////////////////////////////////
                   CREATOR / COLLECTION OWNER FUNCTIONS
@@ -140,7 +129,12 @@ contract Edition is
         allowedMinters[minter] = allowed;
     }
 
-    function setDescription(string calldata _description) public override onlyOwner notFrozen {
+    function setDescription(string calldata _description)
+        public
+        override
+        onlyOwner
+        notFrozen
+    {
         // log the current description
         emit DescriptionUpdated(description);
 
@@ -149,7 +143,12 @@ contract Edition is
     }
 
     /// @dev Allows the owner to update the animation url for the edition
-    function setAnimationUrl(string calldata _animationUrl) public override onlyOwner notFrozen {
+    function setAnimationUrl(string calldata _animationUrl)
+        public
+        override
+        onlyOwner
+        notFrozen
+    {
         // log the current animation url
         emit AnimationUrlUpdated(animationUrl);
 
@@ -158,7 +157,12 @@ contract Edition is
     }
 
     /// @dev Allows the owner to update the image url for the edition
-    function setImageUrl(string calldata _imageUrl) public override onlyOwner notFrozen {
+    function setImageUrl(string calldata _imageUrl)
+        public
+        override
+        onlyOwner
+        notFrozen
+    {
         // log the current image url
         emit ImageUrlUpdated(imageUrl);
 
@@ -175,6 +179,28 @@ contract Edition is
         externalUrl = _externalUrl;
     }
 
+    function setStringProperties(
+        string[] calldata names,
+        string[] calldata values
+    ) public onlyOwner {
+        require(names.length == values.length, "length mismatch");
+        uint256 length = names.length;
+
+        namesOfStringProperties = names;
+        for (uint256 i = 0; i < length; ) {
+            string calldata name = names[i];
+            string calldata value = values[i];
+            if (bytes(name).length == 0 || bytes(value).length == 0) {
+                revert("bad attribute");
+            }
+
+            stringProperties[names[i]] = values[i];
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                    COLLECTOR / TOKEN OWNER FUNCTIONS
@@ -189,7 +215,7 @@ contract Edition is
         return _mintEdition(msg.sender);
     }
 
-        /// @param to address to send the newly minted edition to
+    /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
     function mintEdition(address to) external override returns (uint256) {
         require(_isAllowedToMint(), "Needs to be an allowed minter");
@@ -295,6 +321,25 @@ contract Edition is
         return editionSize;
     }
 
+    /// @notice Get the base64-encoded json metadata for a token
+    /// @param tokenId the token id to get the metadata for
+    /// @return base64-encoded json metadata object
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
+        require(_exists(tokenId), "No token");
+
+        return createTokenMetadata(name(), tokenId, editionSize);
+    }
+
+    /// @notice Get the base64-encoded json metadata object for the edition
+    function contractURI() public view returns (string memory) {
+        return createContractMetadata(name(), royaltyBPS, owner());
+    }
+
     /// @notice Get royalty information for token
     /// @param _salePrice Sale price for the token
     function royaltyInfo(uint256, uint256 _salePrice)
@@ -307,40 +352,6 @@ contract Edition is
             return (owner(), 0);
         }
         return (owner(), (_salePrice * royaltyBPS) / 10_000);
-    }
-
-    /// @notice Get URI for given token id
-    /// @param tokenId token id to get uri for
-    /// @return base64-encoded json metadata object
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
-        require(_exists(tokenId), "No token");
-
-        return
-            NFTMetadataRenderer.createTokenMetadata(
-                name(),
-                description,
-                imageUrl,
-                animationUrl,
-                externalUrl,
-                tokenId,
-                editionSize
-            );
-    }
-
-    function contractURI() public view returns (string memory) {
-        return NFTMetadataRenderer.createContractMetadata({
-            name: name(),
-            description: description,
-            imageURI: imageUrl,
-            externalURL: externalUrl,
-            royaltyBPS: royaltyBPS,
-            royaltyRecipient: owner()
-        });
     }
 
     function supportsInterface(bytes4 interfaceId)

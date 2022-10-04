@@ -5,67 +5,48 @@ pragma solidity ^0.8.6;
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
+import {EditionMetadataState} from "./EditionMetadataState.sol";
+
 /// logic for rendering metadata associated with editions
-library NFTMetadataRenderer {
+contract EditionMetadataRenderer is EditionMetadataState {
     using StringsUpgradeable for uint256;
 
     /// Generate edition metadata from storage information as base64-json blob
     /// Combines the media data and metadata
     /// @param name Name of NFT in metadata
-    /// @param description Description of NFT in metadata
-    /// @param imageUrl URL of image to render for edition
-    /// @param animationUrl URL of animation to render for edition
     /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createTokenMetadata(
         string memory name,
-        string storage description,
-        string storage imageUrl,
-        string storage animationUrl,
-        string storage externalUrl,
         uint256 tokenId,
         uint256 editionSize
     ) internal view returns (string memory) {
-        return toBase64DataUrl(
-            createTokenMetadataJson(
-                name,
-                description,
-                imageUrl,
-                animationUrl,
-                externalUrl,
-                tokenId,
-                editionSize
-            )
-        );
+        return
+            toBase64DataUrl(
+                createTokenMetadataJson(name, tokenId, editionSize)
+            );
     }
 
     /// Function to create the metadata json string for the nft edition
     /// @param name Name of NFT in metadata
-    /// @param description Description of NFT in metadata
-    /// @param imageUrl URL of image to render for edition
-    /// @param animationUrl URL of animation to render for edition
     /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
     function createTokenMetadataJson(
         string memory name,
-        string storage description,
-        string storage imageUrl,
-        string storage animationUrl,
-        string storage externalUrl,
         uint256 tokenId,
         uint256 editionSize
     ) internal view returns (string memory) {
         string memory editionSizeText;
         if (editionSize > 0) {
-            editionSizeText = string.concat(
-                "/",
-                editionSize.toString()
-            );
+            editionSizeText = string.concat("/", editionSize.toString());
         }
 
         string memory externalURLText = "";
         if (bytes(externalUrl).length > 0) {
-            externalURLText = string.concat('", "external_url": "', externalUrl);
+            externalURLText = string.concat(
+                '", "external_url": "',
+                externalUrl
+            );
         }
 
         string memory mediaData = tokenMediaData(
@@ -89,11 +70,8 @@ library NFTMetadataRenderer {
                 externalURLText,
                 '", "',
                 mediaData,
-                'properties": {"number": ',
-                tokenIdString,
-                ', "name": "',
-                name,
-                '"}}'
+                getPropertiesJson(),
+                "}"
             );
     }
 
@@ -102,20 +80,20 @@ library NFTMetadataRenderer {
     /// @dev borrowed from https://github.com/ourzora/zora-drops-contracts/blob/main/src/utils/NFTMetadataRenderer.sol
     function createContractMetadata(
         string memory name,
-        string storage description,
-        string storage imageURI,
-        string storage externalURL,
         uint256 royaltyBPS,
         address royaltyRecipient
     ) internal view returns (string memory) {
         string memory imageSpace = "";
-        if (bytes(imageURI).length > 0) {
-            imageSpace = string.concat('", "image": "', imageURI);
+        if (bytes(imageUrl).length > 0) {
+            imageSpace = string.concat('", "image": "', imageUrl);
         }
 
         string memory externalURLSpace = "";
-        if (bytes(externalURL).length > 0) {
-            externalURLSpace = string.concat('", "external_link": "', externalURL);
+        if (bytes(externalUrl).length > 0) {
+            externalURLSpace = string.concat(
+                '", "external_link": "',
+                externalUrl
+            );
         }
 
         return
@@ -144,16 +122,13 @@ library NFTMetadataRenderer {
         pure
         returns (string memory)
     {
-        return string.concat(
-            "data:application/json;base64,",
-            Base64.encode(bytes(json))
-        );
+        return
+            string.concat(
+                "data:application/json;base64,",
+                Base64.encode(bytes(json))
+            );
     }
 
-    /// Generates edition metadata from storage information as base64-json blob
-    /// Combines the media data and metadata
-    /// @param imageUrl URL of image to render for edition
-    /// @param animationUrl URL of animation to render for edition
     function tokenMediaData(
         string memory imageUrl,
         string memory animationUrl,
@@ -165,21 +140,74 @@ library NFTMetadataRenderer {
 
         if (hasImage) {
             buffer = string.concat(
-                'image": "', imageUrl,
-                "?id=", tokenOfEdition.toString(),
-                '", "'
+                'image": "',
+                imageUrl,
+                "?id=",
+                tokenOfEdition.toString(),
+                '",'
             );
         }
 
         if (hasAnimation) {
             buffer = string.concat(
                 buffer,
-                'animation_url": "', animationUrl,
-                "?id=", tokenOfEdition.toString(),
-                '", "'
+                'animation_url": "',
+                animationUrl,
+                "?id=",
+                tokenOfEdition.toString(),
+                '",'
             );
         }
 
         return buffer;
+    }
+
+    /// Produces Enjin Metadata style simple properties
+    /// @dev https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1155.md#erc-1155-metadata-uri-json-schema
+    function getPropertiesJson() internal view returns (string memory) {
+        uint256 length = namesOfStringProperties.length;
+        if (length == 0) {
+            return '"properties":{}';
+        }
+
+        string memory buffer = '"properties":{';
+
+        unchecked {
+            // `length - 1` can not underflow because of the `length == 0` check above
+            uint256 lengthMinusOne = length - 1;
+
+            for (uint256 i = 0; i < lengthMinusOne; ) {
+                string storage _name = namesOfStringProperties[i];
+                string storage _value = stringProperties[_name];
+
+                buffer = string.concat(
+                    buffer,
+                    stringifyStringAttribute(_name, _value),
+                    ","
+                );
+
+                // counter increment can not overflow
+                ++i;
+            }
+
+            // add the last attribute without a trailing comma
+            string storage lastName = namesOfStringProperties[lengthMinusOne];
+            buffer = string.concat(
+                buffer,
+                stringifyStringAttribute(lastName, stringProperties[lastName])
+            );
+        }
+
+        buffer = string.concat(buffer, "}");
+
+        return buffer;
+    }
+
+    function stringifyStringAttribute(string storage name, string storage value)
+        internal
+        pure
+        returns (string memory)
+    {
+        return string.concat('"', name, '":"', value, '"');
     }
 }
