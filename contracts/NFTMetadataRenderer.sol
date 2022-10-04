@@ -17,7 +17,7 @@ library NFTMetadataRenderer {
     /// @param animationUrl URL of animation to render for edition
     /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
-    function createMetadataEdition(
+    function createTokenMetadata(
         string memory name,
         string storage description,
         string storage imageUrl,
@@ -26,33 +26,32 @@ library NFTMetadataRenderer {
         uint256 tokenId,
         uint256 editionSize
     ) internal view returns (string memory) {
-        string memory _tokenMediaData = tokenMediaData(
-            imageUrl,
-            animationUrl,
-            tokenId
+        return toBase64DataUrl(
+            createTokenMetadataJson(
+                name,
+                description,
+                imageUrl,
+                animationUrl,
+                externalUrl,
+                tokenId,
+                editionSize
+            )
         );
-        string memory json = createMetadataJSON(
-            name,
-            description,
-            externalUrl,
-            _tokenMediaData,
-            tokenId,
-            editionSize
-        );
-        return encodeMetadataJSON(json);
     }
 
     /// Function to create the metadata json string for the nft edition
     /// @param name Name of NFT in metadata
     /// @param description Description of NFT in metadata
-    /// @param mediaData Data for media to include in json object
+    /// @param imageUrl URL of image to render for edition
+    /// @param animationUrl URL of animation to render for edition
     /// @param tokenId Token ID for specific token
     /// @param editionSize Size of entire edition to show
-    function createMetadataJSON(
+    function createTokenMetadataJson(
         string memory name,
         string storage description,
-        string storage externalURL,
-        string memory mediaData,
+        string storage imageUrl,
+        string storage animationUrl,
+        string storage externalUrl,
         uint256 tokenId,
         uint256 editionSize
     ) internal view returns (string memory) {
@@ -65,9 +64,15 @@ library NFTMetadataRenderer {
         }
 
         string memory externalURLText = "";
-        if (bytes(externalURL).length > 0) {
-            externalURLText = string.concat('", "external_url": "', externalURL);
+        if (bytes(externalUrl).length > 0) {
+            externalURLText = string.concat('", "external_url": "', externalUrl);
         }
+
+        string memory mediaData = tokenMediaData(
+            imageUrl,
+            animationUrl,
+            tokenId
+        );
 
         string memory tokenIdString = tokenId.toString();
 
@@ -92,10 +97,10 @@ library NFTMetadataRenderer {
             );
     }
 
-    /// Encodes contract level metadata into base64-data uri format
+    /// Encodes contract level metadata into base64-data url format
     /// @dev see https://docs.opensea.io/docs/contract-level-metadata
     /// @dev borrowed from https://github.com/ourzora/zora-drops-contracts/blob/main/src/utils/NFTMetadataRenderer.sol
-    function encodeContractURIJSON(
+    function createContractMetadata(
         string memory name,
         string storage description,
         string storage imageURI,
@@ -114,7 +119,7 @@ library NFTMetadataRenderer {
         }
 
         return
-            encodeMetadataJSON(
+            toBase64DataUrl(
                 string.concat(
                     '{"name": "',
                     name,
@@ -134,7 +139,7 @@ library NFTMetadataRenderer {
 
     /// Encodes the argument json bytes into base64-data uri format
     /// @param json Raw json to base64 and turn into a data-uri
-    function encodeMetadataJSON(string memory json)
+    function toBase64DataUrl(string memory json)
         internal
         pure
         returns (string memory)
