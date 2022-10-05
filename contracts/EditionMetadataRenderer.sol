@@ -59,16 +59,16 @@ contract EditionMetadataRenderer is EditionMetadataState {
 
         return
             string.concat(
-                '{"name": "',
+                '{"name":"',
                 name,
                 " ",
                 tokenIdString,
                 editionSizeText,
-                '", "',
-                'description": "',
+                '","',
+                'description":"',
                 description,
                 externalURLText,
-                '", "',
+                '"',
                 mediaData,
                 getPropertiesJson(),
                 "}"
@@ -99,14 +99,14 @@ contract EditionMetadataRenderer is EditionMetadataState {
         return
             toBase64DataUrl(
                 string.concat(
-                    '{"name": "',
+                    '{"name":"',
                     name,
-                    '", "description": "',
+                    '","description":"',
                     description,
                     // this is for opensea since they don't respect ERC2981 right now
-                    '", "seller_fee_basis_points": ',
+                    '","seller_fee_basis_points":',
                     StringsUpgradeable.toString(royaltyBPS),
-                    ', "fee_recipient": "',
+                    ',"fee_recipient":"',
                     StringsUpgradeable.toHexString(royaltyRecipient),
                     imageSpace,
                     externalURLSpace,
@@ -140,22 +140,22 @@ contract EditionMetadataRenderer is EditionMetadataState {
 
         if (hasImage) {
             buffer = string.concat(
-                'image": "',
+                ',"image":"',
                 imageUrl,
                 "?id=",
                 tokenOfEdition.toString(),
-                '",'
+                '"'
             );
         }
 
         if (hasAnimation) {
             buffer = string.concat(
                 buffer,
-                'animation_url": "',
+                ',"animation_url":"',
                 animationUrl,
                 "?id=",
                 tokenOfEdition.toString(),
-                '",'
+                '"'
             );
         }
 
@@ -167,10 +167,10 @@ contract EditionMetadataRenderer is EditionMetadataState {
     function getPropertiesJson() internal view returns (string memory) {
         uint256 length = namesOfStringProperties.length;
         if (length == 0) {
-            return '"properties":{}';
+            return ',"properties":{}';
         }
 
-        string memory buffer = '"properties":{';
+        string memory buffer = ',"properties":{';
 
         unchecked {
             // `length - 1` can not underflow because of the `length == 0` check above

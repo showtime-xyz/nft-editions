@@ -115,6 +115,11 @@ describe("Edition", () => {
     const edition = await createEdition(dynamicSketch, args);
     expect(await edition.animationUrl()).to.equal(args[3]);
     expect(await edition.imageUrl()).to.equal(args[4]);
+
+    await edition.mintEdition(signerAddress);
+    const metadata = parseMetadataURI(await edition.tokenURI(1));
+    expect(metadata.animation_url).to.equal(args[3] + "?id=1");
+    expect(metadata.image).to.equal(args[4] + "?id=1");
   });
 
   describe("with an edition", () => {
