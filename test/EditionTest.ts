@@ -20,7 +20,6 @@ function parseMetadataURI(uri: string): any {
 
   // Check metadata from edition
   const uriData = Buffer.from(parsedURI.body).toString("utf-8");
-  console.log({ uriData });
   const metadata = JSON.parse(uriData);
   return metadata;
 }
@@ -132,32 +131,34 @@ describe("Edition", () => {
         await minterContract.mintEdition(signerAddress);
       });
 
-      it("does not let non-owner set string attributes", async () => {
+      it("does not let non-owner set string properties", async () => {
         await expect(
           minterContract.connect(signer1).setStringProperties(["name1", "name2"], ["value1", "value2"])
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
-      it("rejects empty attribute names", async () => {
+      it("rejects empty property names", async () => {
         await expect(
           minterContract.setStringProperties(["name1", ""], ["value1", "value2"])
         ).to.be.revertedWith("bad attribute");
       });
 
-      it("rejects empty attribute values", async () => {
+      it("rejects empty property values", async () => {
         await expect(
           minterContract.setStringProperties(["name1", "name2"], ["value1", ""])
         ).to.be.revertedWith("bad attribute");
       });
 
-      it("rejects string attributes where the names and values don't match in length", async () => {
+      it("rejects string properties where the names and values don't match in length", async () => {
         await expect(
           minterContract.setStringProperties(["name1", "name2"], ["value1"])
         ).to.be.revertedWith("length mismatch");
       });
 
       it("reflects a single string attribute in the metadata", async () => {
-        await minterContract.setStringProperties(["name"], ["value"]);
+        await expect(minterContract.setStringProperties(["name"], ["value"]))
+          .to.emit(minterContract, "PropertyUpdated")
+          .withArgs("name", "", "value");
         let metadata = parseMetadataURI(await minterContract.tokenURI(1));
 
         expect(metadata.properties).to.deep.equal({
@@ -165,7 +166,7 @@ describe("Edition", () => {
         });
       });
 
-      it("reflects multiple string attributes in the metadata", async () => {
+      it("reflects multiple string properties in the metadata", async () => {
         await minterContract.setStringProperties(["name1", "name2"], ["value1", "value2"]);
         let metadata = parseMetadataURI(await minterContract.tokenURI(1));
 
@@ -175,7 +176,24 @@ describe("Edition", () => {
         });
       });
 
-      it("can set and then erase string attributes", async () => {
+      it("can update create/update/delete a single property", async () => {
+        // create
+        await expect(minterContract.setStringProperties(["name"], ["initValue"]))
+          .to.emit(minterContract, "PropertyUpdated")
+          .withArgs("name", "", "initValue");
+
+        // update
+        await expect(minterContract.setStringProperties(["name"], ["newValue"]))
+          .to.emit(minterContract, "PropertyUpdated")
+          .withArgs("name", "initValue", "newValue");
+
+        // delete does not emit an event
+        await !expect(minterContract.setStringProperties([], []))
+          .to.emit(minterContract, "PropertyUpdated")
+          .withArgs("name", "newValue", "");
+      });
+
+      it("can set and then erase multiple string properties", async () => {
         // setup: set multiple attributes
         await minterContract.setStringProperties(["name1", "name2"], ["value1", "value2"]);
 

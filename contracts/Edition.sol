@@ -194,7 +194,9 @@ contract Edition is
                 revert("bad attribute");
             }
 
-            stringProperties[names[i]] = values[i];
+            emit PropertyUpdated(name, stringProperties[name], value);
+
+            stringProperties[name] = value;
 
             unchecked {
                 ++i;

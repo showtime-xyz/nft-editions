@@ -13,6 +13,7 @@ interface IEdition {
     event AnimationUrlUpdated(string oldAnimationUrl);
     event ImageUrlUpdated(string oldImageUrl);
     event ExternalUrlUpdated(string oldExternalUrl);
+    event PropertyUpdated(string name, string oldValue, string newValue);
 
     function burn(uint256 tokenId) external;
 
