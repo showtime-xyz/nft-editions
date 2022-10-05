@@ -9,10 +9,10 @@ struct StringAttribute {
 interface IEdition {
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
-    event DescriptionUpdated(string oldDescription);
-    event AnimationUrlUpdated(string oldAnimationUrl);
-    event ImageUrlUpdated(string oldImageUrl);
-    event ExternalUrlUpdated(string oldExternalUrl);
+    event DescriptionUpdated(string oldDescription, string newDescription);
+    event AnimationUrlUpdated(string oldAnimationUrl, string newAnimationUrl);
+    event ImageUrlUpdated(string oldImageUrl, string newImageUrl);
+    event ExternalUrlUpdated(string oldExternalUrl, string newExternalUrl);
     event PropertyUpdated(string name, string oldValue, string newValue);
 
     function burn(uint256 tokenId) external;

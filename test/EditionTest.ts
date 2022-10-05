@@ -230,27 +230,30 @@ describe("Edition", () => {
 
     describe("during the grace period", () => {
       it("lets the owner call setImageUrl()", async () => {
-        await expect(minterContract.setImageUrl("https://example.com/imageUrl"))
+        const newImageUrl = "https://example.com/newImageUrl";
+        await expect(minterContract.setImageUrl(newImageUrl))
           .to.emit(minterContract, "ImageUrlUpdated")
-          .withArgs(DEFAULT_IMAGE_URL);
+          .withArgs(DEFAULT_IMAGE_URL, newImageUrl);
 
-        expect(await minterContract.imageUrl()).to.equal("https://example.com/imageUrl");
+        expect(await minterContract.imageUrl()).to.equal(newImageUrl);
       });
 
       it("lets the owner call setAnimationUrl()", async () => {
-        await expect(minterContract.setAnimationUrl("https://example.com/animationUrl"))
+        const newAnimationUrl = "https://example.com/newAnimationUrl";
+        await expect(minterContract.setAnimationUrl(newAnimationUrl))
           .to.emit(minterContract, "AnimationUrlUpdated")
-          .withArgs(DEFAULT_ANIMATION_URL);
+          .withArgs(DEFAULT_ANIMATION_URL, newAnimationUrl);
 
-        expect(await minterContract.animationUrl()).to.equal("https://example.com/animationUrl");
+        expect(await minterContract.animationUrl()).to.equal(newAnimationUrl);
       });
 
       it("lets the owner call setDescription()", async () => {
-        await expect(minterContract.setDescription("New description"))
+        const newDescription = "new description";
+        await expect(minterContract.setDescription(newDescription))
           .to.emit(minterContract, "DescriptionUpdated")
-          .withArgs(DEFAULT_DESCRIPTION);
+          .withArgs(DEFAULT_DESCRIPTION, newDescription);
 
-        expect(await minterContract.description()).to.equal("New description");
+        expect(await minterContract.description()).to.equal(newDescription);
       });
 
       it("does not let a non-owner call setAnimationUrl()", async () => {
@@ -294,23 +297,25 @@ describe("Edition", () => {
     });
 
     describe("when we set the external URL", () => {
+      const externalUrl = "https://example.com/externalUrl";
+
       beforeEach(async () => {
-        await expect(minterContract.setExternalUrl("https://example.com"))
-          .to.emit(minterContract, "ExternalUrlUpdated").withArgs("");
-        expect(await minterContract.externalUrl()).to.equal("https://example.com");
+        await expect(minterContract.setExternalUrl(externalUrl))
+          .to.emit(minterContract, "ExternalUrlUpdated").withArgs("", externalUrl);
+        expect(await minterContract.externalUrl()).to.equal(externalUrl);
       });
 
       it("contractURI() reflects it as external_link", async () => {
         const contractURI = await minterContract.contractURI();
         const metadata = parseMetadataURI(contractURI);
-        expect(metadata.external_link).to.equal("https://example.com");
+        expect(metadata.external_link).to.equal(externalUrl);
       });
 
       it("tokenURI() reflects it as external_url", async () => {
         await minterContract.mintEdition(signerAddress);
         const tokenURI = await minterContract.tokenURI(1);
         const metadata = parseMetadataURI(tokenURI);
-        expect(metadata.external_url).to.equal("https://example.com");
+        expect(metadata.external_url).to.equal(externalUrl);
       });
 
       it("it can be unset", async () => {

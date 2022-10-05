@@ -136,7 +136,7 @@ contract Edition is
         notFrozen
     {
         // log the current description
-        emit DescriptionUpdated(description);
+        emit DescriptionUpdated(description, _description);
 
         // switch to the new one
         description = _description;
@@ -150,7 +150,7 @@ contract Edition is
         notFrozen
     {
         // log the current animation url
-        emit AnimationUrlUpdated(animationUrl);
+        emit AnimationUrlUpdated(animationUrl, _animationUrl);
 
         // switch to the new one
         animationUrl = _animationUrl;
@@ -164,7 +164,7 @@ contract Edition is
         notFrozen
     {
         // log the current image url
-        emit ImageUrlUpdated(imageUrl);
+        emit ImageUrlUpdated(imageUrl, _imageUrl);
 
         // switch to the new one
         imageUrl = _imageUrl;
@@ -174,7 +174,7 @@ contract Edition is
     /// @notice can be updated by the owner regardless of the grace period
     function setExternalUrl(string calldata _externalUrl) public onlyOwner {
         // log the current external url
-        emit ExternalUrlUpdated(externalUrl);
+        emit ExternalUrlUpdated(externalUrl, _externalUrl);
 
         externalUrl = _externalUrl;
     }
