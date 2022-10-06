@@ -11,15 +11,6 @@ import {EditionMetadataState} from "./EditionMetadataState.sol";
 contract EditionMetadataRenderer is EditionMetadataState {
     using StringsUpgradeable for uint256;
 
-    bytes1 constant BACKSLASH = bytes1(uint8(92));
-    bytes1 constant BACKSPACE = bytes1(uint8(8));
-    bytes1 constant CARRIAGE_RETURN = bytes1(uint8(13));
-    bytes1 constant DOUBLE_QUOTE = bytes1(uint8(34));
-    bytes1 constant FORM_FEED = bytes1(uint8(12));
-    bytes1 constant FRONTSLASH = bytes1(uint8(47));
-    bytes1 constant HORIZONTAL_TAB = bytes1(uint8(9));
-    bytes1 constant NEWLINE = bytes1(uint8(10));
-
     /// Generate edition metadata from storage information as base64-json blob
     /// Combines the media data and metadata
     /// @param name Name of NFT in metadata
@@ -69,13 +60,13 @@ contract EditionMetadataRenderer is EditionMetadataState {
         return
             string.concat(
                 '{"name":"',
-                escapeJsonString(name),
+                escapeJSON(name),
                 " ",
                 tokenIdString,
                 editionSizeText,
                 '","',
                 'description":"',
-                escapeJsonString(description),
+                escapeJSON(description),
                 externalURLText,
                 '"',
                 mediaData,
@@ -109,9 +100,9 @@ contract EditionMetadataRenderer is EditionMetadataState {
             toBase64DataUrl(
                 string.concat(
                     '{"name":"',
-                    escapeJsonString(name),
+                    escapeJSON(name),
                     '","description":"',
-                    escapeJsonString(description),
+                    escapeJSON(description),
                     // this is for opensea since they don't respect ERC2981 right now
                     '","seller_fee_basis_points":',
                     StringsUpgradeable.toString(royaltyBPS),
@@ -220,74 +211,55 @@ contract EditionMetadataRenderer is EditionMetadataState {
         return string.concat('"', name, '":"', value, '"');
     }
 
-    /**
-     * @dev Escapes any characters that required by JSON to be escaped.
-     */
-    function escapeJsonString(string memory value)
-        private
+    /// @dev Escapes the string to be used within double-quotes in a JSON.
+    /// author: Vectorized (https://github.com/Vectorized/solady)
+    function escapeJSON(string memory s)
+        internal
         pure
-        returns (string memory str)
+        returns (string memory result)
     {
-        bytes memory b = bytes(value);
-        bool foundEscapeChars;
-
-        unchecked {
-            uint256 length = b.length;
-            for (uint256 i; i < length; i++) {
-                if (b[i] == BACKSLASH) {
-                    foundEscapeChars = true;
-                    break;
-                } else if (b[i] == DOUBLE_QUOTE) {
-                    foundEscapeChars = true;
-                    break;
-                    // } else if (b[i] == FRONTSLASH) {
-                    //     foundEscapeChars = true;
-                    //     break;
-                } else if (b[i] == HORIZONTAL_TAB) {
-                    foundEscapeChars = true;
-                    break;
-                } else if (b[i] == FORM_FEED) {
-                    foundEscapeChars = true;
-                    break;
-                } else if (b[i] == NEWLINE) {
-                    foundEscapeChars = true;
-                    break;
-                } else if (b[i] == CARRIAGE_RETURN) {
-                    foundEscapeChars = true;
-                    break;
-                } else if (b[i] == BACKSPACE) {
-                    foundEscapeChars = true;
-                    break;
+        assembly ("memory-safe") {
+            result := mload(0x40)
+            let sLength := mload(s)
+            let input := add(s, 1)
+            let output := add(result, 0x20)
+            // Store "\\u0" in scratch space.
+            // Store "0123456789abcdef" in scratch space.
+            // Also, store `{0x08: "b", 0x09: "t", 0x0a: "n", 0x0c:"f", 0x0d: "r"}`
+            // into the scratch space.
+            mstore(0x15, 0x5c75303031323334353637383961626364656662746e006672)
+            // prettier-ignore
+            for { let i := 0 } iszero(eq(i, sLength)) { i := add(i, 1) } {
+                let c := and(mload(add(input, i)), 0xff)
+                if or(eq(c, 0x22), eq(c, 0x5c)) { // In `["\"", "\\"]`.
+                    mstore8(output, 0x5c) // "\\".
+                    mstore8(add(output, 1), c)
+                    output := add(output, 2)
+                    continue
                 }
-            }
-
-            if (!foundEscapeChars) {
-                return value;
-            }
-
-            for (uint256 i; i < length; i++) {
-                if (b[i] == BACKSLASH) {
-                    str = string(abi.encodePacked(str, "\\\\"));
-                } else if (b[i] == DOUBLE_QUOTE) {
-                    str = string(abi.encodePacked(str, '\\"'));
-                    // } else if (b[i] == FRONTSLASH) {
-                    //     str = string(abi.encodePacked(str, "\\/"));
-                } else if (b[i] == HORIZONTAL_TAB) {
-                    str = string(abi.encodePacked(str, "\\t"));
-                } else if (b[i] == FORM_FEED) {
-                    str = string(abi.encodePacked(str, "\\f"));
-                } else if (b[i] == NEWLINE) {
-                    str = string(abi.encodePacked(str, "\\n"));
-                } else if (b[i] == CARRIAGE_RETURN) {
-                    str = string(abi.encodePacked(str, "\\r"));
-                } else if (b[i] == BACKSPACE) {
-                    str = string(abi.encodePacked(str, "\\b"));
-                } else {
-                    str = string(abi.encodePacked(str, b[i]));
+                if and(shl(c, 1), 0x3700) { // In `["\b", "\t", "\n", "\f", "d"]`.
+                    mstore8(output, 0x5c) // "\\".
+                    mstore8(add(output, 1), mload(add(c, 8)))
+                    output := add(output, 2)
+                    continue
                 }
+                if lt(c, 0x20) {
+                    mstore(output, mload(0x1c)) // "\\u00".
+                    mstore8(add(output, 4), mload(and(shr(4, c), 15))) // Hex value.
+                    mstore8(add(output, 5), mload(and(c, 15))) // Hex value.
+                    output := add(output, 6)
+                    continue
+                }
+                mstore8(output, c)
+                output := add(output, 1)
             }
+            // Zeroize the slot after the output.
+            mstore(output, 0)
+            // Store the length of the output.
+            mstore(result, sub(output, add(result, 0x20)))
+            // Allocate memory for the length and the bytes,
+            // rounded up to a multiple of 32.
+            mstore(0x40, and(add(output, 31), not(31)))
         }
-
-        return str;
     }
 }
