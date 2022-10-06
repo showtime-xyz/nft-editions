@@ -11,6 +11,15 @@ import {EditionMetadataState} from "./EditionMetadataState.sol";
 contract EditionMetadataRenderer is EditionMetadataState {
     using StringsUpgradeable for uint256;
 
+    bytes1 constant BACKSLASH = bytes1(uint8(92));
+    bytes1 constant BACKSPACE = bytes1(uint8(8));
+    bytes1 constant CARRIAGE_RETURN = bytes1(uint8(13));
+    bytes1 constant DOUBLE_QUOTE = bytes1(uint8(34));
+    bytes1 constant FORM_FEED = bytes1(uint8(12));
+    bytes1 constant FRONTSLASH = bytes1(uint8(47));
+    bytes1 constant HORIZONTAL_TAB = bytes1(uint8(9));
+    bytes1 constant NEWLINE = bytes1(uint8(10));
+
     /// Generate edition metadata from storage information as base64-json blob
     /// Combines the media data and metadata
     /// @param name Name of NFT in metadata
@@ -60,13 +69,13 @@ contract EditionMetadataRenderer is EditionMetadataState {
         return
             string.concat(
                 '{"name":"',
-                name,
+                escapeJsonString(name),
                 " ",
                 tokenIdString,
                 editionSizeText,
                 '","',
                 'description":"',
-                description,
+                escapeJsonString(description),
                 externalURLText,
                 '"',
                 mediaData,
@@ -100,9 +109,9 @@ contract EditionMetadataRenderer is EditionMetadataState {
             toBase64DataUrl(
                 string.concat(
                     '{"name":"',
-                    name,
+                    escapeJsonString(name),
                     '","description":"',
-                    description,
+                    escapeJsonString(description),
                     // this is for opensea since they don't respect ERC2981 right now
                     '","seller_fee_basis_points":',
                     StringsUpgradeable.toString(royaltyBPS),
@@ -209,5 +218,76 @@ contract EditionMetadataRenderer is EditionMetadataState {
         returns (string memory)
     {
         return string.concat('"', name, '":"', value, '"');
+    }
+
+    /**
+     * @dev Escapes any characters that required by JSON to be escaped.
+     */
+    function escapeJsonString(string memory value)
+        private
+        pure
+        returns (string memory str)
+    {
+        bytes memory b = bytes(value);
+        bool foundEscapeChars;
+
+        unchecked {
+            uint256 length = b.length;
+            for (uint256 i; i < length; i++) {
+                if (b[i] == BACKSLASH) {
+                    foundEscapeChars = true;
+                    break;
+                } else if (b[i] == DOUBLE_QUOTE) {
+                    foundEscapeChars = true;
+                    break;
+                    // } else if (b[i] == FRONTSLASH) {
+                    //     foundEscapeChars = true;
+                    //     break;
+                } else if (b[i] == HORIZONTAL_TAB) {
+                    foundEscapeChars = true;
+                    break;
+                } else if (b[i] == FORM_FEED) {
+                    foundEscapeChars = true;
+                    break;
+                } else if (b[i] == NEWLINE) {
+                    foundEscapeChars = true;
+                    break;
+                } else if (b[i] == CARRIAGE_RETURN) {
+                    foundEscapeChars = true;
+                    break;
+                } else if (b[i] == BACKSPACE) {
+                    foundEscapeChars = true;
+                    break;
+                }
+            }
+
+            if (!foundEscapeChars) {
+                return value;
+            }
+
+            for (uint256 i; i < length; i++) {
+                if (b[i] == BACKSLASH) {
+                    str = string(abi.encodePacked(str, "\\\\"));
+                } else if (b[i] == DOUBLE_QUOTE) {
+                    str = string(abi.encodePacked(str, '\\"'));
+                    // } else if (b[i] == FRONTSLASH) {
+                    //     str = string(abi.encodePacked(str, "\\/"));
+                } else if (b[i] == HORIZONTAL_TAB) {
+                    str = string(abi.encodePacked(str, "\\t"));
+                } else if (b[i] == FORM_FEED) {
+                    str = string(abi.encodePacked(str, "\\f"));
+                } else if (b[i] == NEWLINE) {
+                    str = string(abi.encodePacked(str, "\\n"));
+                } else if (b[i] == CARRIAGE_RETURN) {
+                    str = string(abi.encodePacked(str, "\\r"));
+                } else if (b[i] == BACKSPACE) {
+                    str = string(abi.encodePacked(str, "\\b"));
+                } else {
+                    str = string(abi.encodePacked(str, b[i]));
+                }
+            }
+        }
+
+        return str;
     }
 }
