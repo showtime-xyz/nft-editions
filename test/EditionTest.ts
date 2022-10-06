@@ -578,4 +578,42 @@ describe("Edition", () => {
       );
     });
   });
+
+  describe("with an edition that uses special characters", () => {
+    let edition: Edition;
+    const expectedName = "My \"edition\" is \t very special!\n";
+    const expectedDescription = "My \"description\" is also \t \\very\\ special!\r\n";
+
+    beforeEach(async () => {
+      const args = [...DEFAULT_ARGS];
+      args[0] = expectedName;
+      args[2] = expectedDescription;
+
+      // @ts-ignore
+      edition = await createEdition(dynamicSketch, args);
+    });
+
+    it("returns the correct name", async () => {
+      expect(await edition.name()).to.equal(expectedName);
+    });
+
+    it("returns the correct description", async () => {
+      expect(await edition.description()).to.equal(expectedDescription);
+    });
+
+    it("returns the correct contractURI", async () => {
+      let contractURI = await edition.contractURI();
+      let metadata = parseMetadataURI(contractURI);
+      expect(metadata.name).to.equal(expectedName);
+      expect(metadata.description).to.equal(expectedDescription);
+    });
+
+    it("returns the correct tokenURI", async () => {
+      await edition.mintEdition(signerAddress);
+      let tokenURI = await edition.tokenURI(1);
+      let metadata = parseMetadataURI(tokenURI);
+      expect(metadata.name).to.equal(expectedName + " 1/10");
+      expect(metadata.description).to.equal(expectedDescription);
+    });
+  });
 });
