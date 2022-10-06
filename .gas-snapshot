@@ -1,2 +1,4 @@
-EditionMetadataTest:testContractURI() (gas: 57148)
-EditionMetadataTest:testTokenURI() (gas: 63680)
+EditionMetadataTest:testContractURI() (gas: 104469)
+EditionMetadataTest:testContractURIEscaped() (gas: 163750)
+EditionMetadataTest:testTokenURI() (gas: 107621)
+EditionMetadataTest:testTokenURIEscaped() (gas: 167244)
