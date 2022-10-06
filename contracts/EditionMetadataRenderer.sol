@@ -6,10 +6,12 @@ import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Stri
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 import {EditionMetadataState} from "./EditionMetadataState.sol";
+import {JsonWriter} from "solidity-json-writer/contracts/JsonWriter.sol";
 
 /// logic for rendering metadata associated with editions
 contract EditionMetadataRenderer is EditionMetadataState {
     using StringsUpgradeable for uint256;
+    using JsonWriter for JsonWriter.Json;
 
     /// Generate edition metadata from storage information as base64-json blob
     /// Combines the media data and metadata
@@ -41,38 +43,46 @@ contract EditionMetadataRenderer is EditionMetadataState {
             editionSizeText = string.concat("/", editionSize.toString());
         }
 
-        string memory externalURLText = "";
+        string memory tokenIdString = tokenId.toString();
+        JsonWriter.Json memory writer;
+
+        writer = writer.writeStartObject();
+        writer = writer.writeStringProperty(
+            "name",
+            string.concat(name, " ", tokenIdString, editionSizeText)
+        );
+        writer = writer.writeStringProperty("description", description);
         if (bytes(externalUrl).length > 0) {
-            externalURLText = string.concat(
-                '", "external_url": "',
-                externalUrl
+            writer = writer.writeStringProperty("external_url", externalUrl);
+        }
+        if (bytes(imageUrl).length > 0) {
+            writer = writer.writeStringProperty(
+                "image",
+                string.concat(imageUrl, "?id=", tokenIdString)
             );
         }
-
-        string memory mediaData = tokenMediaData(
-            imageUrl,
-            animationUrl,
-            tokenId
-        );
-
-        string memory tokenIdString = tokenId.toString();
-
-        return
-            string.concat(
-                '{"name":"',
-                name,
-                " ",
-                tokenIdString,
-                editionSizeText,
-                '","',
-                'description":"',
-                description,
-                externalURLText,
-                '"',
-                mediaData,
-                getPropertiesJson(),
-                "}"
+        if (bytes(animationUrl).length > 0) {
+            writer = writer.writeStringProperty(
+                "animation_url",
+                string.concat(animationUrl, "?id=", tokenIdString)
             );
+        }
+        writer = writer.writeStartObject("properties");
+
+        uint256 propertiesLength = namesOfStringProperties.length;
+        for (uint256 i = 0; i < propertiesLength; ) {
+            string storage propertyName = namesOfStringProperties[i];
+            string storage value = stringProperties[propertyName];
+            writer = writer.writeStringProperty(propertyName, value);
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        writer = writer.writeEndObject();
+        writer = writer.writeEndObject();
+        return writer.value;
     }
 
     /// Encodes contract level metadata into base64-data url format
