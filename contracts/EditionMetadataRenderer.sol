@@ -3,7 +3,7 @@
 pragma solidity ^0.8.6;
 
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {Base64} from "./utils/Base64.sol";
 
 import {EditionMetadataState} from "./EditionMetadataState.sol";
 
@@ -218,6 +218,7 @@ contract EditionMetadataRenderer is EditionMetadataState {
         pure
         returns (string memory result)
     {
+
         assembly ("memory-safe") {
             result := mload(0x40)
             let sLength := mload(s)

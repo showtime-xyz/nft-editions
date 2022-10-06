@@ -20,6 +20,7 @@ function parseMetadataURI(uri: string): any {
 
   // Check metadata from edition
   const uriData = Buffer.from(parsedURI.body).toString("utf-8");
+  console.log("uriData: ", uriData);
   const metadata = JSON.parse(uriData);
   return metadata;
 }
