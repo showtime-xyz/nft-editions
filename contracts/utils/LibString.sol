@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 /// @notice Library for converting numbers into strings and other string operations.
-/// @author Solady (https://github.com/vectorized/solady/blob/main/src/utils/LibString.sol)
+/// @author Modified from Solady (https://github.com/vectorized/solady/blob/main/src/utils/LibString.sol) @ 016c4ac
 /// @author Modified from Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/LibString.sol)
 library LibString {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -740,7 +740,7 @@ library LibString {
         pure
         returns (string memory result)
     {
-        assembly {
+        assembly ("memory-safe") {
             // prettier-ignore
             for {
                 let end := add(s, mload(s))
