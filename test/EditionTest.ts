@@ -119,8 +119,8 @@ describe("Edition", () => {
 
     await edition.mintEdition(signerAddress);
     const metadata = parseMetadataURI(await edition.tokenURI(1));
-    expect(metadata.animation_url).to.equal(args[3] + "?id=1");
-    expect(metadata.image).to.equal(args[4] + "?id=1");
+    expect(metadata.animation_url).to.equal(args[3]);
+    expect(metadata.image).to.equal(args[4]);
   });
 
   describe("with an edition", () => {
@@ -363,7 +363,7 @@ describe("Edition", () => {
         JSON.stringify({
           name: DEFAULT_NAME + " 1/10",
           description: DEFAULT_DESCRIPTION,
-          image: DEFAULT_IMAGE_URL + "?id=1",
+          image: DEFAULT_IMAGE_URL,
           properties: { },
         })
       );
@@ -424,7 +424,7 @@ describe("Edition", () => {
         JSON.stringify({
           name: "Testing Unbounded Edition 1",
           description: DEFAULT_DESCRIPTION,
-          image: DEFAULT_IMAGE_URL + "?id=1",
+          image: DEFAULT_IMAGE_URL,
           properties: { },
         })
       );
@@ -573,7 +573,7 @@ describe("Edition", () => {
         JSON.stringify({
           name: "Testing Token 10/10",
           description: "This is a testing token for all",
-          image: DEFAULT_IMAGE_URL + "?id=10",
+          image: DEFAULT_IMAGE_URL,
           properties: { },
         })
       );
