@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.6;
 
-import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {Base64} from "./utils/Base64.sol";
 import {LibString} from "./utils/LibString.sol";
 
@@ -10,8 +9,6 @@ import {EditionMetadataState} from "./EditionMetadataState.sol";
 
 /// logic for rendering metadata associated with editions
 contract EditionMetadataRenderer is EditionMetadataState {
-    using StringsUpgradeable for uint256;
-
     /// Generate edition metadata from storage information as base64-json blob
     /// Combines the media data and metadata
     /// @param name Name of NFT in metadata
@@ -39,15 +36,15 @@ contract EditionMetadataRenderer is EditionMetadataState {
     ) internal view returns (string memory) {
         string memory editionSizeText;
         if (editionSize > 0) {
-            editionSizeText = string.concat("/", editionSize.toString());
+            editionSizeText = string.concat(
+                "/",
+                LibString.toString(editionSize)
+            );
         }
 
         string memory externalURLText = "";
         if (bytes(externalUrl).length > 0) {
-            externalURLText = string.concat(
-                '", "external_url": "',
-                externalUrl
-            );
+            externalURLText = string.concat('","external_url":"', externalUrl);
         }
 
         string memory mediaData = tokenMediaData(
@@ -56,14 +53,12 @@ contract EditionMetadataRenderer is EditionMetadataState {
             tokenId
         );
 
-        string memory tokenIdString = tokenId.toString();
-
         return
             string.concat(
                 '{"name":"',
                 LibString.escapeJSON(name),
                 " ",
-                tokenIdString,
+                LibString.toString(tokenId),
                 editionSizeText,
                 '","',
                 'description":"',
@@ -86,13 +81,13 @@ contract EditionMetadataRenderer is EditionMetadataState {
     ) internal view returns (string memory) {
         string memory imageSpace = "";
         if (bytes(imageUrl).length > 0) {
-            imageSpace = string.concat('", "image": "', imageUrl);
+            imageSpace = string.concat('", "image":"', imageUrl);
         }
 
         string memory externalURLSpace = "";
         if (bytes(externalUrl).length > 0) {
             externalURLSpace = string.concat(
-                '", "external_link": "',
+                '", "external_link":"',
                 externalUrl
             );
         }
@@ -106,9 +101,9 @@ contract EditionMetadataRenderer is EditionMetadataState {
                     LibString.escapeJSON(description),
                     // this is for opensea since they don't respect ERC2981 right now
                     '","seller_fee_basis_points":',
-                    StringsUpgradeable.toString(royaltyBPS),
+                    LibString.toString(royaltyBPS),
                     ',"fee_recipient":"',
-                    StringsUpgradeable.toHexString(royaltyRecipient),
+                    LibString.toHexString(royaltyRecipient),
                     imageSpace,
                     externalURLSpace,
                     '"}'
@@ -133,7 +128,7 @@ contract EditionMetadataRenderer is EditionMetadataState {
     function tokenMediaData(
         string memory imageUrl,
         string memory animationUrl,
-        uint256 tokenOfEdition
+        uint256 tokenId
     ) internal pure returns (string memory) {
         bool hasImage = bytes(imageUrl).length > 0;
         bool hasAnimation = bytes(animationUrl).length > 0;
@@ -144,7 +139,7 @@ contract EditionMetadataRenderer is EditionMetadataState {
                 ',"image":"',
                 imageUrl,
                 "?id=",
-                tokenOfEdition.toString(),
+                LibString.toString(tokenId),
                 '"'
             );
         }
@@ -155,7 +150,7 @@ contract EditionMetadataRenderer is EditionMetadataState {
                 ',"animation_url":"',
                 animationUrl,
                 "?id=",
-                tokenOfEdition.toString(),
+                LibString.toString(tokenId),
                 '"'
             );
         }

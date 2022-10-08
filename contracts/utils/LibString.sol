@@ -25,7 +25,7 @@ library LibString {
 
     /// @dev Returns the base 10 decimal representation of `value`.
     function toString(uint256 value) internal pure returns (string memory str) {
-        assembly {
+        assembly ("memory-safe") {
             // The maximum value of a uint256 contains 78 digits (1 byte per digit), but
             // we allocate 0xa0 bytes to keep the free memory pointer 32-byte word aligned.
             // We will need 1 word for the trailing zeros padding, 1 word for the length,
@@ -185,7 +185,7 @@ library LibString {
         pure
         returns (string memory str)
     {
-        assembly {
+        assembly ("memory-safe") {
             let start := mload(0x40)
             // We need 0x20 bytes for the length, 0x02 bytes for the prefix,
             // and 0x28 bytes for the digits.
