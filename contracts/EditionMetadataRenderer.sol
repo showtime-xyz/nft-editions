@@ -47,11 +47,7 @@ contract EditionMetadataRenderer is EditionMetadataState {
             externalURLText = string.concat('","external_url":"', externalUrl);
         }
 
-        string memory mediaData = tokenMediaData(
-            imageUrl,
-            animationUrl,
-            tokenId
-        );
+        string memory mediaData = tokenMediaData(imageUrl, animationUrl);
 
         return
             string.concat(
@@ -81,13 +77,13 @@ contract EditionMetadataRenderer is EditionMetadataState {
     ) internal view returns (string memory) {
         string memory imageSpace = "";
         if (bytes(imageUrl).length > 0) {
-            imageSpace = string.concat('", "image":"', imageUrl);
+            imageSpace = string.concat('","image":"', imageUrl);
         }
 
         string memory externalURLSpace = "";
         if (bytes(externalUrl).length > 0) {
             externalURLSpace = string.concat(
-                '", "external_link":"',
+                '","external_link":"',
                 externalUrl
             );
         }
@@ -125,23 +121,17 @@ contract EditionMetadataRenderer is EditionMetadataState {
             );
     }
 
-    function tokenMediaData(
-        string memory imageUrl,
-        string memory animationUrl,
-        uint256 tokenId
-    ) internal pure returns (string memory) {
+    function tokenMediaData(string memory imageUrl, string memory animationUrl)
+        internal
+        pure
+        returns (string memory)
+    {
         bool hasImage = bytes(imageUrl).length > 0;
         bool hasAnimation = bytes(animationUrl).length > 0;
         string memory buffer = "";
 
         if (hasImage) {
-            buffer = string.concat(
-                ',"image":"',
-                imageUrl,
-                "?id=",
-                LibString.toString(tokenId),
-                '"'
-            );
+            buffer = string.concat(',"image":"', imageUrl, '"');
         }
 
         if (hasAnimation) {
@@ -149,8 +139,6 @@ contract EditionMetadataRenderer is EditionMetadataState {
                 buffer,
                 ',"animation_url":"',
                 animationUrl,
-                "?id=",
-                LibString.toString(tokenId),
                 '"'
             );
         }

@@ -701,7 +701,7 @@ library LibString {
         pure
         returns (string memory result)
     {
-        assembly {
+        assembly ("memory-safe") {
             result := mload(0x40)
             let aLength := mload(a)
             // Copy `a` one word at a time, backwards.

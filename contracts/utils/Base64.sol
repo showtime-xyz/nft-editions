@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 /// @notice Library to encode strings in Base64.
-/// @author Modified from Solady (https://github.com/vectorized/solady/blob/main/src/utils/Base64.sol)
+/// @author Modified from Solady (https://github.com/vectorized/solady/blob/main/src/utils/Base64.sol) @ 41d29ed
 /// @author Modified from Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/Base64.sol)
 /// @author Modified from (https://github.com/Brechtpd/base64/blob/main/base64.sol) by Brecht Devos - <brecht@loopring.org>.
 library Base64 {
