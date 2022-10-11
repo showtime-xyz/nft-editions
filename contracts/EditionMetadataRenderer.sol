@@ -192,6 +192,8 @@ contract EditionMetadataRenderer is EditionMetadataState {
         pure
         returns (string memory)
     {
-        return string.concat('"', name, '":"', value, '"');
+        // let's only escape the value, property names should not be using any special characters
+        return
+            string.concat('"', name, '":"', LibString.escapeJSON(value), '"');
     }
 }
