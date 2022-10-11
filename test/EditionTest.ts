@@ -580,7 +580,7 @@ describe("Edition", () => {
     });
   });
 
-  describe("with an edition that uses special characters", () => {
+  describe("an edition that uses special characters", () => {
     let edition: Edition;
     const expectedName = "My \"edition\" is \t very special!\n";
     const expectedDescription = "My \"description\" is also \t \\very\\ special!\r\n";
@@ -615,6 +615,17 @@ describe("Edition", () => {
       let metadata = parseMetadataURI(tokenURI);
       expect(metadata.name).to.equal(expectedName + " 1/10");
       expect(metadata.description).to.equal(expectedDescription);
+    });
+
+    it("can escape string properties correctly", async () => {
+      // when we set a property with a special character
+      await edition.setStringProperties(["creator"], ['Jeffrey "The Dude" Lebowski']);
+      await edition.mintEdition(signerAddress);
+
+      // then we can recover it from the parsed metadata (meaning that it was escaped correctly)
+      let tokenURI = await edition.tokenURI(1);
+      let metadata = parseMetadataURI(tokenURI);
+      expect(metadata.properties.creator).to.equal('Jeffrey "The Dude" Lebowski');
     });
   });
 });
