@@ -8,6 +8,7 @@ import {
   EditionCreator,
   Edition,
 } from "../typechain";
+import exp from "constants";
 
 function parseMetadataURI(uri: string): any {
   const parsedURI = parseDataURI(uri);
@@ -20,7 +21,7 @@ function parseMetadataURI(uri: string): any {
 
   // Check metadata from edition
   const uriData = Buffer.from(parsedURI.body).toString("utf-8");
-  console.log("uriData: ", uriData);
+  // console.log("uriData: ", uriData);
   const metadata = JSON.parse(uriData);
   return metadata;
 }
@@ -39,6 +40,7 @@ describe("Edition", () => {
   const DEFAULT_MAX_SUPPLY = 10;
   const DEFAULT_ROYALTIES_BPS = 1000;
   const DEFAULT_METADATA_GRACE_PERIOD = 24 * 3600;
+  const DEFAULT_MINT_PERIOD = 0;
 
   const DEFAULT_ARGS = [
     DEFAULT_NAME,
@@ -49,6 +51,7 @@ describe("Edition", () => {
     DEFAULT_MAX_SUPPLY,
     DEFAULT_ROYALTIES_BPS,
     DEFAULT_METADATA_GRACE_PERIOD,
+    DEFAULT_MINT_PERIOD,
   ];
 
   let createEdition = async function (factory: EditionCreator, args: any): Promise<Edition> {
@@ -626,6 +629,153 @@ describe("Edition", () => {
       let tokenURI = await edition.tokenURI(1);
       let metadata = parseMetadataURI(tokenURI);
       expect(metadata.properties.creator).to.equal('Jeffrey "The Dude" Lebowski');
+    });
+  });
+
+  describe("an open edition with a limited minting period", () => {
+    let edition: Edition;
+    const mintingPeriod = 60 * 60 * 24 * 7; // 1 week
+
+    beforeEach(async () => {
+      const args = [...DEFAULT_ARGS];
+      args[0] = "Open Edition with Minting Period";
+      args[5] = 0;
+      args[8] = mintingPeriod;
+
+      // @ts-ignore
+      edition = await createEdition(dynamicSketch, args);
+    });
+
+    describe("during the minting period", () => {
+      it("allows minting", async () => {
+        await expect(edition.mintEdition(signerAddress)).to.emit(edition, "Transfer")
+      });
+
+      it("returns the expected maxSupply()", async () => {
+        const maxSupply = await edition.maxSupply();
+        expect(await edition.maxSupply()).to.equal(ethers.constants.MaxUint256);
+      });
+
+      it("returns the expected totalSupply()", async () => {
+        await edition.mintEdition(signerAddress);
+        expect(await edition.totalSupply()).to.equal(1);
+      });
+
+      it("isMintingEnded() returns false", async () => {
+        expect(await edition.isMintingEnded()).to.equal(false);
+      });
+    });
+
+    describe("after the minting period", () => {
+      beforeEach(async () => {
+        // mint one
+        await edition.mintEdition(signerAddress);
+
+        // warp forward in time
+        await ethers.provider.send("evm_increaseTime", [mintingPeriod + 60]);
+        await ethers.provider.send("evm_mine", []);
+      });
+
+      it("does not allow minting", async () => {
+        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("minting has ended");
+      });
+
+      it("does not allow minting multiple", async () => {
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+      });
+
+      it("does not allow purchasing", async () => {
+        const salePrice = ethers.utils.parseEther("0.1");
+        await edition.setSalePrice(salePrice);
+        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("minting has ended");
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+      });
+
+      it("returns the expected maxSupply()", async () => {
+        expect(await edition.maxSupply()).to.equal(await edition.totalSupply());
+      });
+
+      it("returns the expected totalSupply()", async () => {
+        expect(await edition.totalSupply()).to.equal(1);
+      });
+
+      it("isMintingEnded() returns true", async () => {
+        expect(await edition.isMintingEnded()).to.equal(true);
+      });
+    });
+  });
+
+
+  describe("a limited edition with a limited minting period", () => {
+    let edition: Edition;
+    const mintingPeriod = 60 * 60 * 24 * 7; // 1 week
+
+    beforeEach(async () => {
+      const args = [...DEFAULT_ARGS];
+      args[0] = "Limited Edition with Minting Period";
+      // we keep the default max supply
+      args[8] = mintingPeriod;
+
+      // @ts-ignore
+      edition = await createEdition(dynamicSketch, args);
+    });
+
+    describe("during the minting period", () => {
+      it("allows minting", async () => {
+        await expect(edition.mintEdition(signerAddress)).to.emit(edition, "Transfer")
+      });
+
+      it("returns the expected maxSupply()", async () => {
+        const maxSupply = await edition.maxSupply();
+        expect(await edition.maxSupply()).to.equal(DEFAULT_MAX_SUPPLY);
+      });
+
+      it("returns the expected totalSupply()", async () => {
+        await edition.mintEdition(signerAddress);
+        expect(await edition.totalSupply()).to.equal(1);
+      });
+
+      it("isMintingEnded() returns false", async () => {
+        expect(await edition.isMintingEnded()).to.equal(false);
+      });
+    });
+
+    describe("after the minting period", () => {
+      beforeEach(async () => {
+        // mint one
+        await edition.mintEdition(signerAddress);
+
+        // warp forward in time
+        await ethers.provider.send("evm_increaseTime", [mintingPeriod + 60]);
+        await ethers.provider.send("evm_mine", []);
+      });
+
+      it("does not allow minting", async () => {
+        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("minting has ended");
+      });
+
+      it("does not allow minting multiple", async () => {
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+      });
+
+      it("does not allow purchasing", async () => {
+        const salePrice = ethers.utils.parseEther("0.1");
+        await edition.setSalePrice(salePrice);
+        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("minting has ended");
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+      });
+
+      it("returns the expected maxSupply()", async () => {
+        expect(await edition.maxSupply()).to.equal(await edition.totalSupply());
+      });
+
+      it("returns the expected totalSupply()", async () => {
+        expect(await edition.totalSupply()).to.equal(1);
+      });
+
+      it("isMintingEnded() returns true", async () => {
+        expect(await edition.isMintingEnded()).to.equal(true);
+      });
     });
   });
 });

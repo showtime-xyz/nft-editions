@@ -50,6 +50,9 @@ contract Edition is
     // the metadata can be update by the owner up to this timestamp
     uint256 internal endOfMetadataGracePeriod;
 
+    // the edition can be minted up to this timestamp
+    uint256 internal endOfMintPeriod;
+
     // Global constructor for factory
     constructor() {
         _disableInitializers();
@@ -62,11 +65,12 @@ contract Edition is
     /// @param _name Name of edition, used in the title as "$NAME NUMBER/TOTAL"
     /// @param _symbol Symbol of the new token contract
     /// @param _description Description of edition, used in the description field of the NFT
-    /// @param _imageUrl Image URL of the edition. Strongly encouraged to be used, if necessary, only animation URL can be used. One of animation and image url need to exist in a edition to render the NFT.
+    /// @param _imageUrl Image URL of the edition. Strongly encouraged to be used, but if necessary, only animation URL can be used. One of animation and image url need to exist in a edition to render the NFT.
     /// @param _animationUrl Animation URL of the edition. Not required, but if omitted image URL needs to be included. This follows the opensea spec for NFTs
     /// @param _editionSize Number of editions that can be minted in total. If 0, unlimited editions can be minted.
     /// @param _royaltyBPS BPS of the royalty set on the contract. Can be 0 for no royalty.
-    /// @param metadataGracePeriodSeconds The amount of time in seconds that the metadata can be updated after the contract is deployed, 0 to have no grace period
+    /// @param _metadataGracePeriodSeconds The amount of time in seconds that the metadata can be updated after the contract is deployed. Use 0 to have no grace period
+    /// @param _mintPeriodSeconds The amount of time in seconds after which editions can no longer be minted or purchased. Use 0 to have no expiration
     function initialize(
         address _owner,
         string calldata _name,
@@ -76,22 +80,42 @@ contract Edition is
         string calldata _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS,
-        uint256 metadataGracePeriodSeconds
+        uint256 _metadataGracePeriodSeconds,
+        uint256 _mintPeriodSeconds
     ) public override initializer {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
         // Set ownership to original sender of contract call
         transferOwnership(_owner);
-        description = _description;
-        animationUrl = _animationUrl;
-        imageUrl = _imageUrl;
-        editionSize = _editionSize;
-        royaltyBPS = _royaltyBPS;
 
-        if (metadataGracePeriodSeconds > 0) {
+        if (bytes(_description).length > 0) {
+            description = _description;
+        }
+
+        if (bytes(_animationUrl).length > 0) {
+            animationUrl = _animationUrl;
+        }
+
+        if (bytes(_imageUrl).length > 0) {
+            imageUrl = _imageUrl;
+        }
+
+        if (_editionSize > 0) {
+            editionSize = _editionSize;
+        }
+
+        if (_royaltyBPS > 0) {
+            royaltyBPS = _royaltyBPS;
+        }
+
+        if (_metadataGracePeriodSeconds > 0) {
             endOfMetadataGracePeriod =
                 block.timestamp +
-                metadataGracePeriodSeconds;
+                _metadataGracePeriodSeconds;
+        }
+
+        if (_mintPeriodSeconds > 0) {
+            endOfMintPeriod = block.timestamp + _mintPeriodSeconds;
         }
     }
 
@@ -101,6 +125,11 @@ contract Edition is
 
     modifier notFrozen() {
         require(!isMetadataFrozen(), "metadata is frozen");
+        _;
+    }
+
+    modifier notEnded() {
+        require(!isMintingEnded(), "minting has ended");
         _;
     }
 
@@ -209,7 +238,7 @@ contract Edition is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev This allows the user to purchase a single edition at the configured sale price
-    function purchase() external payable returns (uint256) {
+    function purchase() external payable notEnded returns (uint256) {
         require(salePrice > 0, "Not for sale");
         require(msg.value == salePrice, "Wrong price");
 
@@ -219,7 +248,12 @@ contract Edition is
 
     /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
-    function mintEdition(address to) external override returns (uint256) {
+    function mintEdition(address to)
+        external
+        override
+        notEnded
+        returns (uint256)
+    {
         require(_isAllowedToMint(), "Needs to be an allowed minter");
 
         return _mintEdition(to);
@@ -230,6 +264,7 @@ contract Edition is
     function mintEditions(address[] calldata recipients)
         external
         override
+        notEnded
         returns (uint256)
     {
         require(_isAllowedToMint(), "Needs to be an allowed minter");
@@ -313,14 +348,25 @@ contract Edition is
         return block.timestamp > endOfMetadataGracePeriod;
     }
 
+    /// Returns whether the edition can still be minted/purchased
+    function isMintingEnded() public view returns (bool) {
+        return endOfMintPeriod > 0 && block.timestamp > endOfMintPeriod;
+    }
+
     /// Returns the number of editions left to mint (max_uint256 when open edition)
     function maxSupply() public view override returns (uint256) {
-        // Return max int if open edition
-        if (editionSize == 0) {
-            return type(uint256).max;
+        // if the mint period is over, return the current total supply (which can not be increased anymore)
+        if (isMintingEnded()) {
+            return totalSupply;
         }
 
-        return editionSize;
+        // limited edition: return the fixed size
+        if (editionSize != 0) {
+            return editionSize;
+        }
+
+        // open edition
+        return type(uint256).max;
     }
 
     /// @notice Get the base64-encoded json metadata for a token

@@ -1,5 +1,7 @@
 EditionMetadataTest:testContractURI() (gas: 54055)
 EditionMetadataTest:testContractURIEscaped() (gas: 66090)
+EditionMetadataTest:testCreateEditionWithEmptyDescription() (gas: 293038)
+EditionMetadataTest:testCreateEditionWithNoRoyalties() (gas: 291554)
 EditionMetadataTest:testEncodeContractURIIntenseDescription() (gas: 75117109)
 EditionMetadataTest:testLongEscapeControlChar() (gas: 65323706)
 EditionMetadataTest:testLongEscapeDoubleQuotes() (gas: 49219847)
