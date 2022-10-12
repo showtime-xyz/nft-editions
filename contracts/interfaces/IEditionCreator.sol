@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { IEdition } from "./IEdition.sol";
+import {IEdition} from "./IEdition.sol";
 
 interface IEditionCreator {
     event CreatedEdition(
@@ -20,7 +20,8 @@ interface IEditionCreator {
         string memory _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS,
-        uint256 _metadataGracePeriodSeconds
+        uint256 _metadataGracePeriodSeconds,
+        uint256 _mintPeriodSeconds
     ) external returns (IEdition);
 
     /// Get edition given the created ID

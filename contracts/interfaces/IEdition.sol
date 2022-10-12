@@ -28,7 +28,8 @@ interface IEdition {
         string memory _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS,
-        uint256 metadataGracePeriod
+        uint256 _metadataGracePeriod,
+        uint256 _mintPeriodSeconds
     ) external;
 
     function maxSupply() external view returns (uint256);

@@ -36,7 +36,8 @@ contract EditionCreator is IEditionCreator {
     /// @param _imageUrl Metadata: Image url (semi-required) of the edition entry
     /// @param _editionSize Total size of the edition (number of possible editions)
     /// @param _royaltyBPS BPS amount of royalty
-    /// @param _metadataGracePeriodSeconds Number of seconds after minting that metadata can be updated by the owner, 0 to have no grace period
+    /// @param _metadataGracePeriodSeconds The amount of time in seconds that the metadata can be updated after the contract is deployed. Use 0 to have no grace period
+    /// @param _mintPeriodSeconds The amount of time in seconds after which editions can no longer be minted or purchased. Use 0 to have no expiration
     /// @return newContract The address of the created edition
     function createEdition(
         string calldata _name,
@@ -46,13 +47,21 @@ contract EditionCreator is IEditionCreator {
         string calldata _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS,
-        uint256 _metadataGracePeriodSeconds
+        uint256 _metadataGracePeriodSeconds,
+        uint256 _mintPeriodSeconds
     ) external override returns (IEdition newContract) {
-        bytes32 salt = keccak256(abi.encodePacked(msg.sender, _name, _symbol, _animationUrl, _imageUrl));
-        newContract = IEdition(ClonesUpgradeable.cloneDeterministic(
-            implementation,
-            salt
-        ));
+        bytes32 salt = keccak256(
+            abi.encodePacked(
+                msg.sender,
+                _name,
+                _symbol,
+                _animationUrl,
+                _imageUrl
+            )
+        );
+        newContract = IEdition(
+            ClonesUpgradeable.cloneDeterministic(implementation, salt)
+        );
 
         newContract.initialize(
             msg.sender,
@@ -63,10 +72,16 @@ contract EditionCreator is IEditionCreator {
             _imageUrl,
             _editionSize,
             _royaltyBPS,
-            _metadataGracePeriodSeconds
+            _metadataGracePeriodSeconds,
+            _mintPeriodSeconds
         );
 
-        emit CreatedEdition(uint256(salt), msg.sender, _editionSize, address(newContract));
+        emit CreatedEdition(
+            uint256(salt),
+            msg.sender,
+            _editionSize,
+            address(newContract)
+        );
     }
 
     /// Get edition given the created ID

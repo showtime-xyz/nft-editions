@@ -54,9 +54,10 @@ describe("Edition", () => {
       "This is a testing token for all",
       "https://ipfs.io/ipfsbafybeify52a63pgcshhbtkff4nxxxp2zp5yjn2xw43jcy4knwful7ymmgy",
       "",
-      10,
-      10,
-      24 * 3600
+      10, // 10 editions
+      10, // royalties
+      24 * 3600,
+      0, // mint period
     ]);
     expect(await minterContract.name()).to.be.equal("Testing Token");
     expect(await minterContract.symbol()).to.be.equal("TEST");

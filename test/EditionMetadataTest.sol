@@ -35,7 +35,8 @@ contract EditionMetadataTest is Test {
                         "https://example.com/image.png",
                         10, // editionSize
                         10_00, // royaltyBPS
-                        0 // metadataGracePeriodSeconds
+                        0, // metadataGracePeriodSeconds
+                        0 // mintPeriodSeconds
                     )
                 )
             );
@@ -68,20 +69,20 @@ contract EditionMetadataTest is Test {
     }
 
     // for gas usage only
-    function testTokenURI() public {
+    function testTokenURI() public view {
         edition.tokenURI(tokenId);
     }
 
     // for gas usage only
-    function testContractURI() public {
+    function testContractURI() public view {
         edition.contractURI();
     }
 
-    function testTokenURIEscaped() public {
+    function testTokenURIEscaped() public view {
         editionToEscape.tokenURI(tokenId);
     }
 
-    function testContractURIEscaped() public {
+    function testContractURIEscaped() public view {
         editionToEscape.contractURI();
     }
 
@@ -120,5 +121,31 @@ contract EditionMetadataTest is Test {
         // console2.log("description:", description);
 
         assertEq(description, LibString.repeat("\\", INTENSE_LENGTH));
+    }
+
+    function testCreateEditionWithEmptyDescription() public {
+        Edition editionEmptyDescription = createEdition("name", "");
+        assertEq(editionEmptyDescription.description(), "");
+    }
+
+    function testCreateEditionWithNoRoyalties() public {
+        Edition editionNoRoyalties = Edition(
+            address(
+                editionCreator.createEdition(
+                    "name",
+                    "TEST",
+                    "description",
+                    "https://example.com/animation.mp4",
+                    "https://example.com/image.png",
+                    10, // editionSize
+                    0, // royaltyBPS
+                    0, // metadataGracePeriodSeconds
+                    0 // mintPeriodSeconds
+                )
+            )
+        );
+
+        (, uint256 royaltyAmount) = editionNoRoyalties.royaltyInfo(1, 100);
+        assertEq(royaltyAmount, 0);
     }
 }
