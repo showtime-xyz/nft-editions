@@ -85,37 +85,30 @@ contract Edition is
     ) public override initializer {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
+
         // Set ownership to original sender of contract call
         transferOwnership(_owner);
 
-        if (bytes(_description).length > 0) {
-            description = _description;
-        }
-
-        if (bytes(_animationUrl).length > 0) {
-            animationUrl = _animationUrl;
-        }
-
-        if (bytes(_imageUrl).length > 0) {
-            imageUrl = _imageUrl;
-        }
-
-        if (_editionSize > 0) {
-            editionSize = _editionSize;
-        }
-
-        if (_royaltyBPS > 0) {
-            royaltyBPS = _royaltyBPS;
-        }
+        description = _description;
+        animationUrl = _animationUrl;
+        imageUrl = _imageUrl;
+        editionSize = _editionSize;
+        royaltyBPS = _royaltyBPS;
 
         if (_metadataGracePeriodSeconds > 0) {
-            endOfMetadataGracePeriod =
-                block.timestamp +
-                _metadataGracePeriodSeconds;
+            // overflows are not expected to happen for timestamps, and have no security implications
+            unchecked {
+                endOfMetadataGracePeriod =
+                    block.timestamp +
+                    _metadataGracePeriodSeconds;
+            }
         }
 
         if (_mintPeriodSeconds > 0) {
-            endOfMintPeriod = block.timestamp + _mintPeriodSeconds;
+            // overflows are not expected to happen for timestamps, and have no security implications
+            unchecked {
+                endOfMintPeriod = block.timestamp + _mintPeriodSeconds;
+            }
         }
     }
 
