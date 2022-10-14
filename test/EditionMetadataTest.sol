@@ -35,7 +35,6 @@ contract EditionMetadataTest is Test {
                         "https://example.com/image.png",
                         10, // editionSize
                         10_00, // royaltyBPS
-                        0, // metadataGracePeriodSeconds
                         0 // mintPeriodSeconds
                     )
                 )
@@ -139,7 +138,6 @@ contract EditionMetadataTest is Test {
                     "https://example.com/image.png",
                     10, // editionSize
                     0, // royaltyBPS
-                    0, // metadataGracePeriodSeconds
                     0 // mintPeriodSeconds
                 )
             )
