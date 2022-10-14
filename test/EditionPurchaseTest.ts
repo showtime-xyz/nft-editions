@@ -56,7 +56,6 @@ describe("Edition", () => {
       "",
       10, // 10 editions
       10, // royalties
-      24 * 3600,
       0, // mint period
     ]);
     expect(await minterContract.name()).to.be.equal("Testing Token");

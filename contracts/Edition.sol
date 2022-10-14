@@ -47,9 +47,6 @@ contract Edition is
     // Price for sale
     uint256 public salePrice;
 
-    // the metadata can be update by the owner up to this timestamp
-    uint256 internal endOfMetadataGracePeriod;
-
     // the edition can be minted up to this timestamp
     uint256 internal endOfMintPeriod;
 
@@ -69,7 +66,6 @@ contract Edition is
     /// @param _animationUrl Animation URL of the edition. Not required, but if omitted image URL needs to be included. This follows the opensea spec for NFTs
     /// @param _editionSize Number of editions that can be minted in total. If 0, unlimited editions can be minted.
     /// @param _royaltyBPS BPS of the royalty set on the contract. Can be 0 for no royalty.
-    /// @param _metadataGracePeriodSeconds The amount of time in seconds that the metadata can be updated after the contract is deployed. Use 0 to have no grace period
     /// @param _mintPeriodSeconds The amount of time in seconds after which editions can no longer be minted or purchased. Use 0 to have no expiration
     function initialize(
         address _owner,
@@ -80,7 +76,6 @@ contract Edition is
         string calldata _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS,
-        uint256 _metadataGracePeriodSeconds,
         uint256 _mintPeriodSeconds
     ) public override initializer {
         __ERC721_init(_name, _symbol);
@@ -95,15 +90,6 @@ contract Edition is
         editionSize = _editionSize;
         royaltyBPS = _royaltyBPS;
 
-        if (_metadataGracePeriodSeconds > 0) {
-            // overflows are not expected to happen for timestamps, and have no security implications
-            unchecked {
-                endOfMetadataGracePeriod =
-                    block.timestamp +
-                    _metadataGracePeriodSeconds;
-            }
-        }
-
         if (_mintPeriodSeconds > 0) {
             // overflows are not expected to happen for timestamps, and have no security implications
             unchecked {
@@ -115,11 +101,6 @@ contract Edition is
     /*//////////////////////////////////////////////////////////////
                   CREATOR / COLLECTION OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    modifier notFrozen() {
-        require(!isMetadataFrozen(), "metadata is frozen");
-        _;
-    }
 
     modifier notEnded() {
         require(!isMintingEnded(), "minting has ended");
@@ -149,47 +130,6 @@ contract Edition is
     /// @dev This setup is similar to setApprovalForAll in the ERC721 spec.
     function setApprovedMinter(address minter, bool allowed) public onlyOwner {
         allowedMinters[minter] = allowed;
-    }
-
-    function setDescription(string calldata _description)
-        public
-        override
-        onlyOwner
-        notFrozen
-    {
-        // log the current description
-        emit DescriptionUpdated(description, _description);
-
-        // switch to the new one
-        description = _description;
-    }
-
-    /// @dev Allows the owner to update the animation url for the edition
-    function setAnimationUrl(string calldata _animationUrl)
-        public
-        override
-        onlyOwner
-        notFrozen
-    {
-        // log the current animation url
-        emit AnimationUrlUpdated(animationUrl, _animationUrl);
-
-        // switch to the new one
-        animationUrl = _animationUrl;
-    }
-
-    /// @dev Allows the owner to update the image url for the edition
-    function setImageUrl(string calldata _imageUrl)
-        public
-        override
-        onlyOwner
-        notFrozen
-    {
-        // log the current image url
-        emit ImageUrlUpdated(imageUrl, _imageUrl);
-
-        // switch to the new one
-        imageUrl = _imageUrl;
     }
 
     /// @notice Updates the external_url field in the metadata
@@ -334,12 +274,6 @@ contract Edition is
     /*//////////////////////////////////////////////////////////////
                            METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// Returns whether metadata (image URL, animation URL, description) can be updated
-    /// The external URL can be updated at any time
-    function isMetadataFrozen() public view returns (bool) {
-        return block.timestamp > endOfMetadataGracePeriod;
-    }
 
     /// Returns whether the edition can still be minted/purchased
     function isMintingEnded() public view returns (bool) {

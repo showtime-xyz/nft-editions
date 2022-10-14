@@ -8,7 +8,28 @@ import {
   EditionCreator,
   Edition,
 } from "../typechain";
-import exp from "constants";
+
+const DEFAULT_NAME = "Testing Token";
+const DEFAULT_SYMBOL = "TEST";
+const DEFAULT_DESCRIPTION = "This is a testing token for all";
+const DEFAULT_ANIMATION_URL = "";
+const DEFAULT_IMAGE_URL = "ipfs://someImageHash";
+const DEFAULT_EDITION_SIZE = 10;
+const DEFAULT_ROYALTIES_BPS = 1000;
+const DEFAULT_MINT_PERIOD = 0;
+
+function editionArgs(overrides: any = {}) {
+  return [
+    overrides.name || DEFAULT_NAME,
+    overrides.symbol || DEFAULT_SYMBOL,
+    overrides.description || DEFAULT_DESCRIPTION,
+    overrides.animationUrl || DEFAULT_ANIMATION_URL,
+    overrides.imageUrl || DEFAULT_IMAGE_URL,
+    overrides.editionSize === undefined ? DEFAULT_EDITION_SIZE : overrides.editionSize,
+    overrides.royaltiesBPS === undefined ? DEFAULT_ROYALTIES_BPS : overrides.royaltiesBPS,
+    overrides.mintPeriodSeconds === undefined ? DEFAULT_MINT_PERIOD : overrides.mintPeriodSeconds,
+  ];
+}
 
 function parseMetadataURI(uri: string): any {
   const parsedURI = parseDataURI(uri);
@@ -31,28 +52,6 @@ describe("Edition", () => {
   let signerAddress: string;
   let dynamicSketch: EditionCreator;
   let editionImpl: Edition;
-
-  const DEFAULT_NAME = "Testing Token";
-  const DEFAULT_SYMBOL = "TEST";
-  const DEFAULT_DESCRIPTION = "This is a testing token for all";
-  const DEFAULT_ANIMATION_URL = "";
-  const DEFAULT_IMAGE_URL = "ipfs://someImageHash";
-  const DEFAULT_MAX_SUPPLY = 10;
-  const DEFAULT_ROYALTIES_BPS = 1000;
-  const DEFAULT_METADATA_GRACE_PERIOD = 24 * 3600;
-  const DEFAULT_MINT_PERIOD = 0;
-
-  const DEFAULT_ARGS = [
-    DEFAULT_NAME,
-    DEFAULT_SYMBOL,
-    DEFAULT_DESCRIPTION,
-    DEFAULT_ANIMATION_URL,
-    DEFAULT_IMAGE_URL,
-    DEFAULT_MAX_SUPPLY,
-    DEFAULT_ROYALTIES_BPS,
-    DEFAULT_METADATA_GRACE_PERIOD,
-    DEFAULT_MINT_PERIOD,
-  ];
 
   let createEdition = async function (factory: EditionCreator, args: any): Promise<Edition> {
     // first simulate the call to get the output
@@ -92,17 +91,17 @@ describe("Edition", () => {
   it("does not allow re-initialization of the implementation contract", async () => {
     await expect(
       // @ts-ignore
-      editionImpl.initialize(signerAddress, ...DEFAULT_ARGS)
+      editionImpl.initialize(signerAddress, ...editionArgs())
     ).to.be.revertedWith("Initializable: contract is already initialized");
   });
 
   it("makes a new edition", async () => {
-    const minterContract = await createEdition(dynamicSketch, DEFAULT_ARGS);
+    const minterContract = await createEdition(dynamicSketch, editionArgs());
     expect(await minterContract.name()).to.be.equal(DEFAULT_NAME);
     expect(await minterContract.symbol()).to.be.equal(DEFAULT_SYMBOL);
     expect(await minterContract.imageUrl()).to.equal(DEFAULT_IMAGE_URL);
     expect(await minterContract.animationUrl()).to.equal(DEFAULT_ANIMATION_URL);
-    expect(await minterContract.editionSize()).to.equal(DEFAULT_MAX_SUPPLY);
+    expect(await minterContract.editionSize()).to.equal(DEFAULT_EDITION_SIZE);
     expect(await minterContract.owner()).to.equal(signerAddress);
 
     let salePrice = 20000;
@@ -112,18 +111,19 @@ describe("Edition", () => {
   });
 
   it("makes a new edition with both an imageUrl and an animationUrl", async () => {
-    const args = [...DEFAULT_ARGS];
-    args[3] = "https://example.com/animationUrl";
-    args[4] = "https://example.com/imageUrl";
+    const overrides = {
+      animationUrl: "https://example.com/animationUrl",
+      imageUrl: "https://example.com/imageUrl",
+    };
 
-    const edition = await createEdition(dynamicSketch, args);
-    expect(await edition.animationUrl()).to.equal(args[3]);
-    expect(await edition.imageUrl()).to.equal(args[4]);
+    const edition = await createEdition(dynamicSketch, editionArgs(overrides));
+    expect(await edition.animationUrl()).to.equal(overrides.animationUrl);
+    expect(await edition.imageUrl()).to.equal(overrides.imageUrl);
 
     await edition.mintEdition(signerAddress);
     const metadata = parseMetadataURI(await edition.tokenURI(1));
-    expect(metadata.animation_url).to.equal(args[3]);
-    expect(metadata.image).to.equal(args[4]);
+    expect(metadata.animation_url).to.equal(overrides.animationUrl);
+    expect(metadata.image).to.equal(overrides.imageUrl);
   });
 
   describe("with an edition", () => {
@@ -132,7 +132,7 @@ describe("Edition", () => {
 
     beforeEach(async () => {
       signer1 = (await ethers.getSigners())[1];
-      minterContract = await createEdition(dynamicSketch, DEFAULT_ARGS);
+      minterContract = await createEdition(dynamicSketch, editionArgs());
     });
 
     describe("custom properties", () => {
@@ -237,74 +237,6 @@ describe("Edition", () => {
       expect(metadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
     });
 
-    describe("during the grace period", () => {
-      it("lets the owner call setImageUrl()", async () => {
-        const newImageUrl = "https://example.com/newImageUrl";
-        await expect(minterContract.setImageUrl(newImageUrl))
-          .to.emit(minterContract, "ImageUrlUpdated")
-          .withArgs(DEFAULT_IMAGE_URL, newImageUrl);
-
-        expect(await minterContract.imageUrl()).to.equal(newImageUrl);
-      });
-
-      it("lets the owner call setAnimationUrl()", async () => {
-        const newAnimationUrl = "https://example.com/newAnimationUrl";
-        await expect(minterContract.setAnimationUrl(newAnimationUrl))
-          .to.emit(minterContract, "AnimationUrlUpdated")
-          .withArgs(DEFAULT_ANIMATION_URL, newAnimationUrl);
-
-        expect(await minterContract.animationUrl()).to.equal(newAnimationUrl);
-      });
-
-      it("lets the owner call setDescription()", async () => {
-        const newDescription = "new description";
-        await expect(minterContract.setDescription(newDescription))
-          .to.emit(minterContract, "DescriptionUpdated")
-          .withArgs(DEFAULT_DESCRIPTION, newDescription);
-
-        expect(await minterContract.description()).to.equal(newDescription);
-      });
-
-      it("does not let a non-owner call setAnimationUrl()", async () => {
-        await expect(minterContract.connect(signer1).setAnimationUrl(""))
-          .to.be.revertedWith("Ownable: caller is not the owner");
-      });
-
-      it("does not let a non-owner call setImageUrl()", async () => {
-        await expect(minterContract.connect(signer1).setImageUrl(""))
-          .to.be.revertedWith("Ownable: caller is not the owner");
-      });
-
-      it("does not let a non-owner call setDescription()", async () => {
-        await expect(minterContract.connect(signer1).setDescription(""))
-          .to.be.revertedWith("Ownable: caller is not the owner");
-      });
-    });
-
-    describe("after the grace period", () => {
-      beforeEach(async () => {
-        // warp time forward to after the grace period
-        await ethers.provider.send("evm_increaseTime", [DEFAULT_METADATA_GRACE_PERIOD + 1]);
-      });
-
-      it("does not let the owner call setImageUrl()", async () => {
-        await expect(minterContract.setImageUrl("")).to.be.revertedWith("metadata is frozen");
-      });
-
-      it("does not let the owner call setAnimationUrl()", async () => {
-        await expect(minterContract.setAnimationUrl("")).to.be.revertedWith("metadata is frozen");
-      });
-
-      it("does not let the owner call setDescription()", async () => {
-        await expect(minterContract.setDescription("")).to.be.revertedWith("metadata is frozen");
-      });
-
-      it("lets the owner call setExternalUrl()", async () => {
-        await minterContract.setExternalUrl("https://example.com/externalUrl");
-        expect(await minterContract.externalUrl()).to.equal("https://example.com/externalUrl");
-      });
-    });
-
     describe("when we set the external URL", () => {
       const externalUrl = "https://example.com/externalUrl";
 
@@ -373,26 +305,26 @@ describe("Edition", () => {
     });
 
     it("can not create another edition with the same parameters", async () => {
-      await expect(createEdition(dynamicSketch, DEFAULT_ARGS)).to.be.revertedWith("ERC1167: create2 failed");
+      await expect(createEdition(dynamicSketch, editionArgs())).to.be.revertedWith("ERC1167: create2 failed");
     });
 
     it("creates an unbounded edition", async () => {
-      // no limit for edition size
-      let args = [...DEFAULT_ARGS];
-      args[0] = "Testing Unbounded Edition";
-      args[5] = 0;
+      const overrides = {
+        name: "Unbounded Edition",
+        editionSize: 0,
+      };
 
-      minterContract = await createEdition(dynamicSketch, args);
+      minterContract = await createEdition(dynamicSketch, editionArgs(overrides));
 
       const contractURI = await minterContract.contractURI();
       const contractMetadata = parseMetadataURI(contractURI);
-      expect(contractMetadata.name).to.equal("Testing Unbounded Edition");
+      expect(contractMetadata.name).to.equal(overrides.name);
       expect(contractMetadata.description).to.equal(DEFAULT_DESCRIPTION);
       expect(contractMetadata.image).to.equal(DEFAULT_IMAGE_URL);
       expect(contractMetadata.seller_fee_basis_points).to.equal(DEFAULT_ROYALTIES_BPS);
       expect(contractMetadata.fee_recipient).to.equal((await minterContract.owner()).toLowerCase());
-
       expect(await minterContract.totalSupply()).to.equal(0);
+      expect(await minterContract.maxSupply()).to.equal(ethers.constants.MaxUint256);
 
       // Mint first edition
       await expect(minterContract.mintEdition(signerAddress))
@@ -421,11 +353,11 @@ describe("Edition", () => {
       const metadata = parseMetadataURI(tokenURI);
       const metadata2 = parseMetadataURI(tokenURI2);
 
-      expect(metadata2.name).to.be.equal("Testing Unbounded Edition 2");
+      expect(metadata2.name).to.be.equal(`${overrides.name} 2`);
 
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
-          name: "Testing Unbounded Edition 1",
+          name: `${overrides.name} 1`,
           description: DEFAULT_DESCRIPTION,
           image: DEFAULT_IMAGE_URL,
           properties: { },
@@ -454,7 +386,7 @@ describe("Edition", () => {
         minterContract.initialize(
           signerAddress,
           // @ts-ignore
-          ...DEFAULT_ARGS,
+          ...editionArgs(),
         )
       ).to.be.revertedWith("Initializable: contract is already initialized");
 
@@ -510,11 +442,12 @@ describe("Edition", () => {
       });
 
       it("sets the correct royalty amount", async () => {
-        let args = [...DEFAULT_ARGS];
-        args[0] = "Edition w/ 2% royalties";
-        args[6] = 200; // 2% royalties
+        const overrides = {
+          name: "Edition w/ 2% royalties",
+          royaltiesBPS: 200,
+        };
 
-        const minterContractNew = await createEdition(dynamicSketch, args);
+        const minterContractNew = await createEdition(dynamicSketch, editionArgs(overrides));
         await minterContractNew.mintEdition(signerAddress);
         expect((await minterContractNew.royaltyInfo(1, ethers.utils.parseEther("1.0")))[1]).to.be.equal(
           ethers.utils.parseEther("0.02")
@@ -523,12 +456,12 @@ describe("Edition", () => {
     });
 
     it("mints a large batch", async () => {
-      // no limit for edition size
-      let args = [...DEFAULT_ARGS];
-      args[0] = "Unbounded Edition";
-      args[5] = 0;
+      const overrides = {
+        name: "Unbounded Edition",
+        editionSize: 0,
+      };
 
-      minterContract = await createEdition(dynamicSketch, args);
+      minterContract = await createEdition(dynamicSketch, editionArgs(overrides));
 
       const [s1, s2, s3] = await ethers.getSigners();
       const [s1a, s2a, s3a] = [
@@ -589,12 +522,13 @@ describe("Edition", () => {
     const expectedDescription = "My \"description\" is also \t \\very\\ special!\r\n";
 
     beforeEach(async () => {
-      const args = [...DEFAULT_ARGS];
-      args[0] = expectedName;
-      args[2] = expectedDescription;
+      const overrides = {
+        name: expectedName,
+        description: expectedDescription,
+      };
 
       // @ts-ignore
-      edition = await createEdition(dynamicSketch, args);
+      edition = await createEdition(dynamicSketch, editionArgs(overrides));
     });
 
     it("returns the correct name", async () => {
@@ -637,13 +571,14 @@ describe("Edition", () => {
     const mintingPeriod = 60 * 60 * 24 * 7; // 1 week
 
     beforeEach(async () => {
-      const args = [...DEFAULT_ARGS];
-      args[0] = "Open Edition with Minting Period";
-      args[5] = 0;
-      args[8] = mintingPeriod;
+      const overrides = {
+        name: "Open Edition with Minting Period",
+        editionSize: 0,
+        mintPeriodSeconds: mintingPeriod,
+      };
 
       // @ts-ignore
-      edition = await createEdition(dynamicSketch, args);
+      edition = await createEdition(dynamicSketch, editionArgs(overrides));
     });
 
     describe("during the minting period", () => {
@@ -652,7 +587,6 @@ describe("Edition", () => {
       });
 
       it("returns the expected maxSupply()", async () => {
-        const maxSupply = await edition.maxSupply();
         expect(await edition.maxSupply()).to.equal(ethers.constants.MaxUint256);
       });
 
@@ -711,13 +645,13 @@ describe("Edition", () => {
     const mintingPeriod = 60 * 60 * 24 * 7; // 1 week
 
     beforeEach(async () => {
-      const args = [...DEFAULT_ARGS];
-      args[0] = "Limited Edition with Minting Period";
-      // we keep the default max supply
-      args[8] = mintingPeriod;
+      const overrides = {
+        name: "Limited Edition with Minting Period",
+        mintPeriodSeconds: mintingPeriod,
+      };
 
       // @ts-ignore
-      edition = await createEdition(dynamicSketch, args);
+      edition = await createEdition(dynamicSketch, editionArgs(overrides));
     });
 
     describe("during the minting period", () => {
@@ -727,7 +661,7 @@ describe("Edition", () => {
 
       it("returns the expected maxSupply()", async () => {
         const maxSupply = await edition.maxSupply();
-        expect(await edition.maxSupply()).to.equal(DEFAULT_MAX_SUPPLY);
+        expect(await edition.maxSupply()).to.equal(DEFAULT_EDITION_SIZE);
       });
 
       it("returns the expected totalSupply()", async () => {

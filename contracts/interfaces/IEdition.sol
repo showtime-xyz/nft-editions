@@ -9,9 +9,6 @@ struct StringAttribute {
 interface IEdition {
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
-    event DescriptionUpdated(string oldDescription, string newDescription);
-    event AnimationUrlUpdated(string oldAnimationUrl, string newAnimationUrl);
-    event ImageUrlUpdated(string oldImageUrl, string newImageUrl);
     event ExternalUrlUpdated(string oldExternalUrl, string newExternalUrl);
     event PropertyUpdated(string name, string oldValue, string newValue);
 
@@ -28,7 +25,6 @@ interface IEdition {
         string memory _imageUrl,
         uint256 _editionSize,
         uint256 _royaltyBPS,
-        uint256 _metadataGracePeriod,
         uint256 _mintPeriodSeconds
     ) external;
 
@@ -44,13 +40,7 @@ interface IEdition {
 
     function salePrice() external view returns (uint256);
 
-    function setAnimationUrl(string calldata animationUrl) external;
-
     function setApprovedMinter(address minter, bool allowed) external;
-
-    function setDescription(string calldata description) external;
-
-    function setImageUrl(string calldata imageUrl) external;
 
     function setSalePrice(uint256 _salePrice) external;
 
