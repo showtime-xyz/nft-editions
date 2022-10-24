@@ -296,7 +296,7 @@ describe("Edition", () => {
       const metadata = parseMetadataURI(tokenURI);
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
-          name: DEFAULT_NAME + " 1/10",
+          name: DEFAULT_NAME + " #1/10",
           description: DEFAULT_DESCRIPTION,
           image: DEFAULT_IMAGE_URL,
           properties: { },
@@ -353,11 +353,11 @@ describe("Edition", () => {
       const metadata = parseMetadataURI(tokenURI);
       const metadata2 = parseMetadataURI(tokenURI2);
 
-      expect(metadata2.name).to.be.equal(`${overrides.name} 2`);
+      expect(metadata2.name).to.be.equal(`${overrides.name} #2`);
 
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
-          name: `${overrides.name} 1`,
+          name: `${overrides.name} #1`,
           description: DEFAULT_DESCRIPTION,
           image: DEFAULT_IMAGE_URL,
           properties: { },
@@ -507,7 +507,7 @@ describe("Edition", () => {
 
       expect(JSON.stringify(metadata)).to.equal(
         JSON.stringify({
-          name: "Testing Token 10/10",
+          name: "Testing Token #10/10",
           description: "This is a testing token for all",
           image: DEFAULT_IMAGE_URL,
           properties: { },
@@ -550,7 +550,7 @@ describe("Edition", () => {
       await edition.mintEdition(signerAddress);
       let tokenURI = await edition.tokenURI(1);
       let metadata = parseMetadataURI(tokenURI);
-      expect(metadata.name).to.equal(expectedName + " 1/10");
+      expect(metadata.name).to.equal(expectedName + " #1/10");
       expect(metadata.description).to.equal(expectedDescription);
     });
 

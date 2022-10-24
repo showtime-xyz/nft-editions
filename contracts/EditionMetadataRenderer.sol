@@ -53,7 +53,7 @@ contract EditionMetadataRenderer is EditionMetadataState {
             string.concat(
                 '{"name":"',
                 LibString.escapeJSON(name),
-                " ",
+                " #",
                 LibString.toString(tokenId),
                 editionSizeText,
                 '","',
