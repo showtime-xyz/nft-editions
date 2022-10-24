@@ -35,8 +35,11 @@ contract Edition is
     // Total size of edition that can be minted
     uint256 public editionSize;
 
-    // How many tokens have been currently minted
-    uint256 public totalSupply;
+    // How many tokens have been minted
+    uint256 public numberMinted;
+
+    // How many tokens have been burned
+    uint256 public numberBurned;
 
     // Royalty amount in bps
     uint256 royaltyBPS;
@@ -208,6 +211,9 @@ contract Edition is
     /// @param tokenId Token ID to burn
     function burn(uint256 tokenId) public override {
         require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
+        unchecked {
+            ++numberBurned;
+        }
         _burn(tokenId);
     }
 
@@ -215,10 +221,18 @@ contract Edition is
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev guarantees that totalSupply can not exceed maxSupply
-    function updateTotalSupply(uint256 _totalSupply) private {
-        require(_totalSupply <= maxSupply(), "Sold out");
-        totalSupply = _totalSupply;
+    /// @dev guarantees that numberMinted can not exceed maxSupply
+    function increaseNumberMinted(uint256 delta)
+        private
+        returns (uint256 newNumberMinted)
+    {
+        // up to the caller to ensure that delta is a reasonable value that can not cause overflows
+        unchecked {
+            newNumberMinted = numberMinted + delta;
+        }
+
+        require(newNumberMinted <= maxSupply(), "Sold out");
+        numberMinted = newNumberMinted;
     }
 
     /// @dev Private function to mint without any access checks or supply checks
@@ -229,10 +243,9 @@ contract Edition is
     {
         // can not realistically overflow
         unchecked {
-            updateTotalSupply(totalSupply + 1);
+            tokenId = increaseNumberMinted(1);
         }
 
-        tokenId = totalSupply;
         _safeMint(recipient, tokenId);
     }
 
@@ -244,20 +257,16 @@ contract Edition is
         uint256 n = recipients.length;
         require(n > 0, "No recipients");
 
-        uint256 tokenId;
-
         unchecked {
+            uint256 startingTokenId = numberMinted + 1;
             for (uint256 i = 0; i < n; ) {
-                tokenId = totalSupply + i + 1;
-                _safeMint(recipients[i], tokenId);
-
+                _safeMint(recipients[i], startingTokenId + i);
                 ++i;
             }
         }
 
         // only update storage outside of the loop
-        updateTotalSupply(tokenId);
-        return tokenId;
+        return increaseNumberMinted(n);
     }
 
     /// @dev This helper function checks if the msg.sender is allowed to mint
@@ -280,11 +289,23 @@ contract Edition is
         return endOfMintPeriod > 0 && block.timestamp > endOfMintPeriod;
     }
 
+    function totalSupply() public view returns (uint256) {
+        return numberMinted - numberBurned;
+    }
+
+    function numberCanMint() public view override returns (uint256) {
+        if (isMintingEnded()) {
+            return 0;
+        }
+
+        return maxSupply() - numberMinted;
+    }
+
     /// Returns the number of editions left to mint (max_uint256 when open edition)
     function maxSupply() public view override returns (uint256) {
         // if the mint period is over, return the current total supply (which can not be increased anymore)
         if (isMintingEnded()) {
-            return totalSupply;
+            return totalSupply();
         }
 
         // limited edition: return the fixed size
