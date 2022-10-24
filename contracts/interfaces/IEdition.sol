@@ -36,6 +36,8 @@ interface IEdition {
         external
         returns (uint256);
 
+    function numberCanMint() external view returns (uint256);
+
     function purchase() external payable returns (uint256);
 
     function salePrice() external view returns (uint256);

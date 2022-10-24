@@ -18,7 +18,7 @@ contract EditionMetadataTest is Test {
     Edition editionToEscape;
     Edition editionIntense;
 
-    uint256 constant tokenId = 1;
+    uint256 tokenId;
 
     function createEdition(string memory name, string memory description)
         internal
@@ -63,7 +63,7 @@ contract EditionMetadataTest is Test {
             intenseDescription
         );
 
-        edition.mintEdition(address(0xdEaD));
+        tokenId = edition.mintEdition(address(0xdEaD));
         editionToEscape.mintEdition(address(0xdEaD));
     }
 
@@ -120,6 +120,19 @@ contract EditionMetadataTest is Test {
         // console2.log("description:", description);
 
         assertEq(description, LibString.repeat("\\", INTENSE_LENGTH));
+    }
+
+    function testBurnDecreasesTotalSupply() public {
+        address bob = makeAddr("bob");
+        edition.setApprovedMinter(bob, true);
+        vm.startPrank(bob);
+        uint256 bobsTokenId = edition.mintEdition(bob);
+
+        uint256 totalSupplyBefore = edition.totalSupply();
+
+        edition.burn(bobsTokenId);
+        assertEq(edition.totalSupply(), totalSupplyBefore - 1);
+        vm.stopPrank();
     }
 
     function testCreateEditionWithEmptyDescription() public {

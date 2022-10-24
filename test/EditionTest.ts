@@ -128,10 +128,12 @@ describe("Edition", () => {
 
   describe("with an edition", () => {
     let signer1: SignerWithAddress;
+    let signer2: SignerWithAddress;
     let minterContract: Edition;
 
     beforeEach(async () => {
       signer1 = (await ethers.getSigners())[1];
+      signer2 = (await ethers.getSigners())[2];
       minterContract = await createEdition(dynamicSketch, editionArgs());
     });
 
@@ -377,8 +379,46 @@ describe("Edition", () => {
       expect(await minterContract.ownerOf(1)).to.equal(
         await signer1.getAddress()
       );
+
       await minterContract.connect(signer1).burn(1);
       await expect(minterContract.ownerOf(1)).to.be.reverted;
+    });
+
+    it("updates numberMinted and numberBurned()", async () => {
+      // setup:
+      expect(await minterContract.numberBurned()).to.equal(0);
+      expect(await minterContract.numberMinted()).to.equal(0);
+
+      // when we mint
+      await minterContract.mintEdition(await signer1.getAddress());
+
+      // then numberMinted is updated
+      expect(await minterContract.numberMinted()).to.equal(1);
+
+      // when we burn
+      await minterContract.connect(signer1).burn(1);
+
+      // then numberBurned is updated
+      expect(await minterContract.numberBurned()).to.equal(1);
+    });
+
+    it("allows burn if approved", async () => {
+      await minterContract.mintEdition(await signer1.getAddress());
+      await minterContract.connect(signer1).approve(signer2.getAddress(), 1);
+      await expect(minterContract.connect(signer2).burn(1)).to.emit(minterContract, "Transfer");
+      await expect(minterContract.ownerOf(1)).to.be.revertedWith("ERC721: invalid token ID");
+    });
+
+    it("allows burn if approved for all", async () => {
+      await minterContract.mintEdition(await signer1.getAddress());
+      await minterContract.connect(signer1).setApprovalForAll(signer2.getAddress(), true);
+      await expect(minterContract.connect(signer2).burn(1)).to.emit(minterContract, "Transfer");
+    });
+
+    it("does not allow burn if non approved", async () => {
+      await minterContract.mintEdition(await signer1.getAddress());
+
+      await expect(minterContract.connect(signer2).burn(1)).to.be.revertedWith("Not approved");
     });
 
     it("does not allow re-initialization", async () => {
@@ -598,6 +638,17 @@ describe("Edition", () => {
       it("isMintingEnded() returns false", async () => {
         expect(await edition.isMintingEnded()).to.equal(false);
       });
+
+      it("returns the expected tokenURI", async () => {
+        await edition.mintEdition(signerAddress);
+        const tokenURI = await edition.tokenURI(1);
+        const metadata = parseMetadataURI(tokenURI);
+        expect(metadata.name).to.equal("Open Edition with Minting Period #1");
+      });
+
+      it("numberCanMint() is big", async () => {
+        expect(await edition.numberCanMint()).to.equal(ethers.constants.MaxUint256);
+      });
     });
 
     describe("after the minting period", () => {
@@ -635,6 +686,16 @@ describe("Edition", () => {
 
       it("isMintingEnded() returns true", async () => {
         expect(await edition.isMintingEnded()).to.equal(true);
+      });
+
+      it("returns the expected tokenURI", async () => {
+        const tokenURI = await edition.tokenURI(1);
+        const metadata = parseMetadataURI(tokenURI);
+        expect(metadata.name).to.equal("Open Edition with Minting Period #1");
+      });
+
+      it("numberCanMint() is 0", async () => {
+        expect(await edition.numberCanMint()).to.equal(ethers.constants.Zero);
       });
     });
   });
@@ -672,6 +733,16 @@ describe("Edition", () => {
       it("isMintingEnded() returns false", async () => {
         expect(await edition.isMintingEnded()).to.equal(false);
       });
+
+      it("numberCanMint() is limited to the edition size", async () => {
+        expect(await edition.numberCanMint()).to.equal(DEFAULT_EDITION_SIZE);
+
+        // mint one
+        await edition.mintEdition(signerAddress);
+
+        // number can mint should be one less
+        expect(await edition.numberCanMint()).to.equal(DEFAULT_EDITION_SIZE - 1);
+      });
     });
 
     describe("after the minting period", () => {
@@ -709,6 +780,10 @@ describe("Edition", () => {
 
       it("isMintingEnded() returns true", async () => {
         expect(await edition.isMintingEnded()).to.equal(true);
+      });
+
+      it("numberCanMint() is 0", async () => {
+        expect(await edition.numberCanMint()).to.equal(ethers.constants.Zero);
       });
     });
   });
