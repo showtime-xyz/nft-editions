@@ -32,26 +32,28 @@ contract Edition is
     IERC2981Upgradeable,
     OwnableUpgradeable
 {
-    // Total size of edition that can be minted
-    uint256 public editionSize;
+    struct EditionState {
+        // Total size of edition that can be minted
+        // uint64 is still billions of billions, should be enough for everyone
+        uint56 editionSize;
+        // the edition can be minted up to this timestamp in seconds -- 0 means no end date
+        // uint56 is enough for billions of years
+        uint56 endOfMintPeriod;
+        // Royalty amount in bps (uint16 is large enough to store 10000 bps)
+        uint16 royaltyBPS;
+        // how many tokens have been minted (can not be more than editionSize)
+        uint56 numberMinted;
+        // how many tokens have been burned (can not be more than numberMinted)
+        uint56 numberBurned;
+    }
 
-    // How many tokens have been minted
-    uint256 public numberMinted;
-
-    // How many tokens have been burned
-    uint256 public numberBurned;
-
-    // Royalty amount in bps
-    uint256 royaltyBPS;
+    EditionState private state;
 
     // Addresses allowed to mint edition
     mapping(address => bool) allowedMinters;
 
     // Price for sale
     uint256 public salePrice;
-
-    // the edition can be minted up to this timestamp
-    uint256 internal endOfMintPeriod;
 
     // Global constructor for factory
     constructor() {
@@ -90,15 +92,22 @@ contract Edition is
         description = _description;
         animationUrl = _animationUrl;
         imageUrl = _imageUrl;
-        editionSize = _editionSize;
-        royaltyBPS = _royaltyBPS;
 
+        uint56 endOfMintPeriod;
         if (_mintPeriodSeconds > 0) {
             // overflows are not expected to happen for timestamps, and have no security implications
             unchecked {
-                endOfMintPeriod = block.timestamp + _mintPeriodSeconds;
+                endOfMintPeriod = uint56(block.timestamp + _mintPeriodSeconds);
             }
         }
+
+        state = EditionState({
+            editionSize: uint56(_editionSize),
+            endOfMintPeriod: endOfMintPeriod,
+            royaltyBPS: uint16(_royaltyBPS),
+            numberMinted: 0,
+            numberBurned: 0
+        });
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -212,7 +221,7 @@ contract Edition is
     function burn(uint256 tokenId) public override {
         require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
         unchecked {
-            ++numberBurned;
+            ++state.numberBurned;
         }
         _burn(tokenId);
     }
@@ -222,17 +231,17 @@ contract Edition is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev guarantees that numberMinted can not exceed maxSupply
-    function increaseNumberMinted(uint256 delta)
+    function increaseNumberMinted(uint56 delta)
         private
-        returns (uint256 newNumberMinted)
+        returns (uint56 newNumberMinted)
     {
         // up to the caller to ensure that delta is a reasonable value that can not cause overflows
         unchecked {
-            newNumberMinted = numberMinted + delta;
+            newNumberMinted = state.numberMinted + delta;
         }
 
         require(newNumberMinted <= maxSupply(), "Sold out");
-        numberMinted = newNumberMinted;
+        state.numberMinted = newNumberMinted;
     }
 
     /// @dev Private function to mint without any access checks or supply checks
@@ -254,11 +263,11 @@ contract Edition is
         internal
         returns (uint256)
     {
-        uint256 n = recipients.length;
+        uint56 n = uint56(recipients.length);
         require(n > 0, "No recipients");
 
         unchecked {
-            uint256 startingTokenId = numberMinted + 1;
+            uint256 startingTokenId = state.numberMinted + 1;
             for (uint256 i = 0; i < n; ) {
                 _safeMint(recipients[i], startingTokenId + i);
                 ++i;
@@ -284,13 +293,19 @@ contract Edition is
                            METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function editionSize() external view override returns (uint256) {
+        return state.editionSize;
+    }
+
     /// Returns whether the edition can still be minted/purchased
     function isMintingEnded() public view returns (bool) {
-        return endOfMintPeriod > 0 && block.timestamp > endOfMintPeriod;
+        return
+            state.endOfMintPeriod > 0 &&
+            uint56(block.timestamp) > state.endOfMintPeriod;
     }
 
     function totalSupply() public view returns (uint256) {
-        return numberMinted - numberBurned;
+        return state.numberMinted - state.numberBurned;
     }
 
     function numberCanMint() public view override returns (uint256) {
@@ -298,7 +313,15 @@ contract Edition is
             return 0;
         }
 
-        return maxSupply() - numberMinted;
+        return maxSupply() - state.numberMinted;
+    }
+
+    function numberMinted() external view override returns (uint256) {
+        return state.numberMinted;
+    }
+
+    function numberBurned() external view override returns (uint256) {
+        return state.numberBurned;
     }
 
     /// Returns the number of editions left to mint (max_uint256 when open edition)
@@ -309,8 +332,8 @@ contract Edition is
         }
 
         // limited edition: return the fixed size
-        if (editionSize != 0) {
-            return editionSize;
+        if (state.editionSize != 0) {
+            return state.editionSize;
         }
 
         // open edition
@@ -328,12 +351,12 @@ contract Edition is
     {
         require(_exists(tokenId), "No token");
 
-        return createTokenMetadata(name(), tokenId, editionSize);
+        return createTokenMetadata(name(), tokenId, state.editionSize);
     }
 
     /// @notice Get the base64-encoded json metadata object for the edition
     function contractURI() public view returns (string memory) {
-        return createContractMetadata(name(), royaltyBPS, owner());
+        return createContractMetadata(name(), state.royaltyBPS, owner());
     }
 
     /// @notice Get royalty information for token
@@ -347,7 +370,7 @@ contract Edition is
         if (owner() == address(0x0)) {
             return (owner(), 0);
         }
-        return (owner(), (_salePrice * royaltyBPS) / 10_000);
+        return (owner(), (_salePrice * state.royaltyBPS) / 10_000);
     }
 
     function supportsInterface(bytes4 interfaceId)
