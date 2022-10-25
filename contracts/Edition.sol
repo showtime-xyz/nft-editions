@@ -114,11 +114,6 @@ contract Edition is
                   CREATOR / COLLECTION OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    modifier notEnded() {
-        require(!isMintingEnded(), "minting has ended");
-        _;
-    }
-
     /// @notice This sets a simple ETH sales price
     /// Setting a sales price allows users to mint the edition until it sells out.
     /// For more granular sales, use an external sales contract.
@@ -183,7 +178,7 @@ contract Edition is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev This allows the user to purchase a single edition at the configured sale price
-    function purchase() external payable notEnded returns (uint256) {
+    function purchase() external payable returns (uint256) {
         require(salePrice > 0, "Not for sale");
         require(msg.value == salePrice, "Wrong price");
 
@@ -193,12 +188,7 @@ contract Edition is
 
     /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
-    function mintEdition(address to)
-        external
-        override
-        notEnded
-        returns (uint256)
-    {
+    function mintEdition(address to) external override returns (uint256) {
         require(_isAllowedToMint(), "Needs to be an allowed minter");
 
         return _mintEdition(to);
@@ -209,7 +199,6 @@ contract Edition is
     function mintEditions(address[] calldata recipients)
         external
         override
-        notEnded
         returns (uint256)
     {
         require(_isAllowedToMint(), "Needs to be an allowed minter");
@@ -230,6 +219,22 @@ contract Edition is
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev stateless version of isMintingEnded
+    function enforceTimeLimit(uint56 endOfMintPeriod) internal view {
+        if (endOfMintPeriod > 0 && uint56(block.timestamp) > endOfMintPeriod) {
+            revert("minting has ended");
+        }
+    }
+
+    function enforceSupplyLimit(uint56 _editionSize, uint56 _numberMinted)
+        internal
+        pure
+    {
+        if (_editionSize > 0 && _numberMinted >= _editionSize) {
+            revert("Sold out");
+        }
+    }
+
     /// @dev guarantees that numberMinted can not exceed maxSupply
     function increaseNumberMinted(uint56 delta)
         private
@@ -246,16 +251,26 @@ contract Edition is
 
     /// @dev Private function to mint without any access checks or supply checks
     /// @return tokenId the id of the newly minted token
-    function _mintEdition(address recipient)
-        internal
-        returns (uint256 tokenId)
-    {
+    function _mintEdition(address recipient) internal returns (uint256) {
+        // load state into memory with a single SLOAD
+        EditionState storage _state = state;
+
+        uint56 tokenId;
+
         // can not realistically overflow
         unchecked {
-            tokenId = increaseNumberMinted(1);
+            tokenId = _state.numberMinted + 1;
         }
 
+        enforceSupplyLimit(_state.editionSize, uint56(tokenId));
+        enforceTimeLimit(_state.endOfMintPeriod);
+
+        // update storage
+        state.numberMinted = uint56(tokenId);
+
         _safeMint(recipient, tokenId);
+
+        return tokenId;
     }
 
     /// @dev Private function to batch mint without any access checks
