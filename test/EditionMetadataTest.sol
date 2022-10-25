@@ -33,7 +33,7 @@ contract EditionMetadataTest is Test {
                         description,
                         "https://example.com/animation.mp4",
                         "https://example.com/image.png",
-                        10, // editionSize
+                        20, // editionSize
                         10_00, // royaltyBPS
                         0 // mintPeriodSeconds
                     )
@@ -158,5 +158,47 @@ contract EditionMetadataTest is Test {
 
         (, uint256 royaltyAmount) = editionNoRoyalties.royaltyInfo(1, 100);
         assertEq(royaltyAmount, 0);
+    }
+
+    /// @dev for gas snapshot
+    function testMintSingle() public {
+        edition.mintEdition(address(0xdEaD));
+    }
+
+    /// @dev for gas snapshot
+    function testFailMintSingle() public {
+        edition.mintEdition(address(0));
+    }
+
+    /// @dev for gas snapshot
+    function testMintBatch1() public {
+        address[] memory recipients = new address[](1);
+        recipients[0] = address(0xdEaD);
+        edition.mintEditions(recipients);
+    }
+
+    /// @dev for gas snapshot
+    function testMintBatch3() public {
+        address[] memory recipients = new address[](3);
+        recipients[0] = address(0xdEaD);
+        recipients[1] = address(0xdEaD);
+        recipients[2] = address(0xdEaD);
+        edition.mintEditions(recipients);
+    }
+
+    /// @dev for gas snapshot
+    function testMintBatch10() public {
+        address[] memory recipients = new address[](10);
+        recipients[0] = address(0xdEaD);
+        recipients[1] = address(0xdEaD);
+        recipients[2] = address(0xdEaD);
+        recipients[3] = address(0xdEaD);
+        recipients[4] = address(0xdEaD);
+        recipients[5] = address(0xdEaD);
+        recipients[6] = address(0xdEaD);
+        recipients[7] = address(0xdEaD);
+        recipients[8] = address(0xdEaD);
+        recipients[9] = address(0xdEaD);
+        edition.mintEditions(recipients);
     }
 }
