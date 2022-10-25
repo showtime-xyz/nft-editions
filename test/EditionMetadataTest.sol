@@ -20,28 +20,37 @@ contract EditionMetadataTest is Test {
 
     uint256 tokenId;
 
+    address editionOwner;
+
     function createEdition(string memory name, string memory description)
         internal
-        returns (Edition)
+        returns (Edition _edition)
     {
-        return
-            Edition(
-                address(
-                    editionCreator.createEdition(
-                        name,
-                        "TEST",
-                        description,
-                        "https://example.com/animation.mp4",
-                        "https://example.com/image.png",
-                        20, // editionSize
-                        10_00, // royaltyBPS
-                        0 // mintPeriodSeconds
-                    )
+        vm.startPrank(editionOwner);
+        _edition = Edition(
+            address(
+                editionCreator.createEdition(
+                    name,
+                    "TEST",
+                    description,
+                    "https://example.com/animation.mp4",
+                    "https://example.com/image.png",
+                    20, // editionSize
+                    10_00, // royaltyBPS
+                    0 // mintPeriodSeconds
                 )
-            );
+            )
+        );
+
+        // so that we can mint from this without having to call prank all the time
+        _edition.setApprovedMinter(address(this), true);
+        vm.stopPrank();
+
+        return _edition;
     }
 
     function setUp() public {
+        editionOwner = makeAddr("editionOwner");
         editionCreator = new EditionCreator(address(new Edition()));
 
         edition = createEdition(
@@ -124,12 +133,10 @@ contract EditionMetadataTest is Test {
 
     function testBurnDecreasesTotalSupply() public {
         address bob = makeAddr("bob");
-        edition.setApprovedMinter(bob, true);
-        vm.startPrank(bob);
         uint256 bobsTokenId = edition.mintEdition(bob);
-
         uint256 totalSupplyBefore = edition.totalSupply();
 
+        vm.startPrank(bob);
         edition.burn(bobsTokenId);
         assertEq(edition.totalSupply(), totalSupplyBefore - 1);
         vm.stopPrank();

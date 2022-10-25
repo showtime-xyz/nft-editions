@@ -230,23 +230,9 @@ contract Edition is
         internal
         pure
     {
-        if (_editionSize > 0 && _numberMinted >= _editionSize) {
+        if (_editionSize > 0 && _numberMinted > _editionSize) {
             revert("Sold out");
         }
-    }
-
-    /// @dev guarantees that numberMinted can not exceed maxSupply
-    function increaseNumberMinted(uint56 delta)
-        private
-        returns (uint56 newNumberMinted)
-    {
-        // up to the caller to ensure that delta is a reasonable value that can not cause overflows
-        unchecked {
-            newNumberMinted = state.numberMinted + delta;
-        }
-
-        require(newNumberMinted <= maxSupply(), "Sold out");
-        state.numberMinted = newNumberMinted;
     }
 
     /// @dev Private function to mint without any access checks or supply checks
@@ -254,19 +240,18 @@ contract Edition is
     function _mintEdition(address recipient) internal returns (uint256) {
         // load state into memory with a single SLOAD
         EditionState storage _state = state;
-
-        uint56 tokenId;
+        enforceTimeLimit(_state.endOfMintPeriod);
 
         // can not realistically overflow
+        uint56 tokenId;
         unchecked {
             tokenId = _state.numberMinted + 1;
         }
 
         enforceSupplyLimit(_state.editionSize, uint56(tokenId));
-        enforceTimeLimit(_state.endOfMintPeriod);
 
         // update storage
-        state.numberMinted = uint56(tokenId);
+        state.numberMinted = tokenId;
 
         _safeMint(recipient, tokenId);
 
@@ -281,24 +266,38 @@ contract Edition is
         uint56 n = uint56(recipients.length);
         require(n > 0, "No recipients");
 
+        // load state into memory with a single SLOAD
+        EditionState storage _state = state;
+
         unchecked {
-            uint256 startingTokenId = state.numberMinted + 1;
+            uint56 startingTokenId = _state.numberMinted + 1;
+            uint56 endingTokenId = _state.numberMinted + n;
+
+            enforceSupplyLimit(_state.editionSize, endingTokenId);
+            enforceTimeLimit(_state.endOfMintPeriod);
+
             for (uint256 i = 0; i < n; ) {
                 _safeMint(recipients[i], startingTokenId + i);
                 ++i;
             }
-        }
 
-        // only update storage outside of the loop
-        return increaseNumberMinted(n);
+            // only update storage outside of the loop
+            state.numberMinted = endingTokenId;
+
+            return endingTokenId;
+        }
     }
 
     /// @dev This helper function checks if the msg.sender is allowed to mint
     function _isAllowedToMint() internal view returns (bool) {
+        // optimize by likelihood:
+        // 1. check allowlist/minter contracts
+        // 2. open mints
+        // 3. owner mints
         return
-            owner() == msg.sender ||
+            allowedMinters[msg.sender] ||
             allowedMinters[address(0x0)] ||
-            allowedMinters[msg.sender];
+            owner() == msg.sender;
     }
 
     /*//////////////////////////////////////////////////////////////
