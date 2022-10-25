@@ -295,13 +295,10 @@ contract Edition is
 
     /// @dev This helper function checks if the msg.sender is allowed to mint
     function _isAllowedToMint() internal view returns (bool) {
-        if (owner() == msg.sender) {
-            return true;
-        }
-        if (allowedMinters[address(0x0)]) {
-            return true;
-        }
-        return allowedMinters[msg.sender];
+        return
+            owner() == msg.sender ||
+            allowedMinters[address(0x0)] ||
+            allowedMinters[msg.sender];
     }
 
     /*//////////////////////////////////////////////////////////////
