@@ -5,12 +5,33 @@ import {Test} from "forge-std/Test.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 import {console2} from "forge-std/console2.sol";
 
+import {IERC721ReceiverUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
+
 import {Edition} from "../contracts/Edition.sol";
 import {EditionCreator} from "../contracts/EditionCreator.sol";
 import {Base64} from "../contracts/utils/Base64.sol";
 import {LibString} from "../contracts/utils/LibString.sol";
 
+contract UnsuspectingContract {}
+
+contract ERC721AwareContract is IERC721ReceiverUpgradeable {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+}
+
 contract EditionMetadataTest is Test {
+    event Transfer(
+        address indexed from,
+        address indexed to,
+        uint256 indexed tokenId
+    );
+
     uint256 constant INTENSE_LENGTH = 100_000;
 
     EditionCreator editionCreator;
@@ -21,6 +42,9 @@ contract EditionMetadataTest is Test {
     uint256 tokenId;
 
     address editionOwner;
+
+    UnsuspectingContract unsuspectingContract = new UnsuspectingContract();
+    ERC721AwareContract erc721AwareContract = new ERC721AwareContract();
 
     function createEdition(string memory name, string memory description)
         internal
@@ -207,5 +231,34 @@ contract EditionMetadataTest is Test {
         recipients[8] = address(0xdEaD);
         recipients[9] = address(0xdEaD);
         edition.mintEditions(recipients);
+    }
+
+    function testMintEditionCanMintToUnsuspectingContracts() public {
+        vm.expectEmit(true, true, false, false);
+        emit Transfer(
+            address(0),
+            address(unsuspectingContract),
+            /* whatever */
+            0
+        );
+
+        edition.mintEdition(address(unsuspectingContract));
+    }
+
+    function testSafeMintEditionCanNotMintToUnsuspectingContracts() public {
+        vm.expectRevert("ERC721: transfer to non ERC721Receiver implementer");
+        edition.safeMintEdition(address(unsuspectingContract));
+    }
+
+    function testSafeMintEditionCanMintToAwareContracts() public {
+        vm.expectEmit(true, true, false, false);
+        emit Transfer(
+            address(0),
+            address(erc721AwareContract),
+            /* whatever */
+            0
+        );
+
+        edition.mintEdition(address(erc721AwareContract));
     }
 }
