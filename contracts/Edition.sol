@@ -197,6 +197,11 @@ contract Edition is
         return _mintEdition(to);
     }
 
+    function safeMintEdition(address to) external override returns (uint256) {
+        require(_isAllowedToMint(), "Needs to be an allowed minter");
+        return _safeMintEdition(to);
+    }
+
     /// @param recipients list of addresses to send the newly minted editions to
     /// @dev This mints multiple editions to the given list of addresses.
     function mintEditions(address[] calldata recipients)
@@ -238,14 +243,12 @@ contract Edition is
         }
     }
 
-    /// @dev Private function to mint without any access checks or supply checks
-    /// @return tokenId the id of the newly minted token
-    function _mintEdition(address recipient) internal returns (uint256) {
+    /// @dev Validates the supply and time limits for minting a single edition with a single SLOAD and SSTORE
+    function _mintPreFlightChecks() internal returns (uint56 _tokenId) {
         uint256 _state;
         uint256 _postState;
         uint56 _editionSize;
         uint56 _endOfMintPeriod;
-        uint56 _tokenId;
 
         assembly ("memory-safe") {
             _state := sload(state.slot)
@@ -265,12 +268,25 @@ contract Edition is
 
         // update storage
         assembly ("memory-safe") {
-            sstore(state.slot, _tokenId)
+            sstore(state.slot, _postState)
         }
 
-        _safeMint(recipient, _tokenId);
-
         return _tokenId;
+    }
+
+    /// @dev Private function to mint without any access checks
+    /// @return _tokenId the id of the newly minted token
+    function _mintEdition(address recipient) internal returns (uint56 _tokenId) {
+        _tokenId = _mintPreFlightChecks();
+        _mint(recipient, _tokenId);
+    }
+
+
+    /// @dev Private function to safe mint without any access checks
+    /// @return _tokenId the id of the newly minted token
+    function _safeMintEdition(address recipient) internal returns (uint56 _tokenId) {
+        _tokenId = _mintPreFlightChecks();
+        _safeMint(recipient, _tokenId);
     }
 
     /// @dev Private function to batch mint without any access checks

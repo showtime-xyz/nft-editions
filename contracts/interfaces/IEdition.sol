@@ -32,6 +32,8 @@ interface IEdition {
 
     function mintEdition(address to) external returns (uint256);
 
+    function safeMintEdition(address to) external returns (uint256);
+
     function mintEditions(address[] memory recipients)
         external
         returns (uint256);
