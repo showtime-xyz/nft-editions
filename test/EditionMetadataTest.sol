@@ -35,9 +35,9 @@ contract EditionMetadataTest is Test {
                     description,
                     "https://example.com/animation.mp4",
                     "https://example.com/image.png",
-                    20, // editionSize
-                    10_00, // royaltyBPS
-                    0 // mintPeriodSeconds
+                    0xcccccccccccccc, // editionSize
+                    0xaaaaaaaaaaaaaa, // royaltyBPS
+                    0xbbbbbbbbbbbbbb // mintPeriodSeconds
                 )
             )
         );
