@@ -33,18 +33,20 @@ contract Edition is
     OwnableUpgradeable
 {
     struct EditionState {
-        // Total size of edition that can be minted
-        // uint64 is still billions of billions, should be enough for everyone
-        uint56 editionSize;
-        // the edition can be minted up to this timestamp in seconds -- 0 means no end date
-        // uint56 is enough for billions of years
-        uint56 endOfMintPeriod;
-        // Royalty amount in bps (uint16 is large enough to store 10000 bps)
-        uint16 royaltyBPS;
         // how many tokens have been minted (can not be more than editionSize)
         uint56 numberMinted;
         // how many tokens have been burned (can not be more than numberMinted)
         uint56 numberBurned;
+        // Pad to make the state fit in exactly 256 bits
+        uint16 __pad;
+        // Royalty amount in bps (uint16 is large enough to store 10000 bps)
+        uint16 royaltyBPS;
+        // the edition can be minted up to this timestamp in seconds -- 0 means no end date
+        // uint56 is enough for billions of years
+        uint56 endOfMintPeriod;
+        // Total size of edition that can be minted
+        // uint56 is still billions of billions, should be enough for everyone
+        uint56 editionSize;
     }
 
     EditionState private state;
@@ -105,6 +107,7 @@ contract Edition is
             editionSize: uint56(_editionSize),
             endOfMintPeriod: endOfMintPeriod,
             royaltyBPS: uint16(_royaltyBPS),
+            __pad: 0,
             numberMinted: 0,
             numberBurned: 0
         });
@@ -238,24 +241,36 @@ contract Edition is
     /// @dev Private function to mint without any access checks or supply checks
     /// @return tokenId the id of the newly minted token
     function _mintEdition(address recipient) internal returns (uint256) {
-        // load state into memory with a single SLOAD
-        EditionState storage _state = state;
-        enforceTimeLimit(_state.endOfMintPeriod);
+        uint256 _state;
+        uint256 _postState;
+        uint56 _editionSize;
+        uint56 _endOfMintPeriod;
+        uint56 _tokenId;
 
-        // can not realistically overflow
-        uint56 tokenId;
-        unchecked {
-            tokenId = _state.numberMinted + 1;
+        assembly ("memory-safe") {
+            _state := sload(state.slot)
+            _editionSize := shr(200, _state)
+            _endOfMintPeriod := shr(144, _state)
+
+            // can not realistically overflow
+            // the fields in EditionState are ordered so that incrementing state increments numberMinted
+            _postState := add(_state, 1)
+
+            // perform the addition only once and extract numberMinted + 1 from _postState
+            _tokenId := and(_postState, 0xffffffffffffff)
         }
 
-        enforceSupplyLimit(_state.editionSize, uint56(tokenId));
+        enforceSupplyLimit(_editionSize, _tokenId);
+        enforceTimeLimit(_endOfMintPeriod);
 
         // update storage
-        state.numberMinted = tokenId;
+        assembly ("memory-safe") {
+            sstore(state.slot, _tokenId)
+        }
 
-        _safeMint(recipient, tokenId);
+        _safeMint(recipient, _tokenId);
 
-        return tokenId;
+        return _tokenId;
     }
 
     /// @dev Private function to batch mint without any access checks
