@@ -32,6 +32,8 @@ contract Edition is
     IERC2981Upgradeable,
     OwnableUpgradeable
 {
+    error IntegerOverflow(uint256 value);
+
     struct EditionState {
         // how many tokens have been minted (can not be more than editionSize)
         uint56 numberMinted;
@@ -99,9 +101,14 @@ contract Edition is
         if (_mintPeriodSeconds > 0) {
             // overflows are not expected to happen for timestamps, and have no security implications
             unchecked {
-                endOfMintPeriod = uint56(block.timestamp + _mintPeriodSeconds);
+                uint256 endOfMintPeriodUint256 = block.timestamp + _mintPeriodSeconds;
+                requireUint56(endOfMintPeriodUint256);
+                endOfMintPeriod = uint56(endOfMintPeriodUint256);
             }
         }
+
+        requireUint56(_editionSize);
+        requireUint16(_royaltyBPS);
 
         state = EditionState({
             editionSize: uint56(_editionSize),
@@ -226,6 +233,18 @@ contract Edition is
     /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function requireUint56(uint256 value) internal pure {
+        if (value > uint256(type(uint56).max)) {
+            revert IntegerOverflow(value);
+        }
+    }
+
+    function requireUint16(uint256 value) internal pure {
+        if (value > uint256(type(uint16).max)) {
+            revert IntegerOverflow(value);
+        }
+    }
 
     /// @dev stateless version of isMintingEnded
     function enforceTimeLimit(uint56 endOfMintPeriod) internal view {
