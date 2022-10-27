@@ -33,6 +33,7 @@ contract Edition is
     OwnableUpgradeable
 {
     error IntegerOverflow(uint256 value);
+    error PriceTooLow();
 
     struct EditionState {
         // how many tokens have been minted (can not be more than editionSize)
@@ -127,7 +128,7 @@ contract Edition is
         // convert to milli-eth internally
         uint16 salePriceMilliEth = requireUint16(_salePriceWei / 10 ** 15);
         if (salePriceMilliEth == 0 && _salePriceWei > 0) {
-            revert("price not in supported range");
+            revert PriceTooLow();
         }
 
         state.salePriceMilliEth = salePriceMilliEth;
