@@ -8,7 +8,7 @@ import {console2} from "forge-std/console2.sol";
 import {IERC721ReceiverUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 
 import {Edition} from "../contracts/Edition.sol";
-import {EditionCreator} from "../contracts/EditionCreator.sol";
+import {EditionCreator, IEdition} from "../contracts/EditionCreator.sol";
 import {Base64} from "../contracts/utils/Base64.sol";
 import {LibString} from "../contracts/utils/LibString.sol";
 
@@ -42,6 +42,7 @@ contract EditionMetadataTest is Test {
     uint256 tokenId;
 
     address editionOwner;
+    address bob = makeAddr("bob");
 
     UnsuspectingContract unsuspectingContract = new UnsuspectingContract();
     ERC721AwareContract erc721AwareContract = new ERC721AwareContract();
@@ -60,7 +61,7 @@ contract EditionMetadataTest is Test {
                     "https://example.com/animation.mp4",
                     "https://example.com/image.png",
                     0xcccccccccccccc, // editionSize
-                    0xaaaaaaaaaaaaaa, // royaltyBPS
+                    0xaaaa, // royaltyBPS
                     0xbbbbbbbbbbbbbb // mintPeriodSeconds
                 )
             )
@@ -156,7 +157,6 @@ contract EditionMetadataTest is Test {
     }
 
     function testBurnDecreasesTotalSupply() public {
-        address bob = makeAddr("bob");
         uint256 bobsTokenId = edition.mintEdition(bob);
         uint256 totalSupplyBefore = edition.totalSupply();
 
@@ -260,5 +260,145 @@ contract EditionMetadataTest is Test {
         );
 
         edition.mintEdition(address(erc721AwareContract));
+    }
+
+    function testEditionSizeOverflow() public {
+        uint256 tooBig = uint256(type(uint56).max) + 1;
+        vm.expectRevert(
+            abi.encodeWithSignature("IntegerOverflow(uint256)", tooBig)
+        );
+
+        editionCreator.createEdition(
+            "name",
+            "TEST",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            tooBig, // editionSize
+            0, // royaltyBPS
+            0 // mintPeriodSeconds
+        );
+    }
+
+    function testMintPeriodOverflow() public {
+        uint256 tooBig = uint256(type(uint56).max) + 1;
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "IntegerOverflow(uint256)",
+                tooBig + block.timestamp
+            )
+        );
+
+        editionCreator.createEdition(
+            "name",
+            "TEST",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            0, // editionSize
+            0, // royaltyBPS
+            tooBig // mintPeriodSeconds
+        );
+    }
+
+    function testRoyaltiesOverflow() public {
+        uint256 tooBig = uint256(type(uint16).max) + 1;
+        vm.expectRevert(
+            abi.encodeWithSignature("IntegerOverflow(uint256)", tooBig)
+        );
+
+        editionCreator.createEdition(
+            "name",
+            "TEST",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            0, // editionSize
+            tooBig, // royaltyBPS
+            0 // mintPeriodSeconds
+        );
+    }
+
+    function testCreateDuplicate() public {
+        editionCreator.createEdition(
+            "name",
+            "TEST",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            0, // editionSize
+            0, // royaltyBPS
+            0 // mintPeriodSeconds
+        );
+
+        vm.expectRevert("ERC1167: create2 failed");
+        editionCreator.createEdition(
+            "name",
+            "TEST",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            0, // editionSize
+            0, // royaltyBPS
+            0 // mintPeriodSeconds
+        );
+    }
+
+    function testBatchSellOut() public {
+        IEdition tightEdition = editionCreator.createEdition(
+            "name",
+            "TEST",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            3, // editionSize
+            0, // royaltyBPS
+            0 // mintPeriodSeconds
+        );
+
+        assertEq(tightEdition.numberCanMint(), 3);
+
+        // can mint everything in one go
+        address[] memory recipients = new address[](3);
+        recipients[0] = address(0xdEaD);
+        recipients[1] = address(0xdEaD);
+        recipients[2] = address(0xdEaD);
+        tightEdition.mintEditions(recipients);
+
+        assertEq(tightEdition.numberCanMint(), 0);
+
+        // can not mint anymore after that
+        vm.expectRevert("Sold out");
+        tightEdition.mintEdition(address(0xdEaD));
+
+        vm.expectRevert("Sold out");
+        tightEdition.mintEditions(recipients);
+
+        address[] memory soloRecipient = new address[](1);
+        soloRecipient[0] = address(0xdEaD);
+        vm.expectRevert("Sold out");
+        tightEdition.mintEditions(soloRecipient);
+    }
+
+    function testCanNotMintBatchBiggerThanEditionSize() public {
+        IEdition tightEdition = editionCreator.createEdition(
+            "name",
+            "TEST",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            3, // editionSize
+            0, // royaltyBPS
+            0 // mintPeriodSeconds
+        );
+
+        address[] memory recipients = new address[](4);
+        recipients[0] = address(0xdEaD);
+        recipients[1] = address(0xdEaD);
+        recipients[2] = address(0xdEaD);
+        recipients[3] = address(0xdEaD);
+
+        vm.expectRevert("Sold out");
+        tightEdition.mintEditions(recipients);
     }
 }

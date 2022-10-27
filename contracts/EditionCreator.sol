@@ -61,17 +61,26 @@ contract EditionCreator is IEditionCreator {
             ClonesUpgradeable.cloneDeterministic(implementation, salt)
         );
 
-        newContract.initialize(
-            msg.sender,
-            _name,
-            _symbol,
-            _description,
-            _animationUrl,
-            _imageUrl,
-            _editionSize,
-            _royaltyBPS,
-            _mintPeriodSeconds
-        );
+        try
+            newContract.initialize(
+                msg.sender,
+                _name,
+                _symbol,
+                _description,
+                _animationUrl,
+                _imageUrl,
+                _editionSize,
+                _royaltyBPS,
+                _mintPeriodSeconds
+            )
+        {} catch {
+            // rethrow the problematic way until we have a better way
+            // seehttps://github.com/ethereum/solidity/issues/12654
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        }
 
         emit CreatedEdition(
             uint256(salt),
