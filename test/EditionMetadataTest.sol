@@ -401,4 +401,34 @@ contract EditionMetadataTest is Test {
         vm.expectRevert("Sold out");
         tightEdition.mintEditions(recipients);
     }
+
+    function testSetSalePriceSmallest() public {
+        uint256 smallestPriceWei = 0.001 ether;
+        vm.prank(editionOwner);
+        edition.setSalePrice(smallestPriceWei);
+        assertEq(edition.salePrice(), smallestPriceWei);
+    }
+
+    function testSetSalePriceLargest() public {
+        uint256 largestPriceWei = 65.535 ether;
+        vm.prank(editionOwner);
+        edition.setSalePrice(largestPriceWei);
+        assertEq(edition.salePrice(), largestPriceWei);
+    }
+
+    function testSetSalePriceUnderflow() public {
+        uint256 tooSmall = 1 wei;
+        vm.prank(editionOwner);
+        vm.expectRevert(abi.encodeWithSignature("PriceTooLow()"));
+        edition.setSalePrice(tooSmall);
+    }
+
+    function testSetSalePriceOverflow() public {
+        uint256 tooBig = 65.536 ether;
+        vm.prank(editionOwner);
+        vm.expectRevert(
+            abi.encodeWithSignature("IntegerOverflow(uint256)", 0x10000)
+        );
+        edition.setSalePrice(tooBig);
+    }
 }
