@@ -7,6 +7,16 @@ struct StringAttribute {
 }
 
 interface IEdition {
+    error IntegerOverflow(uint256 value);
+    error PriceTooLow();
+    error SoldOut();
+    error BadAttribute(string name, string value);
+    error NotForSale();
+    error WrongPrice();
+    error LengthMismatch();
+    error NotAuthorized();
+    error MintingEnded();
+
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
     event ExternalUrlUpdated(string oldExternalUrl, string newExternalUrl);
