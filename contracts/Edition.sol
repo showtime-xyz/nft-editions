@@ -32,9 +32,6 @@ contract Edition is
     IERC2981Upgradeable,
     OwnableUpgradeable
 {
-    error IntegerOverflow(uint256 value);
-    error PriceTooLow();
-
     struct EditionState {
         // how many tokens have been minted (can not be more than editionSize)
         uint56 numberMinted;
@@ -164,15 +161,17 @@ contract Edition is
         string[] calldata names,
         string[] calldata values
     ) public onlyOwner {
-        require(names.length == values.length, "length mismatch");
         uint256 length = names.length;
+        if (values.length != length) {
+            revert LengthMismatch();
+        }
 
         namesOfStringProperties = names;
         for (uint256 i = 0; i < length; ) {
             string calldata name = names[i];
             string calldata value = values[i];
             if (bytes(name).length == 0 || bytes(value).length == 0) {
-                revert("bad attribute");
+                revert BadAttribute(name, value);
             }
 
             emit PropertyUpdated(name, stringProperties[name], value);
@@ -192,23 +191,31 @@ contract Edition is
     /// @dev This allows the user to purchase a single edition at the configured sale price
     function purchase() external payable returns (uint256) {
         uint256 _salePriceWei = salePrice();
-        require(_salePriceWei > 0, "Not for sale");
-        require(msg.value == _salePriceWei, "Wrong price");
+        if (_salePriceWei == 0) {
+            revert NotForSale();
+        }
+
+        if (msg.value != _salePriceWei) {
+            revert WrongPrice();
+        }
 
         emit EditionSold(_salePriceWei, msg.sender);
         return _mintEdition(msg.sender);
     }
 
     /// @param to address to send the newly minted edition to
-    /// @dev This mints one edition to the given address by an allowed minter on the edition instance.
+    /// @dev This mints one edition to the given address by an allowed minter
     function mintEdition(address to) external override returns (uint256) {
-        require(_isAllowedToMint(), "Needs to be an allowed minter");
-
+        if (!_isAllowedToMint()) {
+            revert NotAuthorized();
+        }
         return _mintEdition(to);
     }
 
     function safeMintEdition(address to) external override returns (uint256) {
-        require(_isAllowedToMint(), "Needs to be an allowed minter");
+        if (!_isAllowedToMint()) {
+            revert NotAuthorized();
+        }
         return _safeMintEdition(to);
     }
 
@@ -219,14 +226,18 @@ contract Edition is
         override
         returns (uint256)
     {
-        require(_isAllowedToMint(), "Needs to be an allowed minter");
+        if (!_isAllowedToMint()) {
+            revert NotAuthorized();
+        }
         return _mintEditions(recipients);
     }
 
     /// @notice User burn function for token id
     /// @param tokenId Token ID to burn
     function burn(uint256 tokenId) public override {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "Not approved");
+        if (!_isApprovedOrOwner(_msgSender(), tokenId)) {
+            revert NotAuthorized();
+        }
         unchecked {
             ++state.numberBurned;
         }
@@ -254,7 +265,7 @@ contract Edition is
     /// @dev stateless version of isMintingEnded
     function enforceTimeLimit(uint56 endOfMintPeriod) internal view {
         if (endOfMintPeriod > 0 && uint56(block.timestamp) > endOfMintPeriod) {
-            revert("minting has ended");
+            revert MintingEnded();
         }
     }
 
@@ -263,7 +274,7 @@ contract Edition is
         pure
     {
         if (_editionSize > 0 && _numberMinted > _editionSize) {
-            revert("Sold out");
+            revert SoldOut();
         }
     }
 

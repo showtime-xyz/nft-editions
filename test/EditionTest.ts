@@ -7,6 +7,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   EditionCreator,
   Edition,
+  IEdition,
 } from "../typechain";
 
 const DEFAULT_NAME = "Testing Token";
@@ -151,19 +152,19 @@ describe("Edition", () => {
       it("rejects empty property names", async () => {
         await expect(
           minterContract.setStringProperties(["name1", ""], ["value1", "value2"])
-        ).to.be.revertedWith("bad attribute");
+        ).to.be.revertedWith("BadAttribute");
       });
 
       it("rejects empty property values", async () => {
         await expect(
           minterContract.setStringProperties(["name1", "name2"], ["value1", ""])
-        ).to.be.revertedWith("bad attribute");
+        ).to.be.revertedWith("BadAttribute");
       });
 
       it("rejects string properties where the names and values don't match in length", async () => {
         await expect(
           minterContract.setStringProperties(["name1", "name2"], ["value1"])
-        ).to.be.revertedWith("length mismatch");
+        ).to.be.revertedWith("LengthMismatch");
       });
 
       it("reflects a single string attribute in the metadata", async () => {
@@ -418,7 +419,7 @@ describe("Edition", () => {
     it("does not allow burn if non approved", async () => {
       await minterContract.mintEdition(await signer1.getAddress());
 
-      await expect(minterContract.connect(signer2).burn(1)).to.be.revertedWith("Not approved");
+      await expect(minterContract.connect(signer2).burn(1)).to.be.revertedWith("NotAuthorized");
     });
 
     it("does not allow to burn the same token twice", async () => {
@@ -546,7 +547,7 @@ describe("Edition", () => {
 
       await expect(
         minterContract.mintEdition(signerAddress)
-      ).to.be.revertedWith("Sold out");
+      ).to.be.revertedWith("SoldOut");
 
       const tokenURI = await minterContract.tokenURI(10);
       const metadata = parseMetadataURI(tokenURI);
@@ -668,18 +669,18 @@ describe("Edition", () => {
       });
 
       it("does not allow minting", async () => {
-        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("minting has ended");
+        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow minting multiple", async () => {
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("minting has ended");
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("returns the expected maxSupply()", async () => {
@@ -762,18 +763,18 @@ describe("Edition", () => {
       });
 
       it("does not allow minting", async () => {
-        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("minting has ended");
+        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow minting multiple", async () => {
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("minting has ended");
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("minting has ended");
+        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("returns the expected maxSupply()", async () => {

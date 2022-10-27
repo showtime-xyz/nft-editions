@@ -25,7 +25,11 @@ contract ERC721AwareContract is IERC721ReceiverUpgradeable {
     }
 }
 
-contract EditionTest is Test {
+function IntegerOverflow(uint256 value) pure returns (bytes memory) {
+    return abi.encodeWithSelector(IEdition.IntegerOverflow.selector, value);
+}
+
+contract EditionFoundryTest is Test {
     event Transfer(
         address indexed from,
         address indexed to,
@@ -368,15 +372,15 @@ contract EditionTest is Test {
         assertEq(tightEdition.numberCanMint(), 0);
 
         // can not mint anymore after that
-        vm.expectRevert("Sold out");
+        vm.expectRevert(IEdition.SoldOut.selector);
         tightEdition.mintEdition(address(0xdEaD));
 
-        vm.expectRevert("Sold out");
+        vm.expectRevert(IEdition.SoldOut.selector);
         tightEdition.mintEditions(recipients);
 
         address[] memory soloRecipient = new address[](1);
         soloRecipient[0] = address(0xdEaD);
-        vm.expectRevert("Sold out");
+        vm.expectRevert(IEdition.SoldOut.selector);
         tightEdition.mintEditions(soloRecipient);
     }
 
@@ -398,7 +402,7 @@ contract EditionTest is Test {
         recipients[2] = address(0xdEaD);
         recipients[3] = address(0xdEaD);
 
-        vm.expectRevert("Sold out");
+        vm.expectRevert(IEdition.SoldOut.selector);
         tightEdition.mintEditions(recipients);
     }
 
@@ -426,9 +430,18 @@ contract EditionTest is Test {
     function testSetSalePriceOverflow() public {
         uint256 tooBig = 65.536 ether;
         vm.prank(editionOwner);
-        vm.expectRevert(
-            abi.encodeWithSignature("IntegerOverflow(uint256)", 0x10000)
-        );
+        vm.expectRevert(IntegerOverflow(0x10000));
         edition.setSalePrice(tooBig);
+    }
+
+    function testPurchaseWithWrongPrice() public {
+        uint256 price = 0.001 ether;
+        vm.prank(editionOwner);
+        edition.setSalePrice(price);
+
+        vm.deal(bob, 1 ether);
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.purchase{value: price + 1}();
     }
 }

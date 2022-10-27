@@ -63,9 +63,7 @@ describe("Edition", () => {
 
     const [_, s2] = await ethers.getSigners();
 
-    // the revert reason is not detected properly when compiled with viaIR
-    // see https://github.com/NomicFoundation/hardhat/issues/2453
-    // await expect(minterContract.purchase()).to.be.revertedWith("Not for sale");
+    await expect(minterContract.purchase()).to.be.revertedWith("NotForSale");
     await expect(minterContract.purchase()).to.be.reverted;
 
     await expect(
