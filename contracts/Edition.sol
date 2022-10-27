@@ -39,8 +39,9 @@ contract Edition is
         uint56 numberMinted;
         // how many tokens have been burned (can not be more than numberMinted)
         uint56 numberBurned;
-        // Pad to make the state fit in exactly 256 bits
-        uint16 __pad;
+        // Price to mint in millieth, so the supported price range is 0.001 to 65.535 ETH (or relevant chain gas token)
+        // To accept ERC20 or a different price range, use a specialized sales contract as the approved minter
+        uint16 salePriceMilliEth;
         // Royalty amount in bps (uint16 is large enough to store 10000 bps)
         uint16 royaltyBPS;
         // the edition can be minted up to this timestamp in seconds -- 0 means no end date
@@ -55,9 +56,6 @@ contract Edition is
 
     // Addresses allowed to mint edition
     mapping(address => bool) allowedMinters;
-
-    // Price for sale
-    uint256 public salePrice;
 
     // Global constructor for factory
     constructor() {
@@ -102,19 +100,15 @@ contract Edition is
             // overflows are not expected to happen for timestamps, and have no security implications
             unchecked {
                 uint256 endOfMintPeriodUint256 = block.timestamp + _mintPeriodSeconds;
-                requireUint56(endOfMintPeriodUint256);
-                endOfMintPeriod = uint56(endOfMintPeriodUint256);
+                endOfMintPeriod = requireUint56(endOfMintPeriodUint256);
             }
         }
 
-        requireUint56(_editionSize);
-        requireUint16(_royaltyBPS);
-
         state = EditionState({
-            editionSize: uint56(_editionSize),
+            editionSize: requireUint56(_editionSize),
             endOfMintPeriod: endOfMintPeriod,
-            royaltyBPS: uint16(_royaltyBPS),
-            __pad: 0,
+            royaltyBPS: requireUint16(_royaltyBPS),
+            salePriceMilliEth: 0,
             numberMinted: 0,
             numberBurned: 0
         });
@@ -126,11 +120,18 @@ contract Edition is
 
     /// @notice This sets a simple ETH sales price
     /// Setting a sales price allows users to mint the edition until it sells out.
+    /// The supported price range is 0.001 to 65.535 ETH (or relevant chain gas token)
     /// For more granular sales, use an external sales contract.
-    /// @param _salePrice sale price in wei, 0 to disable sales
-    function setSalePrice(uint256 _salePrice) external onlyOwner {
-        salePrice = _salePrice;
-        emit PriceChanged(salePrice);
+    /// @param _salePriceWei sale price in wei, 0 to disable sales
+    function setSalePrice(uint256 _salePriceWei) external onlyOwner {
+        // convert to milli-eth internally
+        uint16 salePriceMilliEth = requireUint16(_salePriceWei / 10 ** 15);
+        if (salePriceMilliEth == 0 && _salePriceWei > 0) {
+            revert("price not in supported range");
+        }
+
+        state.salePriceMilliEth = salePriceMilliEth;
+        emit PriceChanged(_salePriceWei);
     }
 
     /// @dev This withdraws ETH from the contract to the contract owner.
@@ -189,10 +190,11 @@ contract Edition is
 
     /// @dev This allows the user to purchase a single edition at the configured sale price
     function purchase() external payable returns (uint256) {
-        require(salePrice > 0, "Not for sale");
-        require(msg.value == salePrice, "Wrong price");
+        uint256 _salePriceWei = salePrice();
+        require(_salePriceWei > 0, "Not for sale");
+        require(msg.value == _salePriceWei, "Wrong price");
 
-        emit EditionSold(salePrice, msg.sender);
+        emit EditionSold(_salePriceWei, msg.sender);
         return _mintEdition(msg.sender);
     }
 
@@ -234,16 +236,18 @@ contract Edition is
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function requireUint56(uint256 value) internal pure {
+    function requireUint56(uint256 value) internal pure returns(uint56) {
         if (value > uint256(type(uint56).max)) {
             revert IntegerOverflow(value);
         }
+        return uint56(value);
     }
 
-    function requireUint16(uint256 value) internal pure {
+    function requireUint16(uint256 value) internal pure returns(uint16) {
         if (value > uint256(type(uint16).max)) {
             revert IntegerOverflow(value);
         }
+        return uint16(value);
     }
 
     /// @dev stateless version of isMintingEnded
@@ -356,6 +360,14 @@ contract Edition is
 
     function editionSize() external view override returns (uint256) {
         return state.editionSize;
+    }
+
+    /// @dev Returns the sale price in wei
+    function salePrice() public view override returns (uint256) {
+        unchecked {
+            // can not overflow
+            return uint256(state.salePriceMilliEth) * 10**15;
+        }
     }
 
     /// Returns whether the edition can still be minted/purchased
