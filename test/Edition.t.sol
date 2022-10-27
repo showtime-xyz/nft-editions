@@ -25,7 +25,7 @@ contract ERC721AwareContract is IERC721ReceiverUpgradeable {
     }
 }
 
-contract EditionMetadataTest is Test {
+contract EditionTest is Test {
     event Transfer(
         address indexed from,
         address indexed to,
