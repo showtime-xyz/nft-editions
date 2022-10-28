@@ -12,10 +12,10 @@
 
 pragma solidity ^0.8.6;
 
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
+import {ERC721Initializable} from "./solmate-initializable/tokens/ERC721Initializable.sol";
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
@@ -28,7 +28,7 @@ import {IEdition, StringAttribute} from "./interfaces/IEdition.sol";
 /// @author karmacoma [Showtime Drops](https://github.com/showtime-xyz/nft-editions)
 contract Edition is
     EditionMetadataRenderer,
-    ERC721Upgradeable,
+    ERC721Initializable,
     IEdition,
     IERC2981Upgradeable,
     OwnedInitializable
@@ -235,12 +235,14 @@ contract Edition is
     /// @notice User burn function for token id
     /// @param tokenId Token ID to burn
     function burn(uint256 tokenId) public override {
-        if (!_isApprovedOrOwner(_msgSender(), tokenId)) {
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) {
             revert Unauthorized();
         }
+
         unchecked {
             ++state.numberBurned;
         }
+
         _burn(tokenId);
     }
 
@@ -434,14 +436,14 @@ contract Edition is
         override
         returns (string memory)
     {
-        require(_exists(tokenId), "No token");
+        require(_ownerOf[tokenId] != address(0), "No token");
 
-        return createTokenMetadata(name(), tokenId, state.editionSize);
+        return createTokenMetadata(name, tokenId, state.editionSize);
     }
 
     /// @notice Get the base64-encoded json metadata object for the edition
     function contractURI() public view returns (string memory) {
-        return createContractMetadata(name(), state.royaltyBPS, owner);
+        return createContractMetadata(name, state.royaltyBPS, owner);
     }
 
     /// @notice Get royalty information for token
@@ -461,11 +463,11 @@ contract Edition is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Upgradeable, IERC165Upgradeable)
+        override(ERC721Initializable, IERC165Upgradeable)
         returns (bool)
     {
         return
             type(IERC2981Upgradeable).interfaceId == interfaceId ||
-            ERC721Upgradeable.supportsInterface(interfaceId);
+            ERC721Initializable.supportsInterface(interfaceId);
     }
 }
