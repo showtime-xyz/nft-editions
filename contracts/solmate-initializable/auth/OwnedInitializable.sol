@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Initializable} from "../utils/Initializable.sol";
 
 /// @notice Simple single owner authorization mixin.
-/// @author karmacoma wrote the initializer
+/// @author karmacoma (replaced constructor with initializer)
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/auth/Owned.sol)
 abstract contract OwnedInitializable is Initializable {
     /*//////////////////////////////////////////////////////////////

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Initializable} from "../utils/Initializable.sol";
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
-/// @author karmacoma for the initializer pattern
+/// @author karmacoma (replaced constructor with initializer)
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721Initializable is Initializable {
     /*//////////////////////////////////////////////////////////////
