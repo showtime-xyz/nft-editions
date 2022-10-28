@@ -68,7 +68,7 @@ describe("Edition", () => {
 
     await expect(
       minterContract.connect(s2).setSalePrice(ethers.utils.parseEther("0.2"))
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+    ).to.be.revertedWith("UNAUTHORIZED");
     expect(
       await minterContract.setSalePrice(ethers.utils.parseEther("0.2"))
     ).to.emit(minterContract, "PriceChanged");

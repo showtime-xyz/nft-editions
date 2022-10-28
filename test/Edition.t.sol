@@ -29,7 +29,7 @@ function IntegerOverflow(uint256 value) pure returns (bytes memory) {
     return abi.encodeWithSelector(IEdition.IntegerOverflow.selector, value);
 }
 
-contract EditionFoundryTest is Test {
+contract EditionTest is Test {
     event Transfer(
         address indexed from,
         address indexed to,
@@ -443,5 +443,17 @@ contract EditionFoundryTest is Test {
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
         edition.purchase{value: price + 1}();
+    }
+
+    function testTransferOwnershipFailsForBob() public {
+        vm.expectRevert("UNAUTHORIZED");
+        vm.prank(bob);
+        edition.transferOwnership(bob);
+    }
+
+    function testTransferOwnershipWorksForOwner() public {
+        vm.prank(editionOwner);
+        edition.transferOwnership(bob);
+        assertEq(edition.owner(), bob);
     }
 }
