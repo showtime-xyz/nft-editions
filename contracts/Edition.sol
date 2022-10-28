@@ -24,8 +24,8 @@ import {IEdition, StringAttribute} from "./interfaces/IEdition.sol";
 /// @notice This is a smart contract for handling dynamic contract minting.
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
 /// @dev This is a fork of ZORA Editions for Showtime Drops
-/// @author iain nash [ZORA Editions](https://github.com/ourzora/nft-editions)
 /// @author karmacoma [Showtime Drops](https://github.com/showtime-xyz/nft-editions)
+/// @author iain nash [ZORA Editions](https://github.com/ourzora/nft-editions)
 contract Edition is
     EditionMetadataRenderer,
     ERC721Initializable,
@@ -58,7 +58,7 @@ contract Edition is
 
     // Global constructor for factory
     constructor() {
-        _disableInitializers();
+        _lockInitializers();
     }
 
     /// @notice Function to create a new edition. Can only be called by the allowed creator
