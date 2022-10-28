@@ -407,7 +407,7 @@ describe("Edition", () => {
       await minterContract.mintEdition(await signer1.getAddress());
       await minterContract.connect(signer1).approve(signer2.getAddress(), 1);
       await expect(minterContract.connect(signer2).burn(1)).to.emit(minterContract, "Transfer");
-      await expect(minterContract.ownerOf(1)).to.be.revertedWith("ERC721: invalid token ID");
+      await expect(minterContract.ownerOf(1)).to.be.revertedWith("NOT_MINTED");
     });
 
     it("allows burn if approved for all", async () => {
@@ -425,7 +425,7 @@ describe("Edition", () => {
     it("does not allow to burn the same token twice", async () => {
       await minterContract.mintEdition(signerAddress);
       await minterContract.burn(1);
-      await expect(minterContract.burn(1)).to.be.revertedWith("ERC721: invalid token ID");
+      await expect(minterContract.burn(1)).to.be.revertedWith("NOT_MINTED");
     });
 
     it("does not allow re-initialization", async () => {

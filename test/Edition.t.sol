@@ -250,7 +250,7 @@ contract EditionTest is Test {
     }
 
     function testSafeMintEditionCanNotMintToUnsuspectingContracts() public {
-        vm.expectRevert("ERC721: transfer to non ERC721Receiver implementer");
+        vm.expectRevert("UNSAFE_RECIPIENT");
         edition.safeMintEdition(address(unsuspectingContract));
     }
 
