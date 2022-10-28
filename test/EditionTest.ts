@@ -146,7 +146,7 @@ describe("Edition", () => {
       it("does not let non-owner set string properties", async () => {
         await expect(
           minterContract.connect(signer1).setStringProperties(["name1", "name2"], ["value1", "value2"])
-        ).to.be.revertedWith("Ownable: caller is not the owner");
+        ).to.be.revertedWith("UNAUTHORIZED");
       });
 
       it("rejects empty property names", async () => {
@@ -281,7 +281,7 @@ describe("Edition", () => {
       it("can only be set by the owner", async () => {
         await expect(
           minterContract.connect(signer1).setExternalUrl("https://attacker.com")
-        ).to.be.revertedWith("Ownable: caller is not the owner");
+        ).to.be.revertedWith("UNAUTHORIZED");
       });
     });
 
@@ -419,7 +419,7 @@ describe("Edition", () => {
     it("does not allow burn if non approved", async () => {
       await minterContract.mintEdition(await signer1.getAddress());
 
-      await expect(minterContract.connect(signer2).burn(1)).to.be.revertedWith("NotAuthorized");
+      await expect(minterContract.connect(signer2).burn(1)).to.be.revertedWith("Unauthorized");
     });
 
     it("does not allow to burn the same token twice", async () => {

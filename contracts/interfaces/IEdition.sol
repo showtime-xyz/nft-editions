@@ -7,15 +7,15 @@ struct StringAttribute {
 }
 
 interface IEdition {
+    error BadAttribute(string name, string value);
     error IntegerOverflow(uint256 value);
+    error LengthMismatch();
+    error MintingEnded();
+    error Unauthorized();
+    error NotForSale();
     error PriceTooLow();
     error SoldOut();
-    error BadAttribute(string name, string value);
-    error NotForSale();
     error WrongPrice();
-    error LengthMismatch();
-    error NotAuthorized();
-    error MintingEnded();
 
     event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
