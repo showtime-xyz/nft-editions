@@ -12,6 +12,8 @@ import {EditionCreator, IEdition} from "../contracts/EditionCreator.sol";
 import {Base64} from "../contracts/utils/Base64.sol";
 import {LibString} from "../contracts/utils/LibString.sol";
 
+import {Initializable} from "contracts/solmate-initializable/utils/Initializable.sol";
+
 contract UnsuspectingContract {}
 
 contract ERC721AwareContract is IERC721ReceiverUpgradeable {
@@ -30,6 +32,8 @@ function IntegerOverflow(uint256 value) pure returns (bytes memory) {
 }
 
 contract EditionTest is Test {
+    event Initialized();
+    event OwnershipTransferred(address indexed user, address indexed newOwner);
     event Transfer(
         address indexed from,
         address indexed to,
@@ -39,6 +43,7 @@ contract EditionTest is Test {
     uint256 constant INTENSE_LENGTH = 100_000;
 
     EditionCreator editionCreator;
+    Edition editionImpl;
     Edition edition;
     Edition editionToEscape;
     Edition editionIntense;
@@ -80,7 +85,8 @@ contract EditionTest is Test {
 
     function setUp() public {
         editionOwner = makeAddr("editionOwner");
-        editionCreator = new EditionCreator(address(new Edition()));
+        editionImpl = new Edition();
+        editionCreator = new EditionCreator(address(editionImpl));
 
         edition = createEdition(
             "This is the name of my edition",
@@ -103,6 +109,64 @@ contract EditionTest is Test {
 
         tokenId = edition.mintEdition(address(0xdEaD));
         editionToEscape.mintEdition(address(0xdEaD));
+    }
+
+    function testConstructorEmitsInitializedEvent() public {
+        vm.expectEmit(true, true, true, true);
+        emit Initialized();
+        new Edition();
+    }
+
+    function testNoOwnerAfterConstructor() public {
+        Edition newImpl = new Edition();
+        assertEq(newImpl.owner(), address(0));
+    }
+
+    function testInitializerEmitsOwnershipTransferredEvent() public {
+        vm.expectEmit(true, true, true, true);
+        emit OwnershipTransferred(address(0), address(this));
+        editionCreator.createEdition(
+            "name",
+            "symbol",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            0xcccccccccccccc, // editionSize
+            0xaaaa, // royaltyBPS
+            0xbbbbbbbbbbbbbb // mintPeriodSeconds
+        );
+    }
+
+    function testDoesNotAllowReinitializationOfTheImplContract() public {
+        Edition newImpl = new Edition();
+
+        vm.expectRevert("ALREADY_INITIALIZED");
+        newImpl.initialize(
+            bob,
+            "name",
+            "symbol",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            0xcccccccccccccc, // editionSize
+            0xaaaa, // royaltyBPS
+            0xbbbbbbbbbbbbbb // mintPeriodSeconds
+        );
+    }
+
+    function testDoesNotAllowReinitializationOfProxyContracts() public {
+        vm.expectRevert("ALREADY_INITIALIZED");
+        edition.initialize(
+            bob,
+            "name",
+            "symbol",
+            "description",
+            "https://example.com/animation.mp4",
+            "https://example.com/image.png",
+            0xcccccccccccccc, // editionSize
+            0xaaaa, // royaltyBPS
+            0xbbbbbbbbbbbbbb // mintPeriodSeconds
+        );
     }
 
     // for gas usage only

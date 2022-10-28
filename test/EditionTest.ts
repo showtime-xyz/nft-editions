@@ -93,7 +93,7 @@ describe("Edition", () => {
     await expect(
       // @ts-ignore
       editionImpl.initialize(signerAddress, ...editionArgs())
-    ).to.be.revertedWith("Initializable: contract is already initialized");
+    ).to.be.revertedWith("ALREADY_INITIALIZED");
   });
 
   it("makes a new edition", async () => {
@@ -435,7 +435,7 @@ describe("Edition", () => {
           // @ts-ignore
           ...editionArgs(),
         )
-      ).to.be.revertedWith("Initializable: contract is already initialized");
+      ).to.be.revertedWith("ALREADY_INITIALIZED");
 
       await minterContract.mintEdition(await signer1.getAddress());
       expect(await minterContract.ownerOf(1)).to.equal(
