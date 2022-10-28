@@ -14,8 +14,9 @@ pragma solidity ^0.8.6;
 
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+
+import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
 import {IEdition, StringAttribute} from "./interfaces/IEdition.sol";
@@ -30,7 +31,7 @@ contract Edition is
     ERC721Upgradeable,
     IEdition,
     IERC2981Upgradeable,
-    OwnableUpgradeable
+    OwnedInitializable
 {
     struct EditionState {
         // how many tokens have been minted (can not be more than editionSize)
@@ -84,10 +85,9 @@ contract Edition is
         uint256 _mintPeriodSeconds
     ) public override initializer {
         __ERC721_init(_name, _symbol);
-        __Ownable_init();
 
         // Set ownership to original sender of contract call
-        transferOwnership(_owner);
+        __Owned_init(_owner);
 
         description = _description;
         animationUrl = _animationUrl;
@@ -135,7 +135,7 @@ contract Edition is
     /// @dev This withdraws ETH from the contract to the contract owner.
     function withdraw() external onlyOwner {
         // No need for gas limit to trusted address.
-        AddressUpgradeable.sendValue(payable(owner()), address(this).balance);
+        AddressUpgradeable.sendValue(payable(owner), address(this).balance);
     }
 
     /// @notice Sets the approved minting status of the given address.
@@ -207,14 +207,14 @@ contract Edition is
     /// @dev This mints one edition to the given address by an allowed minter
     function mintEdition(address to) external override returns (uint256) {
         if (!_isAllowedToMint()) {
-            revert NotAuthorized();
+            revert Unauthorized();
         }
         return _mintEdition(to);
     }
 
     function safeMintEdition(address to) external override returns (uint256) {
         if (!_isAllowedToMint()) {
-            revert NotAuthorized();
+            revert Unauthorized();
         }
         return _safeMintEdition(to);
     }
@@ -227,7 +227,7 @@ contract Edition is
         returns (uint256)
     {
         if (!_isAllowedToMint()) {
-            revert NotAuthorized();
+            revert Unauthorized();
         }
         return _mintEditions(recipients);
     }
@@ -236,7 +236,7 @@ contract Edition is
     /// @param tokenId Token ID to burn
     function burn(uint256 tokenId) public override {
         if (!_isApprovedOrOwner(_msgSender(), tokenId)) {
-            revert NotAuthorized();
+            revert Unauthorized();
         }
         unchecked {
             ++state.numberBurned;
@@ -363,7 +363,7 @@ contract Edition is
         return
             allowedMinters[msg.sender] ||
             allowedMinters[address(0x0)] ||
-            owner() == msg.sender;
+            owner == msg.sender;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -441,7 +441,7 @@ contract Edition is
 
     /// @notice Get the base64-encoded json metadata object for the edition
     function contractURI() public view returns (string memory) {
-        return createContractMetadata(name(), state.royaltyBPS, owner());
+        return createContractMetadata(name(), state.royaltyBPS, owner);
     }
 
     /// @notice Get royalty information for token
@@ -452,10 +452,10 @@ contract Edition is
         override
         returns (address receiver, uint256 royaltyAmount)
     {
-        if (owner() == address(0x0)) {
-            return (owner(), 0);
+        if (owner == address(0x0)) {
+            return (address(0x0), 0);
         }
-        return (owner(), (_salePrice * state.royaltyBPS) / 10_000);
+        return (owner, (_salePrice * state.royaltyBPS) / 10_000);
     }
 
     function supportsInterface(bytes4 interfaceId)
