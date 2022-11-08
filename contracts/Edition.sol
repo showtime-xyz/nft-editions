@@ -189,16 +189,10 @@ contract Edition is
     /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter
     function mint(address to) external payable override returns (uint256) {
-        if (!_isAllowedToMint()) {
-            revert Unauthorized();
-        }
         return _mintEdition(to);
     }
 
     function safeMint(address to) external payable override returns (uint256) {
-        if (!_isAllowedToMint()) {
-            revert Unauthorized();
-        }
         return _safeMintEdition(to);
     }
 
@@ -210,9 +204,6 @@ contract Edition is
         override
         returns (uint256)
     {
-        if (!_isAllowedToMint()) {
-            revert Unauthorized();
-        }
         return _mintEditions(recipients);
     }
 
@@ -261,9 +252,12 @@ contract Edition is
         }
     }
 
-
-    /// @dev Validates the supply and time limits for minting a single edition with a single SLOAD and SSTORE
+    /// @dev Validates the supply and time limits for minting with a single SLOAD and SSTORE
     function _mintPreFlightChecks(uint256 quantity) internal returns (uint56 _tokenId) {
+        if (!_isAllowedToMint()) {
+            revert Unauthorized();
+        }
+
         uint256 _state;
         uint256 _postState;
         uint56 _editionSize;
