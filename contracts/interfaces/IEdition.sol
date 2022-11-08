@@ -22,8 +22,6 @@ interface IEdition {
     event ExternalUrlUpdated(string oldExternalUrl, string newExternalUrl);
     event PropertyUpdated(string name, string oldValue, string newValue);
 
-    function burn(uint256 tokenId) external;
-
     function editionSize() external view returns (uint256);
 
     function initialize(
@@ -38,8 +36,6 @@ interface IEdition {
         uint256 _mintPeriodSeconds
     ) external;
 
-    function maxSupply() external view returns (uint256);
-
     function mintEdition(address to) external returns (uint256);
 
     function safeMintEdition(address to) external returns (uint256);
@@ -48,11 +44,7 @@ interface IEdition {
         external
         returns (uint256);
 
-    function numberCanMint() external view returns (uint256);
-
     function numberMinted() external view returns (uint256);
-
-    function numberBurned() external view returns (uint256);
 
     function purchase() external payable returns (uint256);
 

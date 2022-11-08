@@ -224,16 +224,6 @@ contract EditionTest is Test {
         assertEq(description, LibString.repeat("\\", INTENSE_LENGTH));
     }
 
-    function testBurnDecreasesTotalSupply() public {
-        uint256 bobsTokenId = edition.mintEdition(bob);
-        uint256 totalSupplyBefore = edition.totalSupply();
-
-        vm.startPrank(bob);
-        edition.burn(bobsTokenId);
-        assertEq(edition.totalSupply(), totalSupplyBefore - 1);
-        vm.stopPrank();
-    }
-
     function testCreateEditionWithEmptyDescription() public {
         Edition editionEmptyDescription = createEdition("name", "");
         assertEq(editionEmptyDescription.description(), "");
@@ -424,16 +414,12 @@ contract EditionTest is Test {
             0 // mintPeriodSeconds
         );
 
-        assertEq(tightEdition.numberCanMint(), 3);
-
         // can mint everything in one go
         address[] memory recipients = new address[](3);
         recipients[0] = address(0xdEaD);
         recipients[1] = address(0xdEaD);
         recipients[2] = address(0xdEaD);
         tightEdition.mintEditions(recipients);
-
-        assertEq(tightEdition.numberCanMint(), 0);
 
         // can not mint anymore after that
         vm.expectRevert(IEdition.SoldOut.selector);

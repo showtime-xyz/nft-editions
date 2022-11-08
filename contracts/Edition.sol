@@ -36,8 +36,8 @@ contract Edition is
     struct EditionState {
         // how many tokens have been minted (can not be more than editionSize)
         uint56 numberMinted;
-        // how many tokens have been burned (can not be more than numberMinted)
-        uint56 numberBurned;
+        // reserved space to keep the state a uint256
+        uint56 __unused;
         // Price to mint in millieth, so the supported price range is 0.001 to 65.535 ETH (or relevant chain gas token)
         // To accept ERC20 or a different price range, use a specialized sales contract as the approved minter
         uint16 salePriceMilliEth;
@@ -108,7 +108,7 @@ contract Edition is
             royaltyBPS: requireUint16(_royaltyBPS),
             salePriceMilliEth: 0,
             numberMinted: 0,
-            numberBurned: 0
+            __unused: 0
         });
     }
 
@@ -149,9 +149,7 @@ contract Edition is
     }
 
     /// @notice Updates the external_url field in the metadata
-    /// @notice can be updated by the owner regardless of the grace period
     function setExternalUrl(string calldata _externalUrl) public onlyOwner {
-        // log the current external url
         emit ExternalUrlUpdated(externalUrl, _externalUrl);
 
         externalUrl = _externalUrl;
@@ -230,20 +228,6 @@ contract Edition is
             revert Unauthorized();
         }
         return _mintEditions(recipients);
-    }
-
-    /// @notice User burn function for token id
-    /// @param tokenId Token ID to burn
-    function burn(uint256 tokenId) public override {
-        if (!_isApprovedOrOwner(msg.sender, tokenId)) {
-            revert Unauthorized();
-        }
-
-        unchecked {
-            ++state.numberBurned;
-        }
-
-        _burn(tokenId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -392,39 +376,11 @@ contract Edition is
     }
 
     function totalSupply() public view returns (uint256) {
-        return state.numberMinted - state.numberBurned;
-    }
-
-    function numberCanMint() public view override returns (uint256) {
-        if (isMintingEnded()) {
-            return 0;
-        }
-
-        return maxSupply() - state.numberMinted;
+        return state.numberMinted;
     }
 
     function numberMinted() external view override returns (uint256) {
         return state.numberMinted;
-    }
-
-    function numberBurned() external view override returns (uint256) {
-        return state.numberBurned;
-    }
-
-    /// Returns the number of editions left to mint (max_uint256 when open edition)
-    function maxSupply() public view override returns (uint256) {
-        // if the mint period is over, return the current total supply (which can not be increased anymore)
-        if (isMintingEnded()) {
-            return totalSupply();
-        }
-
-        // limited edition: return the fixed size
-        if (state.editionSize != 0) {
-            return state.editionSize;
-        }
-
-        // open edition
-        return type(uint256).max;
     }
 
     /// @notice Get the base64-encoded json metadata for a token
