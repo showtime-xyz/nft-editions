@@ -214,8 +214,9 @@ contract Edition is
         lastTokenId = _mintPreFlightChecks(n);
 
         unchecked {
+            uint256 firstTokenId = lastTokenId + 1 - n;
             for (uint256 i = 0; i < n; ) {
-                _safeMint(recipients[i], lastTokenId - n + i + 1);
+                _safeMint(recipients[i], firstTokenId + i);
                 ++i;
             }
         }
