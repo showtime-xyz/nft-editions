@@ -186,31 +186,16 @@ contract Edition is
                    COLLECTOR / TOKEN OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev This allows the user to purchase a single edition at the configured sale price
-    function purchase() external payable returns (uint256) {
-        uint256 _salePriceWei = salePrice();
-        if (_salePriceWei == 0) {
-            revert NotForSale();
-        }
-
-        if (msg.value != _salePriceWei) {
-            revert WrongPrice();
-        }
-
-        emit EditionSold(_salePriceWei, msg.sender);
-        return _mintEdition(msg.sender);
-    }
-
     /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter
-    function mintEdition(address to) external override returns (uint256) {
+    function mintEdition(address to) external payable override returns (uint256) {
         if (!_isAllowedToMint()) {
             revert Unauthorized();
         }
         return _mintEdition(to);
     }
 
-    function safeMintEdition(address to) external override returns (uint256) {
+    function safeMintEdition(address to) external payable override returns (uint256) {
         if (!_isAllowedToMint()) {
             revert Unauthorized();
         }
@@ -221,6 +206,7 @@ contract Edition is
     /// @dev This mints multiple editions to the given list of addresses.
     function mintEditions(address[] calldata recipients)
         external
+        payable
         override
         returns (uint256)
     {
@@ -264,21 +250,35 @@ contract Edition is
         }
     }
 
+    function enforceSalePrice(uint256 _salePriceMilliEth, uint256 quantity)
+        internal
+        view
+    {
+        unchecked {
+            if (msg.value != quantity * _salePriceMilliEth * 10 ** 15) {
+                revert WrongPrice();
+            }
+        }
+    }
+
+
     /// @dev Validates the supply and time limits for minting a single edition with a single SLOAD and SSTORE
-    function _mintPreFlightChecks() internal returns (uint56 _tokenId) {
+    function _mintPreFlightChecks(uint256 quantity) internal returns (uint56 _tokenId) {
         uint256 _state;
         uint256 _postState;
         uint56 _editionSize;
         uint56 _endOfMintPeriod;
+        uint16 _salePriceMilliEth;
 
         assembly ("memory-safe") {
             _state := sload(state.slot)
             _editionSize := shr(200, _state)
             _endOfMintPeriod := shr(144, _state)
+            _salePriceMilliEth := shr(112, _state)
 
             // can not realistically overflow
             // the fields in EditionState are ordered so that incrementing state increments numberMinted
-            _postState := add(_state, 1)
+            _postState := add(_state, quantity)
 
             // perform the addition only once and extract numberMinted + 1 from _postState
             _tokenId := and(_postState, 0xffffffffffffff)
@@ -286,6 +286,7 @@ contract Edition is
 
         enforceSupplyLimit(_editionSize, _tokenId);
         enforceTimeLimit(_endOfMintPeriod);
+        enforceSalePrice(_salePriceMilliEth, quantity);
 
         // update storage
         assembly ("memory-safe") {
@@ -298,7 +299,7 @@ contract Edition is
     /// @dev Private function to mint without any access checks
     /// @return _tokenId the id of the newly minted token
     function _mintEdition(address recipient) internal returns (uint56 _tokenId) {
-        _tokenId = _mintPreFlightChecks();
+        _tokenId = _mintPreFlightChecks(1);
         _mint(recipient, _tokenId);
     }
 
@@ -306,37 +307,25 @@ contract Edition is
     /// @dev Private function to safe mint without any access checks
     /// @return _tokenId the id of the newly minted token
     function _safeMintEdition(address recipient) internal returns (uint56 _tokenId) {
-        _tokenId = _mintPreFlightChecks();
+        _tokenId = _mintPreFlightChecks(1);
         _safeMint(recipient, _tokenId);
     }
 
     /// @dev Private function to batch mint without any access checks
     function _mintEditions(address[] calldata recipients)
         internal
-        returns (uint256)
+        returns (uint256 endingTokenId)
     {
         uint56 n = uint56(recipients.length);
         require(n > 0, "No recipients");
 
-        // load state into memory with a single SLOAD
-        EditionState storage _state = state;
+        endingTokenId = _mintPreFlightChecks(n);
 
         unchecked {
-            uint56 startingTokenId = _state.numberMinted + 1;
-            uint56 endingTokenId = _state.numberMinted + n;
-
-            enforceSupplyLimit(_state.editionSize, endingTokenId);
-            enforceTimeLimit(_state.endOfMintPeriod);
-
             for (uint256 i = 0; i < n; ) {
-                _safeMint(recipients[i], startingTokenId + i);
+                _safeMint(recipients[i], endingTokenId - n + i + 1);
                 ++i;
             }
-
-            // only update storage outside of the loop
-            state.numberMinted = endingTokenId;
-
-            return endingTokenId;
         }
     }
 

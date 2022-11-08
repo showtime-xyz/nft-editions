@@ -17,7 +17,6 @@ interface IEdition {
     error SoldOut();
     error WrongPrice();
 
-    event EditionSold(uint256 price, address owner);
     event PriceChanged(uint256 amount);
     event ExternalUrlUpdated(string oldExternalUrl, string newExternalUrl);
     event PropertyUpdated(string name, string oldValue, string newValue);
@@ -36,15 +35,14 @@ interface IEdition {
         uint256 _mintPeriodSeconds
     ) external;
 
-    function mintEdition(address to) external returns (uint256);
+    function mintEdition(address to) external payable returns (uint256);
 
-    function safeMintEdition(address to) external returns (uint256);
+    function safeMintEdition(address to) external payable returns (uint256);
 
     function mintEditions(address[] memory recipients)
         external
+        payable
         returns (uint256);
-
-    function purchase() external payable returns (uint256);
 
     function salePrice() external view returns (uint256);
 

@@ -63,20 +63,28 @@ describe("Edition", () => {
 
     const [_, s2] = await ethers.getSigners();
 
-    await expect(minterContract.purchase()).to.be.revertedWith("NotForSale");
-    await expect(minterContract.purchase()).to.be.reverted;
-
+    // only the owner can set the sale price
     await expect(
       minterContract.connect(s2).setSalePrice(ethers.utils.parseEther("0.2"))
     ).to.be.revertedWith("UNAUTHORIZED");
-    expect(
-      await minterContract.setSalePrice(ethers.utils.parseEther("0.2"))
+
+    // when the owner calls setSalePrice, we emit an event
+    await expect(
+      minterContract.setSalePrice(ethers.utils.parseEther("0.2"))
     ).to.emit(minterContract, "PriceChanged");
-    expect(
-      await minterContract
+
+    // only approved minters can mint
+    await expect(minterContract.connect(s2).mintEdition(signerAddress, { value: ethers.utils.parseEther("0.2") })).to.be.revertedWith("Unauthorized");
+
+    // open the public sale
+    await minterContract.setApprovedMinter(ethers.constants.AddressZero, true);
+
+    await expect(
+      minterContract
         .connect(s2)
-        .purchase({ value: ethers.utils.parseEther("0.2") })
-    ).to.emit(minterContract, "EditionSold");
+        .mintEdition(signerAddress, { value: ethers.utils.parseEther("0.2") })
+    ).to.emit(minterContract, "Transfer");
+
     const signerBalance = await signer.getBalance();
     await minterContract.withdraw();
     // Some ETH is lost from withdraw contract interaction.

@@ -484,15 +484,93 @@ contract EditionTest is Test {
         edition.setSalePrice(tooBig);
     }
 
-    function testPurchaseWithWrongPrice() public {
+    function testPaidMint() public {
+        // setup
         uint256 price = 0.001 ether;
+
         vm.prank(editionOwner);
         edition.setSalePrice(price);
 
+        vm.prank(editionOwner);
+        edition.setApprovedMinter(address(0), true);
+
         vm.deal(bob, 1 ether);
+
+        // bob can not mint for free
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
-        edition.purchase{value: price + 1}();
+        edition.mintEdition(bob);
+
+        // when bob mints with the wrong price, it reverts
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.mintEdition{value: price + 1}(bob);
+
+        // when bob mints with the correct price, it works
+        vm.prank(bob);
+        uint256 _tokenId = edition.mintEdition{value: price}(bob);
+        assertEq(edition.ownerOf(_tokenId), bob);
+    }
+
+    function testPaidSafeMint() public {
+        // setup
+        uint256 price = 0.001 ether;
+
+        vm.prank(editionOwner);
+        edition.setSalePrice(price);
+
+        vm.prank(editionOwner);
+        edition.setApprovedMinter(address(0), true);
+
+        vm.deal(bob, 1 ether);
+
+        // bob can not mint for free
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.safeMintEdition(bob);
+
+        // when bob mints with the wrong price, it reverts
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.safeMintEdition{value: price + 1}(bob);
+
+        // when bob mints with the correct price, it works
+        vm.prank(bob);
+        uint256 _tokenId = edition.safeMintEdition{value: price}(bob);
+        assertEq(edition.ownerOf(_tokenId), bob);
+    }
+
+    function testPaidBatchMint() public {
+        // setup
+        uint256 price = 0.001 ether;
+
+        vm.prank(editionOwner);
+        edition.setSalePrice(price);
+
+        vm.prank(editionOwner);
+        edition.setApprovedMinter(address(0), true);
+
+        vm.deal(bob, 1 ether);
+
+        address[] memory recipients = new address[](3);
+        recipients[0] = address(bob);
+        recipients[1] = address(bob);
+        recipients[2] = address(bob);
+
+        // bob can not mint for free
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.mintEditions(recipients);
+
+        // when bob mints with the wrong price, it reverts
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.mintEditions{value: price}(recipients);
+
+        // when bob mints with the correct price, it works
+        vm.prank(bob);
+        uint256 _tokenId = edition.mintEditions{value: 3 * price}(recipients);
+        assertEq(edition.ownerOf(_tokenId), bob);
     }
 
     function testTransferOwnershipFailsForBob() public {
