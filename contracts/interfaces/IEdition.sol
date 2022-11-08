@@ -35,11 +35,11 @@ interface IEdition {
         uint256 _mintPeriodSeconds
     ) external;
 
-    function mintEdition(address to) external payable returns (uint256);
+    function mint(address to) external payable returns (uint256);
 
-    function safeMintEdition(address to) external payable returns (uint256);
+    function safeMint(address to) external payable returns (uint256);
 
-    function mintEditions(address[] memory recipients)
+    function mintBatch(address[] memory recipients)
         external
         payable
         returns (uint256);

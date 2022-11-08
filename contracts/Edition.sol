@@ -188,14 +188,14 @@ contract Edition is
 
     /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter
-    function mintEdition(address to) external payable override returns (uint256) {
+    function mint(address to) external payable override returns (uint256) {
         if (!_isAllowedToMint()) {
             revert Unauthorized();
         }
         return _mintEdition(to);
     }
 
-    function safeMintEdition(address to) external payable override returns (uint256) {
+    function safeMint(address to) external payable override returns (uint256) {
         if (!_isAllowedToMint()) {
             revert Unauthorized();
         }
@@ -204,7 +204,7 @@ contract Edition is
 
     /// @param recipients list of addresses to send the newly minted editions to
     /// @dev This mints multiple editions to the given list of addresses.
-    function mintEditions(address[] calldata recipients)
+    function mintBatch(address[] calldata recipients)
         external
         payable
         override
