@@ -188,12 +188,14 @@ contract Edition is
 
     /// @param to address to send the newly minted edition to
     /// @dev This mints one edition to the given address by an allowed minter
-    function mint(address to) external payable override returns (uint256) {
-        return _mintEdition(to);
+    function mint(address to) external payable override returns (uint256 tokenId) {
+        tokenId = _mintPreFlightChecks(1);
+        _mint(to, tokenId);
     }
 
-    function safeMint(address to) external payable override returns (uint256) {
-        return _safeMintEdition(to);
+    function safeMint(address to) external payable override returns (uint256 tokenId) {
+        tokenId = _mintPreFlightChecks(1);
+        _safeMint(to, tokenId);
     }
 
     /// @param recipients list of addresses to send the newly minted editions to
@@ -202,9 +204,19 @@ contract Edition is
         external
         payable
         override
-        returns (uint256)
+        returns (uint256 lastTokenId)
     {
-        return _mintEditions(recipients);
+        uint56 n = uint56(recipients.length);
+        require(n > 0, "No recipients");
+
+        lastTokenId = _mintPreFlightChecks(n);
+
+        unchecked {
+            for (uint256 i = 0; i < n; ) {
+                _safeMint(recipients[i], lastTokenId - n + i + 1);
+                ++i;
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -252,6 +264,18 @@ contract Edition is
         }
     }
 
+    /// @dev This helper function checks if the msg.sender is allowed to mint
+    function _isAllowedToMint() internal view returns (bool) {
+        // optimize by likelihood:
+        // 1. check allowlist/minter contracts
+        // 2. open mints
+        // 3. owner mints
+        return
+            allowedMinters[msg.sender] ||
+            allowedMinters[address(0x0)] ||
+            owner == msg.sender;
+    }
+
     /// @dev Validates the supply and time limits for minting with a single SLOAD and SSTORE
     function _mintPreFlightChecks(uint256 quantity) internal returns (uint56 _tokenId) {
         if (!_isAllowedToMint()) {
@@ -288,51 +312,6 @@ contract Edition is
         }
 
         return _tokenId;
-    }
-
-    /// @dev Private function to mint without any access checks
-    /// @return _tokenId the id of the newly minted token
-    function _mintEdition(address recipient) internal returns (uint56 _tokenId) {
-        _tokenId = _mintPreFlightChecks(1);
-        _mint(recipient, _tokenId);
-    }
-
-
-    /// @dev Private function to safe mint without any access checks
-    /// @return _tokenId the id of the newly minted token
-    function _safeMintEdition(address recipient) internal returns (uint56 _tokenId) {
-        _tokenId = _mintPreFlightChecks(1);
-        _safeMint(recipient, _tokenId);
-    }
-
-    /// @dev Private function to batch mint without any access checks
-    function _mintEditions(address[] calldata recipients)
-        internal
-        returns (uint256 endingTokenId)
-    {
-        uint56 n = uint56(recipients.length);
-        require(n > 0, "No recipients");
-
-        endingTokenId = _mintPreFlightChecks(n);
-
-        unchecked {
-            for (uint256 i = 0; i < n; ) {
-                _safeMint(recipients[i], endingTokenId - n + i + 1);
-                ++i;
-            }
-        }
-    }
-
-    /// @dev This helper function checks if the msg.sender is allowed to mint
-    function _isAllowedToMint() internal view returns (bool) {
-        // optimize by likelihood:
-        // 1. check allowlist/minter contracts
-        // 2. open mints
-        // 3. owner mints
-        return
-            allowedMinters[msg.sender] ||
-            allowedMinters[address(0x0)] ||
-            owner == msg.sender;
     }
 
     /*//////////////////////////////////////////////////////////////
