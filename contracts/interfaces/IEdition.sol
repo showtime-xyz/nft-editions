@@ -9,6 +9,7 @@ struct StringAttribute {
 interface IEdition {
     error BadAttribute(string name, string value);
     error IntegerOverflow(uint256 value);
+    error InvalidArgument();
     error LengthMismatch();
     error MintingEnded();
     error Unauthorized();
