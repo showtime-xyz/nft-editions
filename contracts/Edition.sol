@@ -207,7 +207,9 @@ contract Edition is
         returns (uint256 lastTokenId)
     {
         uint56 n = uint56(recipients.length);
-        require(n > 0, "No recipients");
+        if (n == 0) {
+            revert InvalidArgument();
+        }
 
         lastTokenId = _mintPreFlightChecks(n);
 
