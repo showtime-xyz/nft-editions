@@ -439,24 +439,24 @@ describe("Edition", () => {
       );
     });
 
-    it("creates a set of editions", async () => {
+    it("mints in batches", async () => {
       const [s1, s2, s3] = await ethers.getSigners();
       await minterContract.mintEditions([
-        await s1.getAddress(),
-        await s2.getAddress(),
-        await s3.getAddress(),
+        s1.address,
+        s2.address,
+        s3.address,
       ]);
-      expect(await minterContract.ownerOf(1)).to.equal(await s1.getAddress());
-      expect(await minterContract.ownerOf(2)).to.equal(await s2.getAddress());
-      expect(await minterContract.ownerOf(3)).to.equal(await s3.getAddress());
+      expect(await minterContract.ownerOf(1)).to.equal(s1.address);
+      expect(await minterContract.ownerOf(2)).to.equal(s2.address);
+      expect(await minterContract.ownerOf(3)).to.equal(s3.address);
       await minterContract.mintEditions([
-        await s1.getAddress(),
-        await s2.getAddress(),
-        await s3.getAddress(),
-        await s2.getAddress(),
-        await s3.getAddress(),
-        await s2.getAddress(),
-        await s3.getAddress(),
+        s1.address,
+        s2.address,
+        s3.address,
+        s2.address,
+        s3.address,
+        s2.address,
+        s3.address,
       ]);
       await expect(minterContract.mintEditions([signerAddress])).to.be.reverted;
       await expect(minterContract.mintEdition(signerAddress)).to.be.reverted;
@@ -666,7 +666,8 @@ describe("Edition", () => {
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.safeMintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
         await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
@@ -737,7 +738,8 @@ describe("Edition", () => {
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.purchase({ value: salePrice })).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.safeMintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
         await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
