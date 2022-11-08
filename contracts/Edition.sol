@@ -379,10 +379,6 @@ contract Edition is
         return state.numberMinted;
     }
 
-    function numberMinted() external view override returns (uint256) {
-        return state.numberMinted;
-    }
-
     /// @notice Get the base64-encoded json metadata for a token
     /// @param tokenId the token id to get the metadata for
     /// @return base64-encoded json metadata object

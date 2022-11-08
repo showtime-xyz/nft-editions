@@ -386,15 +386,15 @@ describe("Edition", () => {
       expect(await minterContract.ownerOf(1)).to.equal(BURN_ADDRESS);
     });
 
-    it("updates numberMinted()", async () => {
+    it("updates totalSupply()", async () => {
       // setup:
-      expect(await minterContract.numberMinted()).to.equal(0);
+      expect(await minterContract.totalSupply()).to.equal(0);
 
       // when we mint
       await minterContract.mintEdition(await signer1.address);
 
-      // then numberMinted is updated
-      expect(await minterContract.numberMinted()).to.equal(1);
+      // then totalSupply is updated
+      expect(await minterContract.totalSupply()).to.equal(1);
     });
 
     it("allows burn if approved", async () => {
