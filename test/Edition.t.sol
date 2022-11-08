@@ -107,8 +107,8 @@ contract EditionTest is Test {
             intenseDescription
         );
 
-        tokenId = edition.mintEdition(address(0xdEaD));
-        editionToEscape.mintEdition(address(0xdEaD));
+        tokenId = edition.mint(address(0xdEaD));
+        editionToEscape.mint(address(0xdEaD));
     }
 
     function testConstructorEmitsInitializedEvent() public {
@@ -251,19 +251,19 @@ contract EditionTest is Test {
 
     /// @dev for gas snapshot
     function testMintSingle() public {
-        edition.mintEdition(address(0xdEaD));
+        edition.mint(address(0xdEaD));
     }
 
     /// @dev for gas snapshot
     function testFailMintSingle() public {
-        edition.mintEdition(address(0));
+        edition.mint(address(0));
     }
 
     /// @dev for gas snapshot
     function testMintBatch1() public {
         address[] memory recipients = new address[](1);
         recipients[0] = address(0xdEaD);
-        edition.mintEditions(recipients);
+        edition.mintBatch(recipients);
     }
 
     /// @dev for gas snapshot
@@ -272,7 +272,7 @@ contract EditionTest is Test {
         recipients[0] = address(0xdEaD);
         recipients[1] = address(0xdEaD);
         recipients[2] = address(0xdEaD);
-        edition.mintEditions(recipients);
+        edition.mintBatch(recipients);
     }
 
     /// @dev for gas snapshot
@@ -288,7 +288,7 @@ contract EditionTest is Test {
         recipients[7] = address(0xdEaD);
         recipients[8] = address(0xdEaD);
         recipients[9] = address(0xdEaD);
-        edition.mintEditions(recipients);
+        edition.mintBatch(recipients);
     }
 
     function testMintEditionCanMintToUnsuspectingContracts() public {
@@ -300,12 +300,12 @@ contract EditionTest is Test {
             0
         );
 
-        edition.mintEdition(address(unsuspectingContract));
+        edition.mint(address(unsuspectingContract));
     }
 
     function testSafeMintEditionCanNotMintToUnsuspectingContracts() public {
         vm.expectRevert("UNSAFE_RECIPIENT");
-        edition.safeMintEdition(address(unsuspectingContract));
+        edition.safeMint(address(unsuspectingContract));
     }
 
     function testSafeMintEditionCanMintToAwareContracts() public {
@@ -317,7 +317,7 @@ contract EditionTest is Test {
             0
         );
 
-        edition.mintEdition(address(erc721AwareContract));
+        edition.mint(address(erc721AwareContract));
     }
 
     function testEditionSizeOverflow() public {
@@ -419,19 +419,19 @@ contract EditionTest is Test {
         recipients[0] = address(0xdEaD);
         recipients[1] = address(0xdEaD);
         recipients[2] = address(0xdEaD);
-        tightEdition.mintEditions(recipients);
+        tightEdition.mintBatch(recipients);
 
         // can not mint anymore after that
         vm.expectRevert(IEdition.SoldOut.selector);
-        tightEdition.mintEdition(address(0xdEaD));
+        tightEdition.mint(address(0xdEaD));
 
         vm.expectRevert(IEdition.SoldOut.selector);
-        tightEdition.mintEditions(recipients);
+        tightEdition.mintBatch(recipients);
 
         address[] memory soloRecipient = new address[](1);
         soloRecipient[0] = address(0xdEaD);
         vm.expectRevert(IEdition.SoldOut.selector);
-        tightEdition.mintEditions(soloRecipient);
+        tightEdition.mintBatch(soloRecipient);
     }
 
     function testCanNotMintBatchBiggerThanEditionSize() public {
@@ -453,7 +453,7 @@ contract EditionTest is Test {
         recipients[3] = address(0xdEaD);
 
         vm.expectRevert(IEdition.SoldOut.selector);
-        tightEdition.mintEditions(recipients);
+        tightEdition.mintBatch(recipients);
     }
 
     function testSetSalePriceSmallest() public {
@@ -499,16 +499,16 @@ contract EditionTest is Test {
         // bob can not mint for free
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
-        edition.mintEdition(bob);
+        edition.mint(bob);
 
         // when bob mints with the wrong price, it reverts
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
-        edition.mintEdition{value: price + 1}(bob);
+        edition.mint{value: price + 1}(bob);
 
         // when bob mints with the correct price, it works
         vm.prank(bob);
-        uint256 _tokenId = edition.mintEdition{value: price}(bob);
+        uint256 _tokenId = edition.mint{value: price}(bob);
         assertEq(edition.ownerOf(_tokenId), bob);
     }
 
@@ -527,16 +527,16 @@ contract EditionTest is Test {
         // bob can not mint for free
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
-        edition.safeMintEdition(bob);
+        edition.safeMint(bob);
 
         // when bob mints with the wrong price, it reverts
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
-        edition.safeMintEdition{value: price + 1}(bob);
+        edition.safeMint{value: price + 1}(bob);
 
         // when bob mints with the correct price, it works
         vm.prank(bob);
-        uint256 _tokenId = edition.safeMintEdition{value: price}(bob);
+        uint256 _tokenId = edition.safeMint{value: price}(bob);
         assertEq(edition.ownerOf(_tokenId), bob);
     }
 
@@ -560,16 +560,16 @@ contract EditionTest is Test {
         // bob can not mint for free
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
-        edition.mintEditions(recipients);
+        edition.mintBatch(recipients);
 
         // when bob mints with the wrong price, it reverts
         vm.prank(bob);
         vm.expectRevert(IEdition.WrongPrice.selector);
-        edition.mintEditions{value: price}(recipients);
+        edition.mintBatch{value: price}(recipients);
 
         // when bob mints with the correct price, it works
         vm.prank(bob);
-        uint256 _tokenId = edition.mintEditions{value: 3 * price}(recipients);
+        uint256 _tokenId = edition.mintBatch{value: 3 * price}(recipients);
         assertEq(edition.ownerOf(_tokenId), bob);
     }
 

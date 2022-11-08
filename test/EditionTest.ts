@@ -123,7 +123,7 @@ describe("Edition", () => {
     expect(await edition.animationUrl()).to.equal(overrides.animationUrl);
     expect(await edition.imageUrl()).to.equal(overrides.imageUrl);
 
-    await edition.mintEdition(signerAddress);
+    await edition.mint(signerAddress);
     const metadata = parseMetadataURI(await edition.tokenURI(1));
     expect(metadata.animation_url).to.equal(overrides.animationUrl);
     expect(metadata.image).to.equal(overrides.imageUrl);
@@ -142,7 +142,7 @@ describe("Edition", () => {
 
     describe("custom properties", () => {
       beforeEach(async () => {
-        await minterContract.mintEdition(signerAddress);
+        await minterContract.mint(signerAddress);
       });
 
       it("does not let non-owner set string properties", async () => {
@@ -258,7 +258,7 @@ describe("Edition", () => {
       });
 
       it("tokenURI() reflects it as external_url", async () => {
-        await minterContract.mintEdition(signerAddress);
+        await minterContract.mint(signerAddress);
         const tokenURI = await minterContract.tokenURI(1);
         const metadata = parseMetadataURI(tokenURI);
         expect(metadata.external_url).to.equal(externalUrl);
@@ -274,7 +274,7 @@ describe("Edition", () => {
         expect(metadata.external_link).to.be.undefined;
 
         // and we no longer see it in tokenURI()
-        await minterContract.mintEdition(signerAddress);
+        await minterContract.mint(signerAddress);
         const tokenURI = await minterContract.tokenURI(1);
         const tokenMetadata = parseMetadataURI(tokenURI);
         expect(tokenMetadata.external_url).to.be.undefined;
@@ -289,7 +289,7 @@ describe("Edition", () => {
 
     it("can mint", async () => {
       // Mint first edition
-      await expect(minterContract.mintEdition(signerAddress))
+      await expect(minterContract.mint(signerAddress))
         .to.emit(minterContract, "Transfer")
         .withArgs(
           "0x0000000000000000000000000000000000000000",
@@ -331,7 +331,7 @@ describe("Edition", () => {
       expect(await minterContract.totalSupply()).to.equal(0);
 
       // Mint first edition
-      await expect(minterContract.mintEdition(signerAddress))
+      await expect(minterContract.mint(signerAddress))
         .to.emit(minterContract, "Transfer")
         .withArgs(
           "0x0000000000000000000000000000000000000000",
@@ -342,7 +342,7 @@ describe("Edition", () => {
       expect(await minterContract.totalSupply()).to.be.equal(1);
 
       // Mint second edition
-      await expect(minterContract.mintEdition(signerAddress))
+      await expect(minterContract.mint(signerAddress))
         .to.emit(minterContract, "Transfer")
         .withArgs(
           "0x0000000000000000000000000000000000000000",
@@ -370,14 +370,14 @@ describe("Edition", () => {
     });
 
     it("creates an authenticated edition", async () => {
-      await minterContract.mintEdition(await signer1.address);
+      await minterContract.mint(await signer1.address);
       expect(await minterContract.ownerOf(1)).to.equal(
         await signer1.address
       );
     });
 
     it("allows user burn", async () => {
-      await minterContract.mintEdition(await signer1.address);
+      await minterContract.mint(await signer1.address);
       expect(await minterContract.ownerOf(1)).to.equal(
         await signer1.address
       );
@@ -391,33 +391,33 @@ describe("Edition", () => {
       expect(await minterContract.totalSupply()).to.equal(0);
 
       // when we mint
-      await minterContract.mintEdition(await signer1.address);
+      await minterContract.mint(await signer1.address);
 
       // then totalSupply is updated
       expect(await minterContract.totalSupply()).to.equal(1);
     });
 
     it("allows burn if approved", async () => {
-      await minterContract.mintEdition(await signer1.address);
+      await minterContract.mint(await signer1.address);
       await minterContract.connect(signer1).approve(signer2.address, 1);
       await expect(minterContract.connect(signer2).transferFrom(signer1.address, BURN_ADDRESS, 1)).to.emit(minterContract, "Transfer");
       expect(await minterContract.ownerOf(1)).to.equal(BURN_ADDRESS);
     });
 
     it("allows burn if approved for all", async () => {
-      await minterContract.mintEdition(await signer1.address);
+      await minterContract.mint(await signer1.address);
       await minterContract.connect(signer1).setApprovalForAll(signer2.address, true);
       await expect(minterContract.connect(signer2).transferFrom(signer1.address, BURN_ADDRESS, 1)).to.emit(minterContract, "Transfer");
     });
 
     it("does not allow burn if non approved", async () => {
-      await minterContract.mintEdition(await signer1.address);
+      await minterContract.mint(await signer1.address);
 
       await expect(minterContract.connect(signer2).transferFrom(signer1.address, BURN_ADDRESS, 1)).to.be.revertedWith("NOT_AUTHORIZED");
     });
 
     it("does not allow to burn the same token twice", async () => {
-      await minterContract.mintEdition(signerAddress);
+      await minterContract.mint(signerAddress);
       await minterContract.transferFrom(signerAddress, BURN_ADDRESS, 1);
 
       // the owner is now 0xdEaD, which is unspendable
@@ -433,7 +433,7 @@ describe("Edition", () => {
         )
       ).to.be.revertedWith("ALREADY_INITIALIZED");
 
-      await minterContract.mintEdition(await signer1.getAddress());
+      await minterContract.mint(await signer1.getAddress());
       expect(await minterContract.ownerOf(1)).to.equal(
         await signer1.getAddress()
       );
@@ -441,7 +441,7 @@ describe("Edition", () => {
 
     it("mints in batches", async () => {
       const [s1, s2, s3] = await ethers.getSigners();
-      await minterContract.mintEditions([
+      await minterContract.mintBatch([
         s1.address,
         s2.address,
         s3.address,
@@ -449,7 +449,7 @@ describe("Edition", () => {
       expect(await minterContract.ownerOf(1)).to.equal(s1.address);
       expect(await minterContract.ownerOf(2)).to.equal(s2.address);
       expect(await minterContract.ownerOf(3)).to.equal(s3.address);
-      await minterContract.mintEditions([
+      await minterContract.mintBatch([
         s1.address,
         s2.address,
         s3.address,
@@ -458,8 +458,8 @@ describe("Edition", () => {
         s2.address,
         s3.address,
       ]);
-      await expect(minterContract.mintEditions([signerAddress])).to.be.reverted;
-      await expect(minterContract.mintEdition(signerAddress)).to.be.reverted;
+      await expect(minterContract.mintBatch([signerAddress])).to.be.reverted;
+      await expect(minterContract.mint(signerAddress)).to.be.reverted;
     });
 
     it("returns interfaces correctly", async () => {
@@ -473,7 +473,7 @@ describe("Edition", () => {
 
     describe("royalty 2981", () => {
       it("follows royalty payout for owner", async () => {
-        await minterContract.mintEdition(signerAddress);
+        await minterContract.mint(signerAddress);
         // allows royalty payout info to be updated
         expect((await minterContract.royaltyInfo(1, 100))[0]).to.be.equal(
           signerAddress
@@ -491,7 +491,7 @@ describe("Edition", () => {
         };
 
         const minterContractNew = await createEdition(dynamicSketch, editionArgs(overrides));
-        await minterContractNew.mintEdition(signerAddress);
+        await minterContractNew.mint(signerAddress);
         expect((await minterContractNew.royaltyInfo(1, ethers.utils.parseEther("1.0")))[1]).to.be.equal(
           ethers.utils.parseEther("0.02")
         );
@@ -518,7 +518,7 @@ describe("Edition", () => {
         toAddresses.push(s2a);
         toAddresses.push(s3a);
       }
-      await minterContract.mintEditions(toAddresses);
+      await minterContract.mintBatch(toAddresses);
       expect(await minterContract.totalSupply()).to.equal(300);
     });
 
@@ -529,7 +529,7 @@ describe("Edition", () => {
 
       // Mint first edition
       for (var i = 1; i <= 10; i++) {
-        await expect(minterContract.mintEdition(await signer1.getAddress()))
+        await expect(minterContract.mint(await signer1.getAddress()))
           .to.emit(minterContract, "Transfer")
           .withArgs(
             "0x0000000000000000000000000000000000000000",
@@ -541,7 +541,7 @@ describe("Edition", () => {
       expect(await minterContract.totalSupply()).to.be.equal(10);
 
       await expect(
-        minterContract.mintEdition(signerAddress)
+        minterContract.mint(signerAddress)
       ).to.be.revertedWith("SoldOut");
 
       const tokenURI = await minterContract.tokenURI(10);
@@ -589,7 +589,7 @@ describe("Edition", () => {
     });
 
     it("returns the correct tokenURI", async () => {
-      await edition.mintEdition(signerAddress);
+      await edition.mint(signerAddress);
       let tokenURI = await edition.tokenURI(1);
       let metadata = parseMetadataURI(tokenURI);
       expect(metadata.name).to.equal(expectedName + " #1/10");
@@ -599,7 +599,7 @@ describe("Edition", () => {
     it("can escape string properties correctly", async () => {
       // when we set a property with a special character
       await edition.setStringProperties(["creator"], ['Jeffrey "The Dude" Lebowski']);
-      await edition.mintEdition(signerAddress);
+      await edition.mint(signerAddress);
 
       // then we can recover it from the parsed metadata (meaning that it was escaped correctly)
       let tokenURI = await edition.tokenURI(1);
@@ -625,11 +625,11 @@ describe("Edition", () => {
 
     describe("during the minting period", () => {
       it("allows minting", async () => {
-        await expect(edition.mintEdition(signerAddress)).to.emit(edition, "Transfer")
+        await expect(edition.mint(signerAddress)).to.emit(edition, "Transfer")
       });
 
       it("returns the expected totalSupply()", async () => {
-        await edition.mintEdition(signerAddress);
+        await edition.mint(signerAddress);
         expect(await edition.totalSupply()).to.equal(1);
       });
 
@@ -638,7 +638,7 @@ describe("Edition", () => {
       });
 
       it("returns the expected tokenURI", async () => {
-        await edition.mintEdition(signerAddress);
+        await edition.mint(signerAddress);
         const tokenURI = await edition.tokenURI(1);
         const metadata = parseMetadataURI(tokenURI);
         expect(metadata.name).to.equal("Open Edition with Minting Period #1");
@@ -648,7 +648,7 @@ describe("Edition", () => {
     describe("after the minting period", () => {
       beforeEach(async () => {
         // mint one
-        await edition.mintEdition(signerAddress);
+        await edition.mint(signerAddress);
 
         // warp forward in time
         await ethers.provider.send("evm_increaseTime", [mintingPeriod + 60]);
@@ -656,19 +656,19 @@ describe("Edition", () => {
       });
 
       it("does not allow minting", async () => {
-        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow minting multiple", async () => {
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.safeMintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.safeMint(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("returns the expected totalSupply()", async () => {
@@ -704,11 +704,11 @@ describe("Edition", () => {
 
     describe("during the minting period", () => {
       it("allows minting", async () => {
-        await expect(edition.mintEdition(signerAddress)).to.emit(edition, "Transfer")
+        await expect(edition.mint(signerAddress)).to.emit(edition, "Transfer")
       });
 
       it("returns the expected totalSupply()", async () => {
-        await edition.mintEdition(signerAddress);
+        await edition.mint(signerAddress);
         expect(await edition.totalSupply()).to.equal(1);
       });
 
@@ -720,7 +720,7 @@ describe("Edition", () => {
     describe("after the minting period", () => {
       beforeEach(async () => {
         // mint one
-        await edition.mintEdition(signerAddress);
+        await edition.mint(signerAddress);
 
         // warp forward in time
         await ethers.provider.send("evm_increaseTime", [mintingPeriod + 60]);
@@ -728,19 +728,19 @@ describe("Edition", () => {
       });
 
       it("does not allow minting", async () => {
-        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow minting multiple", async () => {
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.mintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.safeMintEdition(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.mintEditions([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.safeMint(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
       });
 
       it("returns the expected totalSupply()", async () => {

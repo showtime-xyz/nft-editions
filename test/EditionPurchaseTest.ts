@@ -74,7 +74,7 @@ describe("Edition", () => {
     ).to.emit(minterContract, "PriceChanged");
 
     // only approved minters can mint
-    await expect(minterContract.connect(s2).mintEdition(signerAddress, { value: ethers.utils.parseEther("0.2") })).to.be.revertedWith("Unauthorized");
+    await expect(minterContract.connect(s2).mint(signerAddress, { value: ethers.utils.parseEther("0.2") })).to.be.revertedWith("Unauthorized");
 
     // open the public sale
     await minterContract.setApprovedMinter(ethers.constants.AddressZero, true);
@@ -82,7 +82,7 @@ describe("Edition", () => {
     await expect(
       minterContract
         .connect(s2)
-        .mintEdition(signerAddress, { value: ethers.utils.parseEther("0.2") })
+        .mint(signerAddress, { value: ethers.utils.parseEther("0.2") })
     ).to.emit(minterContract, "Transfer");
 
     const signerBalance = await signer.getBalance();
