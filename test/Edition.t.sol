@@ -484,6 +484,34 @@ contract EditionTest is Test {
         edition.setSalePrice(tooBig);
     }
 
+    function testFreeMintRefusesEth() public {
+        // setup
+        vm.prank(editionOwner);
+        edition.setSalePrice(0);
+
+        vm.prank(editionOwner);
+        edition.setApprovedMinter(address(0), true);
+
+        vm.deal(bob, 1 ether);
+
+        // bob can not mint with value
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.mint{value: 1 ether}(bob);
+
+        // bob can not safeMint with value
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        edition.safeMint{value: 1 ether}(bob);
+
+        // bob can not mintBatch with value
+        vm.prank(bob);
+        vm.expectRevert(IEdition.WrongPrice.selector);
+        address[] memory recipients = new address[](1);
+        recipients[0] = bob;
+        edition.mintBatch{value: 1 ether}(recipients);
+    }
+
     function testPaidMint() public {
         // setup
         uint256 price = 0.001 ether;
