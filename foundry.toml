@@ -1,3 +1,11 @@
 [profile.default]
 solc_version = "0.8.16"
 via_ir = true
+
+[rpc_endpoints]
+mumbai = "${MUMBAI_RPC_URL}"
+polygon = "${POLYGON_RPC_URL}"
+
+[etherscan]
+mumbai = { key = "${ETHERSCAN_API_KEY}" }
+polygon = { key = "${ETHERSCAN_API_KEY}" }
