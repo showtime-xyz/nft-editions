@@ -1,5 +1,5 @@
 @ensdomains/=node_modules/@ensdomains/
-@openzeppelin/=node_modules/@openzeppelin/
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable
 ds-test/=lib/forge-std/lib/ds-test/src/
 eth-gas-reporter/=node_modules/eth-gas-reporter/
 forge-std/=lib/forge-std/src/
