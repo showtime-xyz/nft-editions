@@ -10,13 +10,12 @@ import {Edition} from "contracts/Edition.sol";
 contract CreateEdition is Script, Test {
     function run() public {
         uint256 pk = vm.envUint("PRIVATE_KEY");
-
         address owner = vm.addr(pk);
         console2.log("from address:", owner);
         vm.startBroadcast(pk);
 
         EditionCreator editionCreator = EditionCreator(
-            0x1E504Cee4e586Ea462d1443956156F55535642aC
+            0x62323fA29d0f44e58f452dFF0b606dEE08Ea04e4
         );
 
         Edition edition = Edition(
@@ -35,6 +34,8 @@ contract CreateEdition is Script, Test {
                 )
             )
         );
+
+        console2.log("Edition address:", address(edition));
 
         edition.mint(owner);
 

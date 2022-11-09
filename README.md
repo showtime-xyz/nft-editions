@@ -21,10 +21,12 @@ npx hardhat compile
 
 # test
 npx hardhat test
+forge test
 
-# deploy (replace with desired network)
-hardhat deploy --network mumbai
+# deploy dry run (replace with desired network)
+source .env && forge script script/Deploy.s.sol --rpc-url mumbai
 
-# verify
-hardhat sourcify --network rinkeby && hardhat etherscan-verify --network rinkeby
+# deploy for real (replace with desired network)
+source .env && forge script script/Deploy.s.sol --rpc-url mumbai --broadcast --verify
+
 ```
