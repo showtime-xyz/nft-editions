@@ -35,20 +35,18 @@ contract Edition is
 {
     struct EditionState {
         // how many tokens have been minted (can not be more than editionSize)
-        uint56 numberMinted;
+        uint64 numberMinted;
         // reserved space to keep the state a uint256
-        uint56 __unused;
-        // Price to mint in millieth, so the supported price range is 0.001 to 65.535 ETH (or relevant chain gas token)
+        uint16 __reserved;
+        // Price to mint in twei (1 twei = 1000 gwei), so the supported price range is 0.000001 to 4294.967295 ETH
         // To accept ERC20 or a different price range, use a specialized sales contract as the approved minter
-        uint16 salePriceMilliEth;
+        uint32 salePriceTwei;
         // Royalty amount in bps (uint16 is large enough to store 10000 bps)
         uint16 royaltyBPS;
         // the edition can be minted up to this timestamp in seconds -- 0 means no end date
-        // uint56 is enough for billions of years
-        uint56 endOfMintPeriod;
+        uint64 endOfMintPeriod;
         // Total size of edition that can be minted
-        // uint56 is still billions of billions, should be enough for everyone
-        uint56 editionSize;
+        uint64 editionSize;
     }
 
     EditionState private state;
@@ -93,22 +91,22 @@ contract Edition is
         animationUrl = _animationUrl;
         imageUrl = _imageUrl;
 
-        uint56 endOfMintPeriod;
+        uint64 endOfMintPeriod;
         if (_mintPeriodSeconds > 0) {
             // overflows are not expected to happen for timestamps, and have no security implications
             unchecked {
                 uint256 endOfMintPeriodUint256 = block.timestamp + _mintPeriodSeconds;
-                endOfMintPeriod = requireUint56(endOfMintPeriodUint256);
+                endOfMintPeriod = requireUint64(endOfMintPeriodUint256);
             }
         }
 
         state = EditionState({
-            editionSize: requireUint56(_editionSize),
+            editionSize: requireUint64(_editionSize),
             endOfMintPeriod: endOfMintPeriod,
             royaltyBPS: requireUint16(_royaltyBPS),
-            salePriceMilliEth: 0,
+            salePriceTwei: 0,
             numberMinted: 0,
-            __unused: 0
+            __reserved: 0
         });
     }
 
@@ -118,17 +116,17 @@ contract Edition is
 
     /// @notice This sets a simple ETH sales price
     /// Setting a sales price allows users to mint the edition until it sells out.
-    /// The supported price range is 0.001 to 65.535 ETH (or relevant chain gas token)
+    /// The supported price range is 0.000001 to 4294.967295 ETH (or relevant chain gas token)
     /// For more granular sales, use an external sales contract.
     /// @param _salePriceWei sale price in wei, 0 to disable sales
     function setSalePrice(uint256 _salePriceWei) external onlyOwner {
         // convert to milli-eth internally
-        uint16 salePriceMilliEth = requireUint16(_salePriceWei / 10 ** 15);
-        if (salePriceMilliEth == 0 && _salePriceWei > 0) {
+        uint32 salePriceTwei = requireUint32(_salePriceWei / 1e12);
+        if (salePriceTwei == 0 && _salePriceWei > 0) {
             revert PriceTooLow();
         }
 
-        state.salePriceMilliEth = salePriceMilliEth;
+        state.salePriceTwei = salePriceTwei;
         emit PriceChanged(_salePriceWei);
     }
 
@@ -206,7 +204,7 @@ contract Edition is
         override
         returns (uint256 lastTokenId)
     {
-        uint56 n = uint56(recipients.length);
+        uint64 n = uint64(recipients.length);
         if (n == 0) {
             revert InvalidArgument();
         }
@@ -226,13 +224,6 @@ contract Edition is
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function requireUint56(uint256 value) internal pure returns(uint56) {
-        if (value > uint256(type(uint56).max)) {
-            revert IntegerOverflow(value);
-        }
-        return uint56(value);
-    }
-
     function requireUint16(uint256 value) internal pure returns(uint16) {
         if (value > uint256(type(uint16).max)) {
             revert IntegerOverflow(value);
@@ -240,14 +231,28 @@ contract Edition is
         return uint16(value);
     }
 
+    function requireUint32(uint256 value) internal pure returns(uint32) {
+        if (value > uint256(type(uint32).max)) {
+            revert IntegerOverflow(value);
+        }
+        return uint32(value);
+    }
+
+    function requireUint64(uint256 value) internal pure returns(uint64) {
+        if (value > uint256(type(uint64).max)) {
+            revert IntegerOverflow(value);
+        }
+        return uint64(value);
+    }
+
     /// @dev stateless version of isMintingEnded
-    function enforceTimeLimit(uint56 endOfMintPeriod) internal view {
-        if (endOfMintPeriod > 0 && uint56(block.timestamp) > endOfMintPeriod) {
+    function enforceTimeLimit(uint64 endOfMintPeriod) internal view {
+        if (endOfMintPeriod > 0 && uint64(block.timestamp) > endOfMintPeriod) {
             revert MintingEnded();
         }
     }
 
-    function enforceSupplyLimit(uint56 _editionSize, uint56 _numberMinted)
+    function enforceSupplyLimit(uint64 _editionSize, uint64 _numberMinted)
         internal
         pure
     {
@@ -256,12 +261,12 @@ contract Edition is
         }
     }
 
-    function enforceSalePrice(uint256 _salePriceMilliEth, uint256 quantity)
+    function enforceSalePrice(uint256 _salePriceTwei, uint256 quantity)
         internal
         view
     {
         unchecked {
-            if (msg.value != quantity * _salePriceMilliEth * 10 ** 15) {
+            if (msg.value != quantity * _salePriceTwei * 1e12) {
                 revert WrongPrice();
             }
         }
@@ -280,34 +285,34 @@ contract Edition is
     }
 
     /// @dev Validates the supply and time limits for minting with a single SLOAD and SSTORE
-    function _mintPreFlightChecks(uint256 quantity) internal returns (uint56 _tokenId) {
+    function _mintPreFlightChecks(uint256 quantity) internal returns (uint64 _tokenId) {
         if (!_isAllowedToMint()) {
             revert Unauthorized();
         }
 
         uint256 _state;
         uint256 _postState;
-        uint56 _editionSize;
-        uint56 _endOfMintPeriod;
-        uint16 _salePriceMilliEth;
+        uint64 _editionSize;
+        uint64 _endOfMintPeriod;
+        uint32 _salePriceTwei;
 
         assembly ("memory-safe") {
             _state := sload(state.slot)
-            _editionSize := shr(200, _state)
-            _endOfMintPeriod := shr(144, _state)
-            _salePriceMilliEth := shr(112, _state)
+            _editionSize := shr(192, _state)
+            _endOfMintPeriod := shr(128, _state)
+            _salePriceTwei := shr(80, _state)
 
             // can not realistically overflow
             // the fields in EditionState are ordered so that incrementing state increments numberMinted
             _postState := add(_state, quantity)
 
             // perform the addition only once and extract numberMinted + 1 from _postState
-            _tokenId := and(_postState, 0xffffffffffffff)
+            _tokenId := and(_postState, 0xffffffffffffffff)
         }
 
         enforceSupplyLimit(_editionSize, _tokenId);
         enforceTimeLimit(_endOfMintPeriod);
-        enforceSalePrice(_salePriceMilliEth, quantity);
+        enforceSalePrice(_salePriceTwei, quantity);
 
         // update storage
         assembly ("memory-safe") {
@@ -329,7 +334,7 @@ contract Edition is
     function salePrice() public view override returns (uint256) {
         unchecked {
             // can not overflow
-            return uint256(state.salePriceMilliEth) * 10**15;
+            return uint256(state.salePriceTwei) * 1e12;
         }
     }
 
@@ -337,7 +342,7 @@ contract Edition is
     function isMintingEnded() public view returns (bool) {
         return
             state.endOfMintPeriod > 0 &&
-            uint56(block.timestamp) > state.endOfMintPeriod;
+            uint64(block.timestamp) > state.endOfMintPeriod;
     }
 
     function totalSupply() public view returns (uint256) {
