@@ -22,7 +22,10 @@ contract Deploy is Script, Test {
     }
 
     function run() public {
-        vm.startBroadcast();
+        uint256 pk = vm.envUint("PRIVATE_KEY");
+        address owner = vm.addr(pk);
+        console2.log("from address:", owner);
+        vm.startBroadcast(pk);
 
         Edition editionImpl = new Edition{salt: 0}();
         assertEq(address(editionImpl), EDITION_IMPL);
@@ -39,6 +42,7 @@ contract Deploy is Script, Test {
             salt: 0x0000000000000000000000000000000000000000000000000000000000032cf4
         }(address(editionImpl));
         assertEq(address(creator), EDITION_CREATOR);
+        console2.log("EditionCreator address:", address(creator));
 
         vm.stopBroadcast();
     }
