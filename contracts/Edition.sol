@@ -358,7 +358,9 @@ contract Edition is
         override
         returns (string memory)
     {
-        require(_ownerOf[tokenId] != address(0), "No token");
+        if (_ownerOf[tokenId] == address(0)) {
+            revert TokenDoesNotExist();
+        }
 
         return createTokenMetadata(name, tokenId, state.editionSize);
     }

@@ -12,10 +12,11 @@ interface IEdition {
     error InvalidArgument();
     error LengthMismatch();
     error MintingEnded();
-    error Unauthorized();
     error NotForSale();
     error PriceTooLow();
     error SoldOut();
+    error TokenDoesNotExist();
+    error Unauthorized();
     error WrongPrice();
 
     event PriceChanged(uint256 amount);
