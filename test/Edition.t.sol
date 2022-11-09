@@ -321,7 +321,7 @@ contract EditionTest is Test {
     }
 
     function testEditionSizeOverflow() public {
-        uint256 tooBig = uint256(type(uint56).max) + 1;
+        uint256 tooBig = uint256(type(uint64).max) + 1;
         vm.expectRevert(
             abi.encodeWithSignature("IntegerOverflow(uint256)", tooBig)
         );
@@ -339,7 +339,7 @@ contract EditionTest is Test {
     }
 
     function testMintPeriodOverflow() public {
-        uint256 tooBig = uint256(type(uint56).max) + 1;
+        uint256 tooBig = uint256(type(uint64).max) + 1;
         vm.expectRevert(
             abi.encodeWithSignature(
                 "IntegerOverflow(uint256)",
@@ -464,7 +464,7 @@ contract EditionTest is Test {
     }
 
     function testSetSalePriceLargest() public {
-        uint256 largestPriceWei = 65.535 ether;
+        uint256 largestPriceWei = 4294.967295 ether;
         vm.prank(editionOwner);
         edition.setSalePrice(largestPriceWei);
         assertEq(edition.salePrice(), largestPriceWei);
@@ -478,9 +478,9 @@ contract EditionTest is Test {
     }
 
     function testSetSalePriceOverflow() public {
-        uint256 tooBig = 65.536 ether;
+        uint256 tooBig = 4294.967296 ether;
         vm.prank(editionOwner);
-        vm.expectRevert(IntegerOverflow(0x10000));
+        vm.expectRevert(IntegerOverflow(0x100000000));
         edition.setSalePrice(tooBig);
     }
 
