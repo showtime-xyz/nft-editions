@@ -656,19 +656,19 @@ describe("Edition", () => {
       });
 
       it("does not allow minting", async () => {
-        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("TimeLimitReached");
       });
 
       it("does not allow minting multiple", async () => {
-        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("TimeLimitReached");
       });
 
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.safeMint(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("TimeLimitReached");
+        await expect(edition.safeMint(signerAddress)).to.be.revertedWith("TimeLimitReached");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("TimeLimitReached");
       });
 
       it("returns the expected totalSupply()", async () => {
@@ -728,19 +728,19 @@ describe("Edition", () => {
       });
 
       it("does not allow minting", async () => {
-        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("TimeLimitReached");
       });
 
       it("does not allow minting multiple", async () => {
-        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("TimeLimitReached");
       });
 
       it("does not allow purchasing", async () => {
         const salePrice = ethers.utils.parseEther("0.1");
         await edition.setSalePrice(salePrice);
-        await expect(edition.mint(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.safeMint(signerAddress)).to.be.revertedWith("MintingEnded");
-        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("MintingEnded");
+        await expect(edition.mint(signerAddress)).to.be.revertedWith("TimeLimitReached");
+        await expect(edition.safeMint(signerAddress)).to.be.revertedWith("TimeLimitReached");
+        await expect(edition.mintBatch([signerAddress, signerAddress])).to.be.revertedWith("TimeLimitReached");
       });
 
       it("returns the expected totalSupply()", async () => {
