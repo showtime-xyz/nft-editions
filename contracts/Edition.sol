@@ -248,7 +248,7 @@ contract Edition is
     /// @dev stateless version of isMintingEnded
     function enforceTimeLimit(uint64 endOfMintPeriod) internal view {
         if (endOfMintPeriod > 0 && uint64(block.timestamp) > endOfMintPeriod) {
-            revert MintingEnded();
+            revert TimeLimitReached();
         }
     }
 

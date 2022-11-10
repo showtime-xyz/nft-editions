@@ -11,11 +11,11 @@ interface IEdition {
     error IntegerOverflow(uint256 value);
     error InvalidArgument();
     error LengthMismatch();
-    error MintingEnded();
-    error Unauthorized();
     error NotForSale();
     error PriceTooLow();
     error SoldOut();
+    error TimeLimitReached();
+    error Unauthorized();
     error WrongPrice();
 
     event PriceChanged(uint256 amount);
