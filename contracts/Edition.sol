@@ -147,7 +147,7 @@ contract Edition is
     }
 
     /// @notice Updates the external_url field in the metadata
-    function setExternalUrl(string calldata _externalUrl) public onlyOwner {
+    function setExternalUrl(string calldata _externalUrl) public override onlyOwner {
         emit ExternalUrlUpdated(externalUrl, _externalUrl);
 
         externalUrl = _externalUrl;
@@ -156,7 +156,7 @@ contract Edition is
     function setStringProperties(
         string[] calldata names,
         string[] calldata values
-    ) public onlyOwner {
+    ) public override onlyOwner {
         uint256 length = names.length;
         if (values.length != length) {
             revert LengthMismatch();

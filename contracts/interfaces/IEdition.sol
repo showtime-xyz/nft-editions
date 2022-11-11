@@ -49,6 +49,13 @@ interface IEdition {
 
     function setApprovedMinter(address minter, bool allowed) external;
 
+    function setExternalUrl(string calldata _externalUrl) external;
+
+    function setStringProperties(
+        string[] calldata names,
+        string[] calldata values
+    ) external;
+
     function setSalePrice(uint256 _salePrice) external;
 
     function totalSupply() external view returns (uint256);
