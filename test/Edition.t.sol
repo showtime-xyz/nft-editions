@@ -7,12 +7,12 @@ import {console2} from "forge-std/console2.sol";
 
 import {IERC721ReceiverUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 
-import {Edition} from "../contracts/Edition.sol";
-import {EditionCreator, IEdition} from "../contracts/EditionCreator.sol";
-import {Base64} from "../contracts/utils/Base64.sol";
-import {LibString} from "../contracts/utils/LibString.sol";
+import {Base64} from "contracts/utils/Base64.sol";
+import {Edition} from "contracts/Edition.sol";
+import {EditionCreator, IEdition} from "contracts/EditionCreator.sol";
+import {LibString} from "contracts/utils/LibString.sol";
 
-import {Initializable} from "contracts/solmate-initializable/utils/Initializable.sol";
+import "contracts/interfaces/Errors.sol";
 
 contract UnsuspectingContract {}
 
@@ -27,8 +27,8 @@ contract ERC721AwareContract is IERC721ReceiverUpgradeable {
     }
 }
 
-function IntegerOverflow(uint256 value) pure returns (bytes memory) {
-    return abi.encodeWithSelector(IEdition.IntegerOverflow.selector, value);
+function newIntegerOverflow(uint256 value) pure returns (bytes memory) {
+    return abi.encodeWithSelector(IntegerOverflow.selector, value);
 }
 
 contract EditionTest is Test {
@@ -322,9 +322,7 @@ contract EditionTest is Test {
 
     function testEditionSizeOverflow() public {
         uint256 tooBig = uint256(type(uint64).max) + 1;
-        vm.expectRevert(
-            abi.encodeWithSignature("IntegerOverflow(uint256)", tooBig)
-        );
+        vm.expectRevert(newIntegerOverflow(tooBig));
 
         editionCreator.createEdition(
             "name",
@@ -340,12 +338,7 @@ contract EditionTest is Test {
 
     function testMintPeriodOverflow() public {
         uint256 tooBig = uint256(type(uint64).max) + 1;
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "IntegerOverflow(uint256)",
-                tooBig + block.timestamp
-            )
-        );
+        vm.expectRevert(newIntegerOverflow(tooBig + block.timestamp));
 
         editionCreator.createEdition(
             "name",
@@ -361,9 +354,7 @@ contract EditionTest is Test {
 
     function testRoyaltiesOverflow() public {
         uint256 tooBig = uint256(type(uint16).max) + 1;
-        vm.expectRevert(
-            abi.encodeWithSignature("IntegerOverflow(uint256)", tooBig)
-        );
+        vm.expectRevert(newIntegerOverflow(tooBig));
 
         editionCreator.createEdition(
             "name",
@@ -422,15 +413,15 @@ contract EditionTest is Test {
         tightEdition.mintBatch(recipients);
 
         // can not mint anymore after that
-        vm.expectRevert(IEdition.SoldOut.selector);
+        vm.expectRevert(SoldOut.selector);
         tightEdition.mint(address(0xdEaD));
 
-        vm.expectRevert(IEdition.SoldOut.selector);
+        vm.expectRevert(SoldOut.selector);
         tightEdition.mintBatch(recipients);
 
         address[] memory soloRecipient = new address[](1);
         soloRecipient[0] = address(0xdEaD);
-        vm.expectRevert(IEdition.SoldOut.selector);
+        vm.expectRevert(SoldOut.selector);
         tightEdition.mintBatch(soloRecipient);
     }
 
@@ -452,7 +443,7 @@ contract EditionTest is Test {
         recipients[2] = address(0xdEaD);
         recipients[3] = address(0xdEaD);
 
-        vm.expectRevert(IEdition.SoldOut.selector);
+        vm.expectRevert(SoldOut.selector);
         tightEdition.mintBatch(recipients);
     }
 
@@ -480,7 +471,7 @@ contract EditionTest is Test {
     function testSetSalePriceOverflow() public {
         uint256 tooBig = 4294.967296 ether;
         vm.prank(editionOwner);
-        vm.expectRevert(IntegerOverflow(0x100000000));
+        vm.expectRevert(newIntegerOverflow(0x100000000));
         edition.setSalePrice(tooBig);
     }
 
@@ -496,17 +487,17 @@ contract EditionTest is Test {
 
         // bob can not mint with value
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.mint{value: 1 ether}(bob);
 
         // bob can not safeMint with value
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.safeMint{value: 1 ether}(bob);
 
         // bob can not mintBatch with value
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         address[] memory recipients = new address[](1);
         recipients[0] = bob;
         edition.mintBatch{value: 1 ether}(recipients);
@@ -526,12 +517,12 @@ contract EditionTest is Test {
 
         // bob can not mint for free
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.mint(bob);
 
         // when bob mints with the wrong price, it reverts
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.mint{value: price + 1}(bob);
 
         // when bob mints with the correct price, it works
@@ -554,12 +545,12 @@ contract EditionTest is Test {
 
         // bob can not mint for free
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.safeMint(bob);
 
         // when bob mints with the wrong price, it reverts
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.safeMint{value: price + 1}(bob);
 
         // when bob mints with the correct price, it works
@@ -587,12 +578,12 @@ contract EditionTest is Test {
 
         // bob can not mint for free
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.mintBatch(recipients);
 
         // when bob mints with the wrong price, it reverts
         vm.prank(bob);
-        vm.expectRevert(IEdition.WrongPrice.selector);
+        vm.expectRevert(WrongPrice.selector);
         edition.mintBatch{value: price}(recipients);
 
         // when bob mints with the correct price, it works
