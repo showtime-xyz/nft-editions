@@ -19,7 +19,9 @@ import {ERC721Initializable} from "./solmate-initializable/tokens/ERC721Initiali
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
-import {IEdition, StringAttribute} from "./interfaces/IEdition.sol";
+import {IEdition} from "./interfaces/IEdition.sol";
+
+import "./interfaces/Errors.sol";
 
 /// @notice This is a smart contract for handling dynamic contract minting.
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
@@ -119,7 +121,7 @@ contract Edition is
     /// The supported price range is 0.000001 to 4294.967295 ETH (or relevant chain gas token)
     /// For more granular sales, use an external sales contract.
     /// @param _salePriceWei sale price in wei, 0 to disable sales
-    function setSalePrice(uint256 _salePriceWei) external onlyOwner {
+    function setSalePrice(uint256 _salePriceWei) external override onlyOwner {
         // convert to milli-eth internally
         uint32 salePriceTwei = requireUint32(_salePriceWei / 1e12);
         if (salePriceTwei == 0 && _salePriceWei > 0) {
@@ -131,7 +133,7 @@ contract Edition is
     }
 
     /// @dev This withdraws ETH from the contract to the contract owner.
-    function withdraw() external onlyOwner {
+    function withdraw() external override onlyOwner {
         // No need for gas limit to trusted address.
         AddressUpgradeable.sendValue(payable(owner), address(this).balance);
     }
@@ -142,7 +144,7 @@ contract Edition is
     /// @dev This requires that msg.sender is the owner of the given edition id.
     /// @dev If the ZeroAddress (address(0x0)) is set as a minter, anyone will be allowed to mint.
     /// @dev This setup is similar to setApprovalForAll in the ERC721 spec.
-    function setApprovedMinter(address minter, bool allowed) public onlyOwner {
+    function setApprovedMinter(address minter, bool allowed) public override onlyOwner {
         allowedMinters[minter] = allowed;
     }
 
@@ -339,13 +341,13 @@ contract Edition is
     }
 
     /// Returns whether the edition can still be minted/purchased
-    function isMintingEnded() public view returns (bool) {
+    function isMintingEnded() public view override returns (bool) {
         return
             state.endOfMintPeriod > 0 &&
             uint64(block.timestamp) > state.endOfMintPeriod;
     }
 
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() public view override returns (uint256) {
         return state.numberMinted;
     }
 
@@ -364,7 +366,7 @@ contract Edition is
     }
 
     /// @notice Get the base64-encoded json metadata object for the edition
-    function contractURI() public view returns (string memory) {
+    function contractURI() public view override returns (string memory) {
         return createContractMetadata(name, state.royaltyBPS, owner);
     }
 

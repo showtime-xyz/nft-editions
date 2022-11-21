@@ -1,26 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
 
-struct StringAttribute {
-    string name;
-    string value;
-}
-
 interface IEdition {
-    error BadAttribute(string name, string value);
-    error IntegerOverflow(uint256 value);
-    error InvalidArgument();
-    error LengthMismatch();
-    error NotForSale();
-    error PriceTooLow();
-    error SoldOut();
-    error TimeLimitReached();
-    error Unauthorized();
-    error WrongPrice();
-
     event PriceChanged(uint256 amount);
     event ExternalUrlUpdated(string oldExternalUrl, string newExternalUrl);
     event PropertyUpdated(string name, string oldValue, string newValue);
+
+    function contractURI() external view returns (string memory);
 
     function editionSize() external view returns (uint256);
 
@@ -35,6 +21,8 @@ interface IEdition {
         uint256 _royaltyBPS,
         uint256 _mintPeriodSeconds
     ) external;
+
+    function isMintingEnded() external view returns (bool);
 
     function mint(address to) external payable returns (uint256);
 
