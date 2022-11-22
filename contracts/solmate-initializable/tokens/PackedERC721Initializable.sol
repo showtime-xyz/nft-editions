@@ -51,16 +51,20 @@ abstract contract PackedERC721Initializable is Initializable {
     /// address2 is the owner of token 2, etc.
     /// This means that:
     /// - addresses are stored contiguously in storage with no gaps (rather than 1 address per slot)
-    /// - some addresses can be accessed more efficiently than others (e.g. ones that are across 2 slots)
+    /// - some addresses can be accessed with 1 SLOAD, others with 2 SLOADs
     /// - this is optimized for the mint path and using as few storage slots as possible for the primary owners
     /// - the tradeoff is that it causes extra gas and storage costs in the transfer/burn paths
     /// - this also causes extra costs in the ownerOf/balanceOf/tokenURI functions, but these are view functions
+    ///
+    /// Example: if _ownersPrimary contains 100 addresses, it will use 64 storage slots vs 200 slots for a normal mint
+    /// that updates both ownerOf and balanceOf separately.
     ///
     /// Assumptions:
     /// - the list of addresses contains no duplicate
     /// - the list of addresses is sorted
     /// - the first valid token id is 1
-    /// - there are more than 1 owners (to avoid the special case of short arrays)
+    /// - there are at least 2 owners (to avoid the special case of short arrays)
+    ///   (see https://docs.soliditylang.org/en/v0.8.17/internals/layout_in_storage.html#bytes-and-string)
     bytes internal _ownersPrimary;
 
     mapping(uint256 => address) internal _ownerOfSecondary;
@@ -104,9 +108,6 @@ abstract contract PackedERC721Initializable is Initializable {
                 owner := or(val1, val2)
             }
         }
-        // console2.log("val1", val1);
-        // console2.log("val2", val2);
-        // console2.log("owner", owner);
     }
 
     // binary search of the address based on _ownerOfPrimary
@@ -118,6 +119,7 @@ abstract contract PackedERC721Initializable is Initializable {
         uint256 high = _ownersPrimary.length / 20;
         uint256 mid = high / 2;
 
+        // TODO: unchecked
         while (low <= high) {
             address midOwner = _ownerOfPrimary(mid);
             if (midOwner == owner) {
@@ -343,7 +345,10 @@ abstract contract PackedERC721Initializable is Initializable {
             emit Transfer(address(0), to, i);
 
             if (safeMint) {
-                _checkOnERC721Received(address(0), to, i, safeMintData);
+                require(
+                    _checkOnERC721Received(address(0), to, i, safeMintData),
+                    "UNSAFE_RECIPIENT"
+                );
             }
         }
 
