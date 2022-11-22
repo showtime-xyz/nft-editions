@@ -280,7 +280,7 @@ abstract contract ERC721Initializable is Initializable {
 
     function _safeMint(address to, uint256 id) internal virtual {
         _mint(to, id);
-        _checkOnERC721Received(address(0), to, id, "");
+        require(_checkOnERC721Received(address(0), to, id, ""));
     }
 
     function _safeMint(
@@ -289,6 +289,6 @@ abstract contract ERC721Initializable is Initializable {
         bytes memory data
     ) internal virtual {
         _mint(to, id);
-        _checkOnERC721Received(address(0), to, id, data);
+        require(_checkOnERC721Received(address(0), to, id, data));
     }
 }
