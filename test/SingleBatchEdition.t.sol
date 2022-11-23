@@ -6,10 +6,12 @@ import {console2} from "forge-std/console2.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
+import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
 import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInitializable.sol";
 import {ISingleBatchEdition} from "contracts/interfaces/ISingleBatchEdition.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
+import {SSTORE2} from "contracts/solmate-initializable/utils/SSTORE2.sol";
 
 import "contracts/interfaces/Errors.sol";
 
@@ -36,22 +38,6 @@ contract SingleBatchEditionTest is Test {
     ISingleBatchEdition internal editionImpl;
     ISingleBatchEdition internal edition;
     BatchMinter internal minter;
-
-    bytes internal addresses_0001;
-    bytes internal addresses_0010;
-    bytes internal addresses_0100;
-    bytes internal addresses_0300;
-    bytes internal addresses_0500;
-    bytes internal addresses_1000;
-
-    function makeAddresses(uint256 n) public returns (bytes memory addresses) {
-        for (uint256 i = 0; i < n; i++) {
-            address addr_i = makeAddr(
-                string(abi.encodePacked("addr", LibString.toString(i)))
-            );
-            addresses = abi.encodePacked(addresses, addr_i);
-        }
-    }
 
     function createEdition(string memory name)
         internal
@@ -84,13 +70,6 @@ contract SingleBatchEditionTest is Test {
         minter = new BatchMinter();
 
         edition = createEdition("edition");
-
-        addresses_0001 = makeAddresses(1);
-        addresses_0010 = makeAddresses(10);
-        addresses_0100 = makeAddresses(100);
-        addresses_0300 = makeAddresses(300);
-        addresses_0500 = makeAddresses(500);
-        addresses_1000 = makeAddresses(1000);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -165,56 +144,62 @@ contract SingleBatchEditionTest is Test {
 
     /// @dev for gas snapshot
     function testMintBatchViaContract_0001() public {
-        minter.mintBatch(edition, addresses_0001);
+        minter.mintBatch(edition, Addresses.make(1));
     }
 
     /// @dev for gas snapshot
     function testMintBatchViaContract_0010() public {
-        minter.mintBatch(edition, addresses_0010);
+        minter.mintBatch(edition, Addresses.make(10));
     }
 
     /// @dev for gas snapshot
     function testMintBatchViaContract_0100() public {
-        minter.mintBatch(edition, addresses_0100);
+        minter.mintBatch(edition, Addresses.make(100));
     }
 
     /// @dev for gas snapshot
     function testMintBatchViaContract_1000() public {
-        minter.mintBatch(edition, addresses_1000);
+        minter.mintBatch(edition, Addresses.make(1000));
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0001() public {
+        address pointer = SSTORE2.write(Addresses.make(1));
         vm.prank(address(minter));
-        edition.mintBatch(addresses_0001);
+        edition.mintBatch(pointer);
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0010() public {
+        address pointer = SSTORE2.write(Addresses.make(10));
         vm.prank(address(minter));
-        edition.mintBatch(addresses_0010);
+        edition.mintBatch(pointer);
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0100() public {
+        address pointer = SSTORE2.write(Addresses.make(100));
         vm.prank(address(minter));
-        edition.mintBatch(addresses_0100);
+        edition.mintBatch(pointer);
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0300() public {
+        address pointer = SSTORE2.write(Addresses.make(300));
         vm.prank(address(minter));
-        edition.mintBatch(addresses_0300);
+        edition.mintBatch(pointer);
     }
 
     function testMintBatchDirect_0500() public {
+        address pointer = SSTORE2.write(Addresses.make(500));
         vm.prank(address(minter));
-        edition.mintBatch(addresses_0500);
+        edition.mintBatch(pointer);
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_1000() public {
+        address pointer = SSTORE2.write(Addresses.make(1000));
         vm.prank(address(minter));
-        edition.mintBatch(addresses_1000);
+        edition.mintBatch(pointer);
     }
 }

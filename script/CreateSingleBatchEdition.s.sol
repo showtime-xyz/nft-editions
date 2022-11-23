@@ -6,6 +6,9 @@ import {Test} from "forge-std/Test.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
+import {SSTORE2} from "contracts/solmate-initializable/utils/SSTORE2.sol";
+
+import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
 import {ISingleBatchEdition} from "contracts/interfaces/ISingleBatchEdition.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
@@ -35,15 +38,6 @@ contract CreateSingleBatchEdition is Script, Test {
         );
     }
 
-    function makeAddresses(uint256 n) public returns (bytes memory addresses) {
-        for (uint256 i = 0; i < n; i++) {
-            address addr_i = makeAddr(
-                string(abi.encodePacked("addr", LibString.toString(i)))
-            );
-            addresses = abi.encodePacked(addresses, addr_i);
-        }
-    }
-
     function run() public {
         uint256 pk = vm.envUint("PRIVATE_KEY");
         address owner = vm.addr(pk);
@@ -61,8 +55,9 @@ contract CreateSingleBatchEdition is Script, Test {
 
         console2.log(name);
         console2.log("Edition address:", address(edition));
-        bytes memory recipients = makeAddresses(N);
-        edition.mintBatch(recipients);
+        bytes memory recipients = Addresses.make(N);
+        address pointer = SSTORE2.write(recipients);
+        edition.mintBatch(pointer);
 
         vm.stopBroadcast();
     }
