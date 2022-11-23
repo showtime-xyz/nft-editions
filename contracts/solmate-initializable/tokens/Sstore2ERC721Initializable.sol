@@ -283,16 +283,28 @@ abstract contract Sstore2ERC721Initializable is Initializable {
                         INTERNAL MINT/BURN LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function _mint(address pointer) internal virtual {
-        _mint(pointer, false, "");
+    function _mint(address pointer)
+        internal
+        virtual
+        returns (uint256 numMinted)
+    {
+        numMinted = _mint(pointer, false, "");
     }
 
-    function _safeMint(address pointer) internal virtual {
-        _mint(pointer, true, "");
+    function _safeMint(address pointer)
+        internal
+        virtual
+        returns (uint256 numMinted)
+    {
+        numMinted = _mint(pointer, true, "");
     }
 
-    function _safeMint(address pointer, bytes memory data) internal virtual {
-        _mint(pointer, true, data);
+    function _safeMint(address pointer, bytes memory data)
+        internal
+        virtual
+        returns (uint256 numMinted)
+    {
+        numMinted = _mint(pointer, true, data);
     }
 
     // can only be called once
@@ -300,16 +312,16 @@ abstract contract Sstore2ERC721Initializable is Initializable {
         address pointer,
         bool safeMint,
         bytes memory safeMintData
-    ) internal virtual {
+    ) internal virtual returns (uint256 numMinted) {
         require(_ownersPrimaryPointer == address(0), "ALREADY_MINTED");
 
         bytes memory addresses = SSTORE2.read(pointer);
         require(addresses.length % 20 == 0, "INVALID_ADDRESSES");
 
-        uint256 length = addresses.length / 20;
+        numMinted = addresses.length / 20;
 
         address prev = address(0);
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < numMinted; ) {
             address to;
 
             assembly {

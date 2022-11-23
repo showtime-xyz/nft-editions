@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
+import {Addresses} from "contracts/utils/Addresses.sol";
 import {Edition} from "contracts/Edition.sol";
 import {ERC721Initializable} from "contracts/solmate-initializable/tokens/ERC721Initializable.sol";
 import {PackedERC721Initializable} from "contracts/solmate-initializable/tokens/PackedERC721Initializable.sol";
@@ -96,40 +97,6 @@ contract GasBench is Test {
 
     address bob = makeAddr("bob");
 
-    // generates sorted addresses
-    function makeAddresses(uint256 n)
-        public
-        pure
-        returns (bytes memory addresses)
-    {
-        assembly {
-            addresses := mload(0x40)
-            let data := add(addresses, 32)
-
-            let addr := 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa
-            for {
-                let i := n
-            } gt(i, 0) {
-                i := sub(i, 1)
-            } {
-                mstore(add(data, sub(mul(i, 20), 32)), add(addr, i))
-            }
-
-            let last := add(data, mul(n, 20))
-
-            // store the length
-            mstore(addresses, mul(n, 20))
-
-            // Allocate memory for the length and the bytes,
-            // rounded up to a multiple of 32.
-            mstore(0x40, and(add(last, 31), not(31)))
-        }
-    }
-
-    function incr(address addr) internal pure returns (address) {
-        return address(uint160(addr) + 1);
-    }
-
     function setUp() public {
         editionImpl = new Edition();
         edition = Edition(ClonesUpgradeable.clone(address(editionImpl)));
@@ -179,7 +146,7 @@ contract GasBench is Test {
         );
 
         singleBatchForTransfers.mintBatch(
-            abi.encodePacked(address(this), incr(address(this)))
+            abi.encodePacked(address(this), Addresses.incr(address(this)))
         );
 
         solmateErc721 = new SolmateERC721();
@@ -194,7 +161,10 @@ contract GasBench is Test {
             "PackedERC721 for Transfers",
             "PACKED"
         );
-        packedErc721ForTransfers.mint(address(this), incr(address(this)));
+        packedErc721ForTransfers.mint(
+            address(this),
+            Addresses.incr(address(this))
+        );
 
         sstore2Erc721ForMinting = new Sstore2ERC721();
         sstore2Erc721ForMinting.initialize(
@@ -325,19 +295,19 @@ contract GasBench is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test__singleBatchEdition__mint0001() public {
-        singleBatchForMinting.mintBatch(makeAddresses(1));
+        singleBatchForMinting.mintBatch(Addresses.make(1));
     }
 
     function test__singleBatchEdition__mint0010() public {
-        singleBatchForMinting.mintBatch(makeAddresses(10));
+        singleBatchForMinting.mintBatch(Addresses.make(10));
     }
 
     function test__singleBatchEdition__mint0100() public {
-        singleBatchForMinting.mintBatch(makeAddresses(100));
+        singleBatchForMinting.mintBatch(Addresses.make(100));
     }
 
     function test__singleBatchEdition__mint1000() public {
-        singleBatchForMinting.mintBatch(makeAddresses(1000));
+        singleBatchForMinting.mintBatch(Addresses.make(1000));
     }
 
     function test__singleBatchEdition__transfer() public {
@@ -362,19 +332,22 @@ contract GasBench is Test {
 
     function test__packedErc721__mint0001() public {
         // minting one not actually supported
-        packedErc721ForMinting.mint(address(this), incr(address(this)));
+        packedErc721ForMinting.mint(
+            address(this),
+            Addresses.incr(address(this))
+        );
     }
 
     function test__packedErc721__mint0010() public {
-        packedErc721ForMinting.mint(makeAddresses(10));
+        packedErc721ForMinting.mint(Addresses.make(10));
     }
 
     function test__packedErc721__mint0100() public {
-        packedErc721ForMinting.mint(makeAddresses(100));
+        packedErc721ForMinting.mint(Addresses.make(100));
     }
 
     function test__packedErc721__mint1000() public {
-        packedErc721ForMinting.mint(makeAddresses(1000));
+        packedErc721ForMinting.mint(Addresses.make(1000));
     }
 
     function test__packedErc721__transfer() public {
@@ -402,19 +375,19 @@ contract GasBench is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test__sstore2Erc721__mint0001() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(1)));
+        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(1)));
     }
 
     function test__sstore2Erc721__mint0010() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(10)));
+        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(10)));
     }
 
     function test__sstore2Erc721__mint0100() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(100)));
+        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(100)));
     }
 
     function test__sstore2Erc721__mint1000() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(1000)));
+        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(1000)));
     }
 
     function test__sstore2Erc721__transfer() public {

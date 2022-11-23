@@ -20,6 +20,8 @@ interface ISingleBatchEdition {
 
     function mintBatch(bytes calldata addresses) external returns (uint256);
 
+    function mintBatch(address pointer) external returns (uint256);
+
     function setExternalUrl(string calldata _externalUrl) external;
 
     function setStringProperties(

@@ -4,8 +4,9 @@ pragma solidity ^0.8.6;
 import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {ERC721Initializable} from "./solmate-initializable/tokens/ERC721Initializable.sol";
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
+import {Sstore2ERC721Initializable} from "./solmate-initializable/tokens/Sstore2ERC721Initializable.sol";
+import {SSTORE2} from "./solmate-initializable/utils/SSTORE2.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
 import {ISingleBatchEdition} from "./interfaces/ISingleBatchEdition.sol";
@@ -16,7 +17,7 @@ import "./interfaces/Errors.sol";
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
 contract SingleBatchEdition is
     EditionMetadataRenderer,
-    ERC721Initializable,
+    Sstore2ERC721Initializable,
     ISingleBatchEdition,
     IERC2981Upgradeable,
     OwnedInitializable
@@ -24,7 +25,7 @@ contract SingleBatchEdition is
     struct State {
         // Immutable address that is allowed to mint
         address minter;
-        // Immutable oyalty amount in bps (uint16 is large enough to store 10000 bps)
+        // Immutable royalty amount in bps (uint16 is large enough to store 10000 bps)
         uint16 royaltyBPS;
         // How many have been minted -- 0 before mint, final value after calling mintBatch()
         uint64 totalSupply;
@@ -125,10 +126,18 @@ contract SingleBatchEdition is
                    COLLECTOR / TOKEN OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @param addresses list of addresses to send the newly minted editions to (using abi.encodePacked)
-    /// @dev This mints multiple editions to the given list of addresses.
     function mintBatch(bytes calldata addresses)
         external
+        override
+        returns (uint256 lastTokenId)
+    {
+        lastTokenId = mintBatch(SSTORE2.write(addresses));
+    }
+
+    /// @param pointer An SSTORE2 pointer to a list of addresses to send the newly minted editions to, packed tightly
+    /// @dev This mints multiple editions to the given list of addresses.
+    function mintBatch(address pointer)
+        public
         override
         returns (uint256 lastTokenId)
     {
@@ -141,31 +150,7 @@ contract SingleBatchEdition is
             revert SoldOut();
         }
 
-        if (addresses.length % 20 != 0) {
-            revert InvalidArgument();
-        }
-
-        lastTokenId = addresses.length / 20;
-        if (lastTokenId == 0) {
-            revert InvalidArgument();
-        }
-
-        unchecked {
-            for (uint256 i = 0; i < lastTokenId; ) {
-                address addr;
-
-                assembly {
-                    addr := shr(
-                        96,
-                        calldataload(add(addresses.offset, mul(i, 20)))
-                    )
-                }
-
-                i++;
-
-                _mint(addr, i);
-            }
-        }
+        lastTokenId = _mint(pointer);
 
         // can not realistically be bigger than 2^64
         _state.totalSupply = uint64(lastTokenId);
@@ -199,7 +184,9 @@ contract SingleBatchEdition is
         override
         returns (string memory)
     {
-        require(_ownerOf[tokenId] != address(0), "No token");
+        if (tokenId == 0 || tokenId > state.totalSupply) {
+            revert InvalidArgument();
+        }
 
         return createTokenMetadata(name, tokenId, state.totalSupply);
     }
@@ -226,11 +213,11 @@ contract SingleBatchEdition is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Initializable, IERC165Upgradeable)
+        override(Sstore2ERC721Initializable, IERC165Upgradeable)
         returns (bool)
     {
         return
             type(IERC2981Upgradeable).interfaceId == interfaceId ||
-            ERC721Initializable.supportsInterface(interfaceId);
+            Sstore2ERC721Initializable.supportsInterface(interfaceId);
     }
 }
