@@ -37,7 +37,7 @@ def main():
 
         results[collection][test] = gas
 
-    print("collection\t" + "\t".join(sorted(tests)))
+    print("\ncollection\t" + "\t".join(sorted(tests)))
 
     for collection in sorted(results.keys()):
         print(collection, end="\t")

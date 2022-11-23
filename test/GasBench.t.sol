@@ -8,6 +8,7 @@ import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/Clone
 import {Edition} from "contracts/Edition.sol";
 import {ERC721Initializable} from "contracts/solmate-initializable/tokens/ERC721Initializable.sol";
 import {PackedERC721Initializable} from "contracts/solmate-initializable/tokens/PackedERC721Initializable.sol";
+import {Sstore2ERC721Initializable, SSTORE2} from "contracts/solmate-initializable/tokens/Sstore2ERC721Initializable.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
 
 contract SolmateERC721 is ERC721Initializable {
@@ -56,6 +57,27 @@ contract PackedERC721 is PackedERC721Initializable {
     }
 }
 
+contract Sstore2ERC721 is Sstore2ERC721Initializable {
+    function initialize(string memory name, string memory symbol)
+        public
+        initializer
+    {
+        __ERC721_init(name, symbol);
+    }
+
+    function mint(address pointer) public {
+        _mint(pointer);
+    }
+
+    function burn(uint256 tokenId) public {
+        _burn(tokenId);
+    }
+
+    function tokenURI(uint256) public view override returns (string memory) {
+        return name;
+    }
+}
+
 contract GasBench is Test {
     Edition editionImpl;
     Edition edition;
@@ -68,6 +90,9 @@ contract GasBench is Test {
 
     PackedERC721 packedErc721ForMinting;
     PackedERC721 packedErc721ForTransfers;
+
+    Sstore2ERC721 sstore2Erc721ForMinting;
+    Sstore2ERC721 sstore2Erc721ForTransfers;
 
     address bob = makeAddr("bob");
 
@@ -169,8 +194,22 @@ contract GasBench is Test {
             "PackedERC721 for Transfers",
             "PACKED"
         );
-
         packedErc721ForTransfers.mint(address(this), incr(address(this)));
+
+        sstore2Erc721ForMinting = new Sstore2ERC721();
+        sstore2Erc721ForMinting.initialize(
+            "Sstore2ERC721 for Minting",
+            "SSTORE2"
+        );
+
+        sstore2Erc721ForTransfers = new Sstore2ERC721();
+        sstore2Erc721ForTransfers.initialize(
+            "Sstore2ERC721 for Transfers",
+            "SSTORE2"
+        );
+        sstore2Erc721ForTransfers.mint(
+            SSTORE2.write(abi.encodePacked(address(this)))
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -356,5 +395,45 @@ contract GasBench is Test {
 
     function test__packedErc721__balanceOf() public view {
         packedErc721ForTransfers.balanceOf(address(this));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          SSTORE2 ERC721 TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test__sstore2Erc721__mint0001() public {
+        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(1)));
+    }
+
+    function test__sstore2Erc721__mint0010() public {
+        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(10)));
+    }
+
+    function test__sstore2Erc721__mint0100() public {
+        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(100)));
+    }
+
+    function test__sstore2Erc721__mint1000() public {
+        sstore2Erc721ForMinting.mint(SSTORE2.write(makeAddresses(1000)));
+    }
+
+    function test__sstore2Erc721__transfer() public {
+        sstore2Erc721ForTransfers.transferFrom(address(this), bob, 1);
+    }
+
+    function test__sstore2Erc721__burn() public {
+        sstore2Erc721ForTransfers.transferFrom(
+            address(this),
+            address(0xdEaD),
+            1
+        );
+    }
+
+    function test__sstore2Erc721__ownerOf() public view {
+        sstore2Erc721ForTransfers.ownerOf(1);
+    }
+
+    function test__sstore2Erc721__balanceOf() public view {
+        sstore2Erc721ForTransfers.balanceOf(address(this));
     }
 }
