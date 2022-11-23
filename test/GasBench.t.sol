@@ -1,0 +1,360 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.15;
+
+import {Test} from "forge-std/Test.sol";
+
+import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+
+import {Edition} from "contracts/Edition.sol";
+import {ERC721Initializable} from "contracts/solmate-initializable/tokens/ERC721Initializable.sol";
+import {PackedERC721Initializable} from "contracts/solmate-initializable/tokens/PackedERC721Initializable.sol";
+import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
+
+contract SolmateERC721 is ERC721Initializable {
+    function initialize(string memory name, string memory symbol)
+        public
+        initializer
+    {
+        __ERC721_init(name, symbol);
+    }
+
+    function mint(address to, uint256 tokenId) public {
+        _mint(to, tokenId);
+    }
+
+    function burn(uint256 tokenId) public {
+        _burn(tokenId);
+    }
+
+    function tokenURI(uint256) public view override returns (string memory) {
+        return name;
+    }
+}
+
+contract PackedERC721 is PackedERC721Initializable {
+    function initialize(string memory name, string memory symbol)
+        public
+        initializer
+    {
+        __ERC721_init(name, symbol);
+    }
+
+    function mint(address addr1, address addr2) public {
+        _mint(abi.encodePacked(addr1, addr2));
+    }
+
+    function mint(bytes calldata addresses) public {
+        _mint(addresses);
+    }
+
+    function burn(uint256 tokenId) public {
+        _burn(tokenId);
+    }
+
+    function tokenURI(uint256) public view override returns (string memory) {
+        return name;
+    }
+}
+
+contract GasBench is Test {
+    Edition editionImpl;
+    Edition edition;
+
+    SolmateERC721 solmateErc721;
+
+    SingleBatchEdition singleBatchImpl;
+    SingleBatchEdition singleBatchForMinting;
+    SingleBatchEdition singleBatchForTransfers;
+
+    PackedERC721 packedErc721ForMinting;
+    PackedERC721 packedErc721ForTransfers;
+
+    address bob = makeAddr("bob");
+
+    // generates sorted addresses
+    function makeAddresses(uint256 n)
+        public
+        pure
+        returns (bytes memory addresses)
+    {
+        assembly {
+            addresses := mload(0x40)
+            let data := add(addresses, 32)
+
+            let addr := 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa
+            for {
+                let i := n
+            } gt(i, 0) {
+                i := sub(i, 1)
+            } {
+                mstore(add(data, sub(mul(i, 20), 32)), add(addr, i))
+            }
+
+            let last := add(data, mul(n, 20))
+
+            // store the length
+            mstore(addresses, mul(n, 20))
+
+            // Allocate memory for the length and the bytes,
+            // rounded up to a multiple of 32.
+            mstore(0x40, and(add(last, 31), not(31)))
+        }
+    }
+
+    function incr(address addr) internal pure returns (address) {
+        return address(uint160(addr) + 1);
+    }
+
+    function setUp() public {
+        editionImpl = new Edition();
+        edition = Edition(ClonesUpgradeable.clone(address(editionImpl)));
+        edition.initialize(
+            address(this),
+            "Edition",
+            "EDITION",
+            "description",
+            "https://animation.url",
+            "https://image.url",
+            10000, // editionSize
+            10_00, // royaltyBps
+            2 days // mintPeriodSeconds
+        );
+
+        edition.mint(address(this));
+
+        singleBatchImpl = new SingleBatchEdition();
+        singleBatchForMinting = SingleBatchEdition(
+            ClonesUpgradeable.clone(address(singleBatchImpl))
+        );
+
+        singleBatchForMinting.initialize(
+            address(this),
+            "SingleBatchEdition for Minting",
+            "BATCH",
+            "description",
+            "https://animation.url",
+            "https://image.url",
+            10000,
+            address(this)
+        );
+
+        singleBatchForTransfers = SingleBatchEdition(
+            ClonesUpgradeable.clone(address(singleBatchImpl))
+        );
+
+        singleBatchForTransfers.initialize(
+            address(this),
+            "SingleBatchEdition for Transfers",
+            "BATCH",
+            "description",
+            "https://animation.url",
+            "https://image.url",
+            10000,
+            address(this)
+        );
+
+        singleBatchForTransfers.mintBatch(
+            abi.encodePacked(address(this), incr(address(this)))
+        );
+
+        solmateErc721 = new SolmateERC721();
+        solmateErc721.initialize("Solmate Baseline", "SOLMATE");
+        solmateErc721.mint(address(this), 1);
+
+        packedErc721ForMinting = new PackedERC721();
+        packedErc721ForMinting.initialize("PackedERC721 for Minting", "PACKED");
+
+        packedErc721ForTransfers = new PackedERC721();
+        packedErc721ForTransfers.initialize(
+            "PackedERC721 for Transfers",
+            "PACKED"
+        );
+
+        packedErc721ForTransfers.mint(address(this), incr(address(this)));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          SOLMATE ERC721 TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test__solmateErc721__mint0001() public {
+        solmateErc721.mint(address(this), 2);
+    }
+
+    function test__solmateErc721__mint0010() public {
+        for (uint256 i = 0; i < 10; ) {
+            solmateErc721.mint(address(this), i + 2);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function test__solmateErc721__mint0100() public {
+        for (uint256 i = 0; i < 100; ) {
+            solmateErc721.mint(address(this), i + 2);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function test__solmateErc721__mint1000() public {
+        for (uint256 i = 0; i < 1000; ) {
+            solmateErc721.mint(address(this), i + 2);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function test__solmateErc721__transfer() public {
+        solmateErc721.transferFrom(address(this), bob, 1);
+    }
+
+    function test__solmateErc721__burn() public {
+        solmateErc721.burn(1);
+    }
+
+    function test__solmateErc721__ownerOf() public view {
+        solmateErc721.ownerOf(1);
+    }
+
+    function test__solmateErc721__balanceOf() public view {
+        solmateErc721.balanceOf(address(this));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             EDITION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test__edition__mint0001() public {
+        edition.mint(address(this));
+    }
+
+    function test__edition__mint0010() public {
+        for (uint256 i = 0; i < 10; ) {
+            edition.mint(address(this));
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function test__edition__mint0100() public {
+        for (uint256 i = 0; i < 100; ) {
+            edition.mint(address(this));
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function test__edition__mint1000() public {
+        for (uint256 i = 0; i < 1000; ) {
+            edition.mint(address(this));
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function test__edition__transfer() public {
+        edition.transferFrom(address(this), bob, 1);
+    }
+
+    function test__edition__burn() public {
+        edition.transferFrom(address(this), address(0xdEaD), 1);
+    }
+
+    function test__edition__ownerOf() public view {
+        edition.ownerOf(1);
+    }
+
+    function test__edition__balanceOf() public view {
+        edition.balanceOf(address(this));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        SINGLE BATCH EDITION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test__singleBatchEdition__mint0001() public {
+        singleBatchForMinting.mintBatch(makeAddresses(1));
+    }
+
+    function test__singleBatchEdition__mint0010() public {
+        singleBatchForMinting.mintBatch(makeAddresses(10));
+    }
+
+    function test__singleBatchEdition__mint0100() public {
+        singleBatchForMinting.mintBatch(makeAddresses(100));
+    }
+
+    function test__singleBatchEdition__mint1000() public {
+        singleBatchForMinting.mintBatch(makeAddresses(1000));
+    }
+
+    function test__singleBatchEdition__transfer() public {
+        singleBatchForTransfers.transferFrom(address(this), bob, 1);
+    }
+
+    function test__singleBatchEdition__burn() public {
+        singleBatchForTransfers.transferFrom(address(this), address(0xdEaD), 1);
+    }
+
+    function test__singleBatchEdition__ownerOf() public view {
+        singleBatchForTransfers.ownerOf(1);
+    }
+
+    function test__singleBatchEdition__balanceOf() public view {
+        singleBatchForTransfers.balanceOf(address(this));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           PACKED ERC721 TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test__packedErc721__mint0001() public {
+        // minting one not actually supported
+        packedErc721ForMinting.mint(address(this), incr(address(this)));
+    }
+
+    function test__packedErc721__mint0010() public {
+        packedErc721ForMinting.mint(makeAddresses(10));
+    }
+
+    function test__packedErc721__mint0100() public {
+        packedErc721ForMinting.mint(makeAddresses(100));
+    }
+
+    function test__packedErc721__mint1000() public {
+        packedErc721ForMinting.mint(makeAddresses(1000));
+    }
+
+    function test__packedErc721__transfer() public {
+        packedErc721ForTransfers.transferFrom(address(this), bob, 1);
+    }
+
+    function test__packedErc721__burn() public {
+        packedErc721ForTransfers.transferFrom(
+            address(this),
+            address(0xdEaD),
+            1
+        );
+    }
+
+    function test__packedErc721__ownerOf() public view {
+        packedErc721ForTransfers.ownerOf(1);
+    }
+
+    function test__packedErc721__balanceOf() public view {
+        packedErc721ForTransfers.balanceOf(address(this));
+    }
+}
