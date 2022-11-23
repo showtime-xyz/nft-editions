@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {console2} from "forge-std/console2.sol";
-
 import {Initializable} from "../utils/Initializable.sol";
 import {SSTORE2} from "../utils/SSTORE2.sol";
 

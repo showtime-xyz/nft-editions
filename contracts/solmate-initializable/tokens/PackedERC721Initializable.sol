@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {console2} from "forge-std/console2.sol";
-
 import {Initializable} from "../utils/Initializable.sol";
 
 import {ERC721TokenReceiver} from "./ERC721TokenReceiver.sol";
@@ -89,9 +87,6 @@ abstract contract PackedERC721Initializable is Initializable {
             dataSlot := keccak256(0, 32)
         }
 
-        uint256 val1;
-        uint256 val2;
-
         if (startOffset == endOffset) {
             assembly {
                 let val := sload(add(dataSlot, startOffset))
@@ -100,8 +95,8 @@ abstract contract PackedERC721Initializable is Initializable {
             }
         } else {
             assembly {
-                val1 := sload(add(dataSlot, startOffset)) //      0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbb
-                val2 := sload(add(dataSlot, endOffset)) //        0xbbbbbbbbbbbbbbbb000000000000000000000000000000000000000000000000
+                let val1 := sload(add(dataSlot, startOffset)) //      0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbb
+                let val2 := sload(add(dataSlot, endOffset)) //        0xbbbbbbbbbbbbbbbb000000000000000000000000000000000000000000000000
                 val1 := shl(mul(8, mod(startByte, 32)), val1) //  0xbbbbbbbbbbbbbbbbbbbbbbbb0000000000000000000000000000000000000000
                 val1 := shr(mul(8, sub(32, mod(startByte, 32))), val1) // 0x0000000000000000bbbbbbbbbbbbbbbbbbbbbbbb0000000000000000
                 val2 := shr(mul(8, sub(32, mod(endByte, 32))), val2) //   0x0000000000000000000000000000000000000000bbbbbbbbbbbbbbbb
