@@ -44,7 +44,7 @@ contract CreateSingleBatchEdition is Script, Test {
         console2.log("from address:", owner);
         vm.startBroadcast(pk);
 
-        uint256 N = 200;
+        uint256 N = 1000;
 
         string memory name = string.concat(
             "batchy test #",
@@ -55,9 +55,14 @@ contract CreateSingleBatchEdition is Script, Test {
 
         console2.log(name);
         console2.log("Edition address:", address(edition));
+
+        // 🏆 v1: outlined SSTORE2 tx (6474048 gas total for N=1000, 6.5k per mint)
         bytes memory recipients = Addresses.make(N);
-        address pointer = SSTORE2.write(recipients);
-        edition.mintBatch(pointer);
+        address pointer = SSTORE2.write(recipients); // 4377877 gas for N=1000
+        edition.mintBatch(pointer); // 2096171 gas for N=1000
+
+        // v2: inline SSTORE2 tx
+        // edition.mintBatch(recipients); // 6556515 gas for N=1000
 
         vm.stopBroadcast();
     }
