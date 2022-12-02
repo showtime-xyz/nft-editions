@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import {SSTORE2} from "contracts/solmate-initializable/utils/SSTORE2.sol";
+import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";

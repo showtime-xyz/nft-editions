@@ -1,47 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {Initializable} from "../utils/Initializable.sol";
-import {SSTORE2} from "../utils/SSTORE2.sol";
+import {ERC721} from "solmate/tokens/ERC721.sol";
+import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {ERC721TokenReceiver} from "./ERC721TokenReceiver.sol";
 
-/// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
-/// @author karmacoma (replaced constructor with initializer)
-/// @author forked from Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
-abstract contract Sstore2ERC721Initializable is Initializable {
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event Transfer(
-        address indexed from,
-        address indexed to,
-        uint256 indexed id
-    );
-
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 indexed id
-    );
-
-    event ApprovalForAll(
-        address indexed owner,
-        address indexed operator,
-        bool approved
-    );
-
-    /*//////////////////////////////////////////////////////////////
-                         METADATA STORAGE/LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    string public name;
-
-    string public symbol;
-
-    function tokenURI(uint256 id) public view virtual returns (string memory);
-
+/// @notice SSTORE2-backed version of Solmate's ERC721, optimized for minting in a single batch
+abstract contract SS2ERC721 is ERC721 {
     /*//////////////////////////////////////////////////////////////
                       ERC721 BALANCE/OWNER STORAGE
     //////////////////////////////////////////////////////////////*/
@@ -66,6 +32,16 @@ abstract contract Sstore2ERC721Initializable is Initializable {
 
     /// @dev signed integer to allow for negative adjustments relative to _ownersPrimary
     mapping(address => int256) internal _balanceOfAdjustment;
+
+    /*//////////////////////////////////////////////////////////////
+                              CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {}
+
+    /*//////////////////////////////////////////////////////////////
+                         OWNER / BALANCE LOGIC
+    //////////////////////////////////////////////////////////////*/
 
     // borrowed from https://github.com/ensdomains/resolvers/blob/master/contracts/ResolverBase.sol
     function bytesToAddress(bytes memory b)
@@ -120,7 +96,7 @@ abstract contract Sstore2ERC721Initializable is Initializable {
         return 0;
     }
 
-    function ownerOf(uint256 id) public view virtual returns (address owner) {
+    function ownerOf(uint256 id) public view virtual override returns (address owner) {
         owner = _ownerOfSecondary[id];
 
         // we use 0 as a sentinel value, meaning that we can't burn by setting the owner to address(0)
@@ -131,7 +107,7 @@ abstract contract Sstore2ERC721Initializable is Initializable {
         require(owner != address(0), "NOT_MINTED");
     }
 
-    function balanceOf(address owner) public view virtual returns (uint256) {
+    function balanceOf(address owner) public view virtual override returns (uint256) {
         require(owner != address(0), "ZERO_ADDRESS");
 
         int256 balance = int256(_balanceOfPrimary(owner)) +
@@ -143,42 +119,11 @@ abstract contract Sstore2ERC721Initializable is Initializable {
     }
 
     /*//////////////////////////////////////////////////////////////
-                         ERC721 APPROVAL STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    mapping(uint256 => address) public getApproved;
-
-    mapping(address => mapping(address => bool)) public isApprovedForAll;
-
-    /*//////////////////////////////////////////////////////////////
-                              INITIALIZER
-    //////////////////////////////////////////////////////////////*/
-
-    function __ERC721_init(string memory _name, string memory _symbol)
-        internal
-        onlyInitializing
-    {
-        name = _name;
-        symbol = _symbol;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                               ERC721 LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function _isApprovedOrOwner(address operator, uint256 id)
-        internal
-        view
-        returns (bool)
-    {
-        address owner = ownerOf(id);
-        return
-            operator == owner ||
-            isApprovedForAll[owner][operator] ||
-            operator == getApproved[id];
-    }
-
-    function approve(address spender, uint256 id) public virtual {
+    function approve(address spender, uint256 id) public virtual override {
+        // need to use the ownerOf getter here instead of directly accessing the storage
         address owner = ownerOf(id);
 
         require(
@@ -191,24 +136,23 @@ abstract contract Sstore2ERC721Initializable is Initializable {
         emit Approval(owner, spender, id);
     }
 
-    function setApprovalForAll(address operator, bool approved) public virtual {
-        isApprovedForAll[msg.sender][operator] = approved;
-
-        emit ApprovalForAll(msg.sender, operator, approved);
-    }
-
     function transferFrom(
         address from,
         address to,
         uint256 id
-    ) public virtual {
+    ) public virtual override {
+        // need to use the ownerOf getter here instead of directly accessing the storage
         require(from == ownerOf(id), "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
 
-        require(_isApprovedOrOwner(msg.sender, id), "NOT_AUTHORIZED");
+        require(
+            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
+            "NOT_AUTHORIZED"
+        );
 
-        // signed math: we do expect _balanceOfAdjustment[from] to become -1 if it was 0
+        // Underflow of the sender's balance is impossible because we check for
+        // ownership above and the recipient's balance can't realistically overflow.
         unchecked {
             _balanceOfAdjustment[from]--;
 
@@ -222,61 +166,37 @@ abstract contract Sstore2ERC721Initializable is Initializable {
         emit Transfer(from, to, id);
     }
 
+    /// @dev needs to be overridden here to invoke our custom version of transferFrom
     function safeTransferFrom(
         address from,
         address to,
         uint256 id
-    ) public virtual {
+    ) public virtual override {
         transferFrom(from, to, id);
 
         require(
             to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    from,
-                    id,
-                    ""
-                ) ==
+                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
                 ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
 
+    /// @dev needs to be overridden here to invoke our custom version of transferFrom
     function safeTransferFrom(
         address from,
         address to,
         uint256 id,
         bytes calldata data
-    ) public virtual {
+    ) public virtual override {
         transferFrom(from, to, id);
 
         require(
             to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    from,
-                    id,
-                    data
-                ) ==
+                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
                 ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                              ERC165 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        returns (bool)
-    {
-        return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -351,7 +271,7 @@ abstract contract Sstore2ERC721Initializable is Initializable {
         _ownersPrimaryPointer = pointer;
     }
 
-    function _burn(uint256 id) internal virtual {
+    function _burn(uint256 id) internal virtual override {
         address owner = ownerOf(id);
 
         require(owner != address(0), "NOT_MINTED");

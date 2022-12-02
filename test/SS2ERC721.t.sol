@@ -3,8 +3,10 @@ pragma solidity >=0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 
+import {SSTORE2} from "solmate/utils/SSTORE2.sol";
+
 import {ERC721TokenReceiver} from "contracts/solmate-initializable/tokens/ERC721TokenReceiver.sol";
-import {Sstore2ERC721Initializable, SSTORE2} from "contracts/solmate-initializable/tokens/Sstore2ERC721Initializable.sol";
+import {SS2ERC721} from "contracts/solmate-initializable/tokens/SS2ERC721.sol";
 
 contract ERC721Recipient is ERC721TokenReceiver {
     address public operator;
@@ -53,10 +55,8 @@ contract WrongReturnDataERC721Recipient is ERC721TokenReceiver {
     }
 }
 
-contract MockERC721 is Sstore2ERC721Initializable {
-    constructor(string memory name, string memory symbol) initializer {
-        __ERC721_init(name, symbol);
-    }
+contract MockERC721 is SS2ERC721 {
+    constructor(string memory _name, string memory _symbol) SS2ERC721(_name, _symbol) {}
 
     function tokenURI(uint256)
         public

@@ -5,11 +5,13 @@ import {Test} from "forge-std/Test.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
+import {SSTORE2} from "solmate/utils/SSTORE2.sol";
+
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {Edition} from "contracts/Edition.sol";
 import {ERC721I} from "contracts/solmate-initializable/tokens/ERC721I.sol";
 import {PackedERC721Initializable} from "contracts/solmate-initializable/tokens/PackedERC721Initializable.sol";
-import {Sstore2ERC721Initializable, SSTORE2} from "contracts/solmate-initializable/tokens/Sstore2ERC721Initializable.sol";
+import {SS2ERC721} from "contracts/solmate-initializable/tokens/SS2ERC721.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
 
 contract SolmateERC721 is ERC721I {
@@ -58,13 +60,8 @@ contract PackedERC721 is PackedERC721Initializable {
     }
 }
 
-contract Sstore2ERC721 is Sstore2ERC721Initializable {
-    function initialize(string memory name, string memory symbol)
-        public
-        initializer
-    {
-        __ERC721_init(name, symbol);
-    }
+contract Sstore2ERC721 is SS2ERC721 {
+    constructor (string memory _name, string memory _symbol) SS2ERC721(_name, _symbol) {}
 
     function mint(address pointer) public {
         _mint(pointer);
@@ -166,17 +163,8 @@ contract GasBench is Test {
             Addresses.incr(address(this))
         );
 
-        sstore2Erc721ForMinting = new Sstore2ERC721();
-        sstore2Erc721ForMinting.initialize(
-            "Sstore2ERC721 for Minting",
-            "SSTORE2"
-        );
-
-        sstore2Erc721ForTransfers = new Sstore2ERC721();
-        sstore2Erc721ForTransfers.initialize(
-            "Sstore2ERC721 for Transfers",
-            "SSTORE2"
-        );
+        sstore2Erc721ForMinting = new Sstore2ERC721("Sstore2ERC721 for Minting", "SSTORE2");
+        sstore2Erc721ForTransfers = new Sstore2ERC721("Sstore2ERC721 for Transfers", "SSTORE2");
         sstore2Erc721ForTransfers.mint(
             SSTORE2.write(abi.encodePacked(address(this)))
         );
@@ -395,11 +383,7 @@ contract GasBench is Test {
     }
 
     function test__sstore2Erc721__burn() public {
-        sstore2Erc721ForTransfers.transferFrom(
-            address(this),
-            address(0xdEaD),
-            1
-        );
+        sstore2Erc721ForTransfers.burn(1);
     }
 
     function test__sstore2Erc721__ownerOf() public view {
