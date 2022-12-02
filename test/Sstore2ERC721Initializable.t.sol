@@ -535,7 +535,7 @@ contract ERC721Test is Test {
         vm.assume(address(0) < from);
         vm.assume(from < address(this));
 
-        if (to == address(0) || to == from) to = address(0xBEEF);
+        if (to == address(0) || to == from || to == address(this)) to = address(0xBEEF);
 
         token.mint(from, address(this));
 
@@ -567,7 +567,7 @@ contract ERC721Test is Test {
         vm.assume(address(0) < from);
         vm.assume(from < address(this));
 
-        if (to == address(0) || to == from) to = address(0xBEEF);
+        if (to == address(0) || to == from || to == address(this)) to = address(0xBEEF);
 
         token.mint(from, address(this));
 

@@ -304,7 +304,8 @@ contract EditionTest is Test {
     }
 
     function testSafeMintEditionCanNotMintToUnsuspectingContracts() public {
-        vm.expectRevert("UNSAFE_RECIPIENT");
+        // the "UNSAFE_RECIPIENT" error does not bubble up to the caller
+        vm.expectRevert();
         edition.safeMint(address(unsuspectingContract));
     }
 

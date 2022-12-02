@@ -54,7 +54,7 @@ abstract contract Initializable {
     function _lockInitializers() internal virtual {
         require(
             _initState == InitState.NOT_INITIALIZED,
-            "CONTRACT_INITIALIZING"
+            "MUST_BE_NOT_INITIALIZED"
         );
         _initState = InitState.INITIALIZED;
         emit Initialized();
