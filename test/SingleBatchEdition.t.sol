@@ -5,13 +5,13 @@ import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
 import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInitializable.sol";
 import {ISingleBatchEdition} from "contracts/interfaces/ISingleBatchEdition.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
-import {SSTORE2} from "contracts/solmate-initializable/utils/SSTORE2.sol";
 
 import "contracts/interfaces/Errors.sol";
 

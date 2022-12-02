@@ -4,9 +4,11 @@ pragma solidity ^0.8.6;
 import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
+import {ERC721} from "solmate/tokens/ERC721.sol";
+import {SSTORE2} from "solmate/utils/SSTORE2.sol";
+
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
-import {Sstore2ERC721Initializable} from "./solmate-initializable/tokens/Sstore2ERC721Initializable.sol";
-import {SSTORE2} from "./solmate-initializable/utils/SSTORE2.sol";
+import {SS2ERC721I} from "./solmate-initializable/tokens/SS2ERC721I.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
 import {ISingleBatchEdition} from "./interfaces/ISingleBatchEdition.sol";
@@ -17,7 +19,7 @@ import "./interfaces/Errors.sol";
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
 contract SingleBatchEdition is
     EditionMetadataRenderer,
-    Sstore2ERC721Initializable,
+    SS2ERC721I,
     ISingleBatchEdition,
     IERC2981Upgradeable,
     OwnedInitializable
@@ -32,11 +34,6 @@ contract SingleBatchEdition is
     }
 
     State private state;
-
-    // Global constructor for factory
-    constructor() {
-        _lockInitializers();
-    }
 
     /// @notice Function to create a new edition. Can only be called by the allowed creator
     ///         Sets the only allowed minter to the address that creates/owns the edition.
@@ -58,7 +55,7 @@ contract SingleBatchEdition is
         uint256 _royaltyBPS,
         address _minter
     ) public override initializer {
-        __ERC721_init(_name, _symbol);
+        __SS2ERC721_init(_name, _symbol);
 
         // Set ownership to original sender of contract call
         __Owned_init(_owner);
@@ -213,11 +210,11 @@ contract SingleBatchEdition is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(Sstore2ERC721Initializable, IERC165Upgradeable)
+        override(ERC721, IERC165Upgradeable)
         returns (bool)
     {
         return
             type(IERC2981Upgradeable).interfaceId == interfaceId ||
-            Sstore2ERC721Initializable.supportsInterface(interfaceId);
+            ERC721.supportsInterface(interfaceId);
     }
 }
