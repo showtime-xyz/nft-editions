@@ -15,7 +15,7 @@ pragma solidity ^0.8.6;
 import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {ERC721Initializable} from "./solmate-initializable/tokens/ERC721Initializable.sol";
+import {ERC721, ERC721I} from "./solmate-initializable/tokens/ERC721I.sol";
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
@@ -30,7 +30,7 @@ import "./interfaces/Errors.sol";
 /// @author iain nash [ZORA Editions](https://github.com/ourzora/nft-editions)
 contract Edition is
     EditionMetadataRenderer,
-    ERC721Initializable,
+    ERC721I,
     IEdition,
     IERC2981Upgradeable,
     OwnedInitializable
@@ -55,11 +55,6 @@ contract Edition is
 
     // Addresses allowed to mint edition
     mapping(address => bool) allowedMinters;
-
-    // Global constructor for factory
-    constructor() {
-        _lockInitializers();
-    }
 
     /// @notice Function to create a new edition. Can only be called by the allowed creator
     ///         Sets the only allowed minter to the address that creates/owns the edition.
@@ -387,11 +382,11 @@ contract Edition is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Initializable, IERC165Upgradeable)
+        override(ERC721, IERC165Upgradeable)
         returns (bool)
     {
         return
             type(IERC2981Upgradeable).interfaceId == interfaceId ||
-            ERC721Initializable.supportsInterface(interfaceId);
+            ERC721.supportsInterface(interfaceId);
     }
 }

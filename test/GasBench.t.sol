@@ -7,12 +7,12 @@ import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/Clone
 
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {Edition} from "contracts/Edition.sol";
-import {ERC721Initializable} from "contracts/solmate-initializable/tokens/ERC721Initializable.sol";
+import {ERC721I} from "contracts/solmate-initializable/tokens/ERC721I.sol";
 import {PackedERC721Initializable} from "contracts/solmate-initializable/tokens/PackedERC721Initializable.sol";
 import {Sstore2ERC721Initializable, SSTORE2} from "contracts/solmate-initializable/tokens/Sstore2ERC721Initializable.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
 
-contract SolmateERC721 is ERC721Initializable {
+contract SolmateERC721 is ERC721I {
     function initialize(string memory name, string memory symbol)
         public
         initializer
@@ -149,7 +149,7 @@ contract GasBench is Test {
             abi.encodePacked(address(this), Addresses.incr(address(this)))
         );
 
-        solmateErc721 = new SolmateERC721();
+        solmateErc721 = SolmateERC721(ClonesUpgradeable.clone(address(new SolmateERC721())));
         solmateErc721.initialize("Solmate Baseline", "SOLMATE");
         solmateErc721.mint(address(this), 1);
 
