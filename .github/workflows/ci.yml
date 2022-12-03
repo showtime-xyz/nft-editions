@@ -20,9 +20,6 @@ jobs:
         with:
           version: nightly
 
-      - name: Run forge tests
-        run: forge test -vvv
-
       - name: "Install Node.js"
         uses: "actions/setup-node@v3"
         with:
@@ -31,6 +28,9 @@ jobs:
 
       - name: "Install the dependencies"
         run: "yarn install --immutable"
+
+      - name: Run forge tests
+        run: forge test -vvv
 
       - name: "Run the hardhat tests"
         run: "npx hardhat test"
