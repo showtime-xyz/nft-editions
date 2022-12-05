@@ -12,7 +12,7 @@
 
 pragma solidity ^0.8.6;
 
-import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
 import {IEditionCreator} from "./interfaces/IEditionCreator.sol";
 import {IEdition} from "./interfaces/IEdition.sol";
