@@ -12,8 +12,8 @@
 
 pragma solidity ^0.8.6;
 
-import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
-import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin-contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
+import {AddressUpgradeable} from "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import {ERC721, ERC721I} from "./solmate-initializable/tokens/ERC721I.sol";
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";

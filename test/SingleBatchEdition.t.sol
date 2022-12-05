@@ -4,7 +4,7 @@ pragma solidity ^0.8.15;
 import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
 
-import {ClonesUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";

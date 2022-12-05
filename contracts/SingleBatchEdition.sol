@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
 
-import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
-import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin-contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
+import {AddressUpgradeable} from "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {SSTORE2} from "solmate/utils/SSTORE2.sol";
