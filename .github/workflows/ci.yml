@@ -20,17 +20,5 @@ jobs:
         with:
           version: nightly
 
-      - name: "Install Node.js"
-        uses: "actions/setup-node@v3"
-        with:
-          cache: "yarn"
-          node-version: "16"
-
-      - name: "Install the dependencies"
-        run: "yarn install --immutable"
-
       - name: Run forge tests
         run: forge test -vvv
-
-      - name: "Run the hardhat tests"
-        run: "npx hardhat test"
