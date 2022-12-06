@@ -111,64 +111,6 @@ contract EditionTest is Test {
         editionToEscape.mint(address(0xdEaD));
     }
 
-    function testConstructorEmitsInitializedEvent() public {
-        vm.expectEmit(true, true, true, true);
-        emit Initialized();
-        new Edition();
-    }
-
-    function testNoOwnerAfterConstructor() public {
-        Edition newImpl = new Edition();
-        assertEq(newImpl.owner(), address(0));
-    }
-
-    function testInitializerEmitsOwnershipTransferredEvent() public {
-        vm.expectEmit(true, true, true, true);
-        emit OwnershipTransferred(address(0), address(this));
-        editionCreator.createEdition(
-            "name",
-            "symbol",
-            "description",
-            "https://example.com/animation.mp4",
-            "https://example.com/image.png",
-            0xcccccccccccccc, // editionSize
-            0xaaaa, // royaltyBPS
-            0xbbbbbbbbbbbbbb // mintPeriodSeconds
-        );
-    }
-
-    function testDoesNotAllowReinitializationOfTheImplContract() public {
-        Edition newImpl = new Edition();
-
-        vm.expectRevert("ALREADY_INITIALIZED");
-        newImpl.initialize(
-            bob,
-            "name",
-            "symbol",
-            "description",
-            "https://example.com/animation.mp4",
-            "https://example.com/image.png",
-            0xcccccccccccccc, // editionSize
-            0xaaaa, // royaltyBPS
-            0xbbbbbbbbbbbbbb // mintPeriodSeconds
-        );
-    }
-
-    function testDoesNotAllowReinitializationOfProxyContracts() public {
-        vm.expectRevert("ALREADY_INITIALIZED");
-        edition.initialize(
-            bob,
-            "name",
-            "symbol",
-            "description",
-            "https://example.com/animation.mp4",
-            "https://example.com/image.png",
-            0xcccccccccccccc, // editionSize
-            0xaaaa, // royaltyBPS
-            0xbbbbbbbbbbbbbb // mintPeriodSeconds
-        );
-    }
-
     // for gas usage only
     function testTokenURI() public view {
         edition.tokenURI(tokenId);
