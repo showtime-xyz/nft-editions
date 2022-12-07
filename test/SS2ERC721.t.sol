@@ -118,6 +118,16 @@ contract ERC721Test is Test {
         assertEq(token.ownerOf(1), address(0xBEEF));
     }
 
+    function testBalanceOfBeforeMint() public {
+        assertEq(token.balanceOf(address(0xBEEF)), 0);
+    }
+
+    function testOwnerOfBeforeMint(uint256 n) public {
+        vm.assume(n > 0);
+        vm.expectRevert("NOT_MINTED");
+        token.ownerOf(n);
+    }
+
     function testMint2() public {
         address to1 = 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa;
         address to2 = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;
