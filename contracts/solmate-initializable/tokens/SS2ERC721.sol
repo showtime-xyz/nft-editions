@@ -56,6 +56,10 @@ abstract contract SS2ERC721 is ERC721 {
     }
 
     function _ownersPrimaryLength() internal view returns (uint256) {
+        if (_ownersPrimaryPointer == address(0)) {
+            return 0;
+        }
+
         return (_ownersPrimaryPointer.code.length - 1) / 20;
     }
 
