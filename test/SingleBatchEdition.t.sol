@@ -135,6 +135,18 @@ contract SingleBatchEditionTest is Test {
         assertEq(OwnedInitializable(address(edition)).owner(), bob);
     }
 
+    function testMintingUpdatesTotalSupply(uint256 n) public {
+        vm.assume(0 < n);
+        vm.assume(n < 1200);
+        assertEq(edition.totalSupply(), 0);
+
+        // when we mint n tokens
+        minter.mintBatch(edition, Addresses.make(n));
+
+        // then the total supply is n
+        assertEq(edition.totalSupply(), n);
+    }
+
     // TODO: withdraw auth
     // TODO: mintBatch auth
 

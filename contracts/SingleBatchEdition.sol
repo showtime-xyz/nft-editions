@@ -150,7 +150,7 @@ contract SingleBatchEdition is
         lastTokenId = _mint(pointer);
 
         // can not realistically be bigger than 2^64
-        _state.totalSupply = uint64(lastTokenId);
+        state.totalSupply = uint64(lastTokenId);
     }
 
     /*//////////////////////////////////////////////////////////////
