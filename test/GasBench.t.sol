@@ -10,7 +10,6 @@ import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {Edition} from "contracts/Edition.sol";
 import {ERC721I} from "contracts/solmate-initializable/tokens/ERC721I.sol";
-import {PackedERC721Initializable} from "contracts/solmate-initializable/tokens/PackedERC721Initializable.sol";
 import {SS2ERC721} from "contracts/solmate-initializable/tokens/SS2ERC721.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
 
@@ -24,31 +23,6 @@ contract SolmateERC721 is ERC721I {
 
     function mint(address to, uint256 tokenId) public {
         _mint(to, tokenId);
-    }
-
-    function burn(uint256 tokenId) public {
-        _burn(tokenId);
-    }
-
-    function tokenURI(uint256) public view override returns (string memory) {
-        return name;
-    }
-}
-
-contract PackedERC721 is PackedERC721Initializable {
-    function initialize(string memory name, string memory symbol)
-        public
-        initializer
-    {
-        __ERC721_init(name, symbol);
-    }
-
-    function mint(address addr1, address addr2) public {
-        _mint(abi.encodePacked(addr1, addr2));
-    }
-
-    function mint(bytes calldata addresses) public {
-        _mint(addresses);
     }
 
     function burn(uint256 tokenId) public {
@@ -85,9 +59,6 @@ contract GasBench is Test {
     SingleBatchEdition singleBatchImpl;
     SingleBatchEdition singleBatchForMinting;
     SingleBatchEdition singleBatchForTransfers;
-
-    PackedERC721 packedErc721ForMinting;
-    PackedERC721 packedErc721ForTransfers;
 
     Sstore2ERC721 sstore2Erc721ForMinting;
     Sstore2ERC721 sstore2Erc721ForTransfers;
@@ -149,19 +120,6 @@ contract GasBench is Test {
         solmateErc721 = SolmateERC721(ClonesUpgradeable.clone(address(new SolmateERC721())));
         solmateErc721.initialize("Solmate Baseline", "SOLMATE");
         solmateErc721.mint(address(this), 1);
-
-        packedErc721ForMinting = new PackedERC721();
-        packedErc721ForMinting.initialize("PackedERC721 for Minting", "PACKED");
-
-        packedErc721ForTransfers = new PackedERC721();
-        packedErc721ForTransfers.initialize(
-            "PackedERC721 for Transfers",
-            "PACKED"
-        );
-        packedErc721ForTransfers.mint(
-            address(this),
-            Addresses.incr(address(this))
-        );
 
         sstore2Erc721ForMinting = new Sstore2ERC721("Sstore2ERC721 for Minting", "SSTORE2");
         sstore2Erc721ForTransfers = new Sstore2ERC721("Sstore2ERC721 for Transfers", "SSTORE2");
@@ -314,49 +272,6 @@ contract GasBench is Test {
         singleBatchForTransfers.balanceOf(address(this));
     }
 
-    /*//////////////////////////////////////////////////////////////
-                           PACKED ERC721 TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function test__packedErc721__mint0001() public {
-        // minting one not actually supported
-        packedErc721ForMinting.mint(
-            address(this),
-            Addresses.incr(address(this))
-        );
-    }
-
-    function test__packedErc721__mint0010() public {
-        packedErc721ForMinting.mint(Addresses.make(10));
-    }
-
-    function test__packedErc721__mint0100() public {
-        packedErc721ForMinting.mint(Addresses.make(100));
-    }
-
-    function test__packedErc721__mint1000() public {
-        packedErc721ForMinting.mint(Addresses.make(1000));
-    }
-
-    function test__packedErc721__transfer() public {
-        packedErc721ForTransfers.transferFrom(address(this), bob, 1);
-    }
-
-    function test__packedErc721__burn() public {
-        packedErc721ForTransfers.transferFrom(
-            address(this),
-            address(0xdEaD),
-            1
-        );
-    }
-
-    function test__packedErc721__ownerOf() public view {
-        packedErc721ForTransfers.ownerOf(1);
-    }
-
-    function test__packedErc721__balanceOf() public view {
-        packedErc721ForTransfers.balanceOf(address(this));
-    }
 
     /*//////////////////////////////////////////////////////////////
                           SSTORE2 ERC721 TESTS
