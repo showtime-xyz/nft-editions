@@ -147,7 +147,24 @@ contract SingleBatchEditionTest is Test {
         assertEq(edition.totalSupply(), n);
     }
 
-    // TODO: withdraw auth
+    function testOnlyOwnerCanWithdraw() public {
+        vm.expectRevert("UNAUTHORIZED");
+        vm.prank(bob);
+        edition.withdraw();
+    }
+
+    function testOwnerCanWithdraw() public {
+        vm.deal(address(edition), 1 ether);
+
+        // when the owner withdraws from the edition
+        vm.prank(editionOwner);
+        edition.withdraw();
+
+        // then the funds are transferred
+        assertEq(address(edition).balance, 0);
+        assertEq(editionOwner.balance, 1 ether);
+    }
+
     // TODO: mintBatch auth
 
     /*//////////////////////////////////////////////////////////////
