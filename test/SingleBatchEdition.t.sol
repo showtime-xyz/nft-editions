@@ -165,7 +165,12 @@ contract SingleBatchEditionTest is Test {
         assertEq(editionOwner.balance, 1 ether);
     }
 
-    // TODO: mintBatch auth
+    function testOnlyMinterCanMint() public {
+        bytes memory addresses = Addresses.make(1);
+        vm.prank(bob);
+        vm.expectRevert(Unauthorized.selector);
+        edition.mintBatch(addresses);
+    }
 
     /*//////////////////////////////////////////////////////////////
                                GAS TESTS
