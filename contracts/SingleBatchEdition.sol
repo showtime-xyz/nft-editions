@@ -29,8 +29,6 @@ contract SingleBatchEdition is
         address minter;
         // Immutable royalty amount in bps (uint16 is large enough to store 10000 bps)
         uint16 royaltyBPS;
-        // How many have been minted -- 0 before mint, final value after calling mintBatch()
-        uint64 totalSupply;
     }
 
     State private state;
@@ -66,8 +64,7 @@ contract SingleBatchEdition is
 
         state = State({
             minter: _minter,
-            royaltyBPS: requireUint16(_royaltyBPS),
-            totalSupply: 0
+            royaltyBPS: requireUint16(_royaltyBPS)
         });
     }
 
@@ -143,14 +140,11 @@ contract SingleBatchEdition is
             revert Unauthorized();
         }
 
-        if (_state.totalSupply > 0) {
+        if (totalSupply() > 0) {
             revert SoldOut();
         }
 
         lastTokenId = _mint(pointer);
-
-        // can not realistically be bigger than 2^64
-        state.totalSupply = uint64(lastTokenId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -169,7 +163,7 @@ contract SingleBatchEdition is
     //////////////////////////////////////////////////////////////*/
 
     function totalSupply() public view override returns (uint256) {
-        return state.totalSupply;
+        return _ownersPrimaryLength();
     }
 
     /// @notice Get the base64-encoded json metadata for a token
@@ -181,11 +175,12 @@ contract SingleBatchEdition is
         override
         returns (string memory)
     {
-        if (tokenId == 0 || tokenId > state.totalSupply) {
+        uint256 _totalSupply = totalSupply();
+        if (tokenId == 0 || tokenId > _totalSupply) {
             revert InvalidArgument();
         }
 
-        return createTokenMetadata(name, tokenId, state.totalSupply);
+        return createTokenMetadata(name, tokenId, _totalSupply);
     }
 
     /// @notice Get the base64-encoded json metadata object for the edition
