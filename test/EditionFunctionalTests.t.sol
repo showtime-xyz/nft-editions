@@ -33,7 +33,7 @@ function parseDataUri(string memory dataUri) pure returns (string memory json) {
     json = string(Base64.decode(base64Slice));
 }
 
-function jsonString(string memory json, string memory key) returns (string memory) {
+function jsonString(string memory json, string memory key) pure returns (string memory) {
     return abi.decode(
         stdJson.parseRaw(json, key),
         (string)
@@ -52,14 +52,27 @@ contract EditionFunctionalTests is Test {
         uint256 indexed tokenId
     );
 
-    string constant DEFAULT_NAME = "Testing Token";
-    string constant DEFAULT_SYMBOL = "TEST";
-    string constant DEFAULT_DESCRIPTION = "This is a testing token for all";
-    string constant DEFAULT_ANIMATION_URL = "";
-    string constant DEFAULT_IMAGE_URL = "ipfs://someImageHash";
-    uint256 constant DEFAULT_EDITION_SIZE = 10;
-    uint256 constant DEFAULT_ROYALTIES_BPS = 1000;
-    uint256 constant DEFAULT_MINT_PERIOD = 0;
+    struct EditionParams {
+        string name;
+        string symbol;
+        string description;
+        string animationUrl;
+        string imageUrl;
+        uint256 editionSize;
+        uint256 royaltiesBps;
+        uint256 mintPeriod;
+    }
+
+    EditionParams internal DEFAULT_PARAMS = EditionParams(
+        "Testing Token",
+        "TEST",
+        "This is a testing token for all",
+        "",
+        "ipfs://someImageHash",
+        10,
+        1000,
+        0
+    );
 
     EditionCreator editionCreator;
     Edition editionImpl;
@@ -69,8 +82,9 @@ contract EditionFunctionalTests is Test {
 
     address editionOwner;
     address bob = makeAddr("bob");
+    address constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
-    function createEdition(string memory name, string memory description)
+    function createEdition(EditionParams memory params)
         internal
         returns (Edition _edition)
     {
@@ -78,14 +92,14 @@ contract EditionFunctionalTests is Test {
         _edition = Edition(
             address(
                 editionCreator.createEdition(
-                    name,
-                    DEFAULT_SYMBOL,
-                    description,
-                    DEFAULT_ANIMATION_URL,
-                    DEFAULT_IMAGE_URL,
-                    DEFAULT_EDITION_SIZE,
-                    DEFAULT_ROYALTIES_BPS,
-                    DEFAULT_MINT_PERIOD
+                    params.name,
+                    params.symbol,
+                    params.description,
+                    params.animationUrl,
+                    params.imageUrl,
+                    params.editionSize,
+                    params.royaltiesBps,
+                    params.mintPeriod
                 )
             )
         );
@@ -97,17 +111,18 @@ contract EditionFunctionalTests is Test {
         return _edition;
     }
 
+    function createEdition() internal returns (Edition) {
+        return createEdition(DEFAULT_PARAMS);
+    }
+
     function setUp() public {
         editionOwner = makeAddr("editionOwner");
         editionImpl = new Edition();
         editionCreator = new EditionCreator(address(editionImpl));
 
-        edition = createEdition(
-            DEFAULT_NAME,
-            DEFAULT_DESCRIPTION
-        );
+        edition = createEdition();
 
-        tokenId = edition.mint(address(0xdEaD));
+        tokenId = edition.mint(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -424,5 +439,194 @@ contract EditionFunctionalTests is Test {
         assertEq(parsed.name, string.concat(DEFAULT_NAME, " #1/10"));
         assertEq(parsed.description, DEFAULT_DESCRIPTION);
         assertEq(parsed.image, DEFAULT_IMAGE_URL);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                              ERC721 TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testMintingUpdatesTotalSupply() public {
+        assertEq(edition.totalSupply(), 1);
+        edition.mint(bob);
+        assertEq(edition.totalSupply(), 2);
+        assertEq(edition.ownerOf(2), bob);
+    }
+
+    function testAllowsUserBurn() public {
+        // no burn method, burning is done by transfering to the burn address
+        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
+
+        // as a result, totalSupply is unchanged
+        assertEq(edition.totalSupply(), 1);
+
+        // and the token is owned by the burn address
+        assertEq(edition.ownerOf(tokenId), BURN_ADDRESS);
+    }
+
+    function testDoesNotAllowUnapprovedBurns() public {
+        // bob has no approval for that token
+        vm.prank(bob);
+        vm.expectRevert("NOT_AUTHORIZED");
+        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
+    }
+
+    function testAllowsBurnIfApproved() public {
+        // when we approve bob
+        edition.approve(bob, tokenId);
+
+        // then bob can burn the token
+        vm.prank(bob);
+        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
+        assertEq(edition.ownerOf(tokenId), BURN_ADDRESS);
+    }
+
+    function testAllowsBurnIfApprovedForAll() public {
+        // when we approve bob
+        edition.setApprovalForAll(bob, true);
+
+        // then bob can burn the token
+        vm.prank(bob);
+        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
+        assertEq(edition.ownerOf(tokenId), BURN_ADDRESS);
+    }
+
+    function testDoesNotAllowBurningTwice() public {
+        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
+
+        vm.expectRevert("WRONG_FROM");
+        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
+    }
+
+    function testERC165Impl() public {
+        assertEq(edition.supportsInterface(0x2a55205a), true); // ERC2981
+        assertEq(edition.supportsInterface(0x01ffc9a7), true); // ERC165
+        assertEq(edition.supportsInterface(0x80ac58cd), true); // ERC721
+        assertEq(edition.supportsInterface(0x5b5e139f), true); // ERC721Metadata
+    }
+
+    function testRoyaltyRecipientUpdatedAfterOwnershipTransferred() public {
+        (address recipient, ) = edition.royaltyInfo(1, 1 ether);
+        assertEq(recipient, editionOwner);
+
+        // when we transfer ownership
+        vm.prank(editionOwner);
+        edition.transferOwnership(bob);
+
+        // then the royalty recipient is updated
+        (recipient, ) = edition.royaltyInfo(1, 1 ether);
+        assertEq(recipient, bob);
+    }
+
+    function testRoyaltyAmount(uint128 salePrice) public {
+        // uint128 is plenty big and avoids overflow errors
+        (, uint256 fee) = edition.royaltyInfo(1, salePrice);
+        assertEq(fee, uint256(salePrice) * DEFAULT_ROYALTIES_BPS / 100_00);
+    }
+
+    function testMintBatch4() public {
+        // setup
+        address alice = makeAddr("alice");
+        address charlie = makeAddr("charlie");
+
+        // make a batch of address with duplicates, unsorted
+        address[] memory recipients = new address[](4);
+        recipients[0] = alice;
+        recipients[1] = bob;
+        recipients[2] = charlie;
+        recipients[3] = alice;
+
+        uint256 lastTokenId = edition.mintBatch(recipients);
+
+        assertEq(lastTokenId, 5);
+        assertEq(edition.totalSupply(), 5);
+        assertEq(edition.ownerOf(2), alice);
+        assertEq(edition.ownerOf(3), bob);
+        assertEq(edition.ownerOf(4), charlie);
+        assertEq(edition.ownerOf(5), alice);
+        assertEq(edition.balanceOf(alice), 2);
+    }
+
+    // TODO: test purchase
+    // TODO: test only approved minter can mint
+    // TODO: setApprovedMinter auth test
+    // TODO: setSalePrice auth test
+
+    /*//////////////////////////////////////////////////////////////
+                           SUPPLY LIMIT TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testCanNotMintMoreThanEditionSize() public {
+        while (edition.totalSupply() < DEFAULT_EDITION_SIZE) {
+            edition.mint(bob);
+        }
+
+        vm.expectRevert(SoldOut.selector);
+        edition.mint(bob);
+    }
+
+    function testCanNotMintBatchBiggerThanEditionSize() public {
+        address[] memory recipients = new address[](DEFAULT_EDITION_SIZE);
+        for (uint256 i = 0; i < DEFAULT_EDITION_SIZE; i++) {
+            recipients[i] = bob;
+        }
+
+        vm.expectRevert(SoldOut.selector);
+        edition.mintBatch(recipients);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            TIME LIMIT TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testTimeLimitedEditionDuringMintingPeriod() public {
+        // setup
+        EditionParams memory params = DEFAULT_PARAMS;
+        params.name = "Time Limited Edition";
+        params.mintPeriod = 2 days;
+        Edition timeLimitedEdition = createEdition(params);
+
+        // minting is allowed
+        assertEq(timeLimitedEdition.isMintingEnded(), false);
+        timeLimitedEdition.mint(bob);
+    }
+
+    function testTimeLimitedEditionAfterMintingPeriod() public {
+        // setup
+        EditionParams memory params = DEFAULT_PARAMS;
+        params.name = "Time Limited Edition";
+        params.mintPeriod = 2 days;
+        Edition timeLimitedEdition = createEdition(params);
+
+        vm.prank(editionOwner);
+        timeLimitedEdition.setApprovedMinter(address(0), true); // allow anyone to mint
+
+
+        // after the mint period
+        vm.warp(block.timestamp + 3 days);
+
+        // isMintingEnded() returns true
+        assertEq(timeLimitedEdition.isMintingEnded(), true);
+
+        // mint() fails
+        vm.expectRevert(TimeLimitReached.selector);
+        timeLimitedEdition.mint(bob);
+
+        // mintBatch() fails
+        address[] memory recipients = new address[](1);
+        recipients[0] = bob;
+        vm.expectRevert(TimeLimitReached.selector);
+        timeLimitedEdition.mintBatch(recipients);
+
+        // mint() with salePrice fails
+        vm.prank(editionOwner);
+        timeLimitedEdition.setSalePrice(1 ether);
+        vm.deal(bob, 1 ether);
+
+        vm.expectRevert(TimeLimitReached.selector);
+        vm.prank(bob);
+        timeLimitedEdition.mint{value: 1 ether}(bob);
+
+        // it returns the expected totalSupply
+        assertEq(timeLimitedEdition.totalSupply(), 1);
     }
 }
