@@ -29,14 +29,14 @@ contract EditionCreator is IEditionCreator {
 
     /// Creates a new edition contract as a factory with a deterministic address
     /// Important: most of these fields can not be changed after calling
-    /// @param _name Name of the edition contract
-    /// @param _symbol Symbol of the edition contract
-    /// @param _description Metadata: Description of the edition entry
-    /// @param _animationUrl Metadata: Animation url (optional) of the edition entry
-    /// @param _imageUrl Metadata: Image url (semi-required) of the edition entry
-    /// @param _editionSize Total size of the edition (number of possible editions)
-    /// @param _royaltyBPS BPS amount of royalty
-    /// @param _mintPeriodSeconds The amount of time in seconds after which editions can no longer be minted or purchased. Use 0 to have no expiration
+    /// @param _name Name of the edition
+    /// @param _symbol Symbol of the edition
+    /// @param _description Description of the edition
+    /// @param _animationUrl Link to video for each token in this edition, ideally "ipfs://..."
+    /// @param _imageUrl Link to an image for each token in this edition, ideally "ipfs://..."
+    /// @param _editionSize Set to a number greater than 0 for a limited edition, 0 for an open edition
+    /// @param _royaltyBPS Royalty amount in basis points (1/100th of a percent) to be paid to the owner of the edition
+    /// @param _mintPeriodSeconds Set to a number greater than 0 for a time-limited edition, 0 for no time limit. The mint period starts when the edition is created.
     /// @return newContract The address of the created edition
     function createEdition(
         string calldata _name,
