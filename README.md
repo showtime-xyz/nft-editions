@@ -1,7 +1,17 @@
-# Zora NFT Editions // Showtime Fork
+# ✦ Showtime // Zora NFT Editions
 
 [![CI](https://github.com/showtime-xyz/nft-editions/actions/workflows/ci.yml/badge.svg)](https://github.com/showtime-xyz/nft-editions/actions/workflows/ci.yml)
 
+We kept the same swiss-army knife approach to editions that we used and loved from the [original Zora Editions](https://github.com/ourzora/nft-editions):
+
+- the base implementation is extremely versatile and composable
+- new editions are minimal proxies (i.e. cheaper to deploy than a brand new ERC721)
+- creator-owned collections with a unique address and on-chain royalties
+- each token is numbered with on-chain metadata rendering
+- support for ETH sales
+- support for minting through contracts (e.g. to support ERC20 primary sales)
+
+... and then we added our on spin on it
 
 ## Differences with the [original Zora Editions](https://github.com/ourzora/nft-editions)
 
@@ -22,7 +32,7 @@
 - moved from OpenZeppelin's ERC721 as a base class to solmate's
 - moved from OpenZeppelin's string libraries to Solady's (`LibString.toString(uint256)`, `LibString.escapeJSON(string)` and `Base64.encode(bytes)`)
 - `Edition` now inherits from `EditionMetadataRenderer` instead of using an external `SharedNFTLogic` library
-- use Solidity errors instead of strings
+- Solidity errors instead of strings
 - [removed unnecessary functions from the ABI](https://github.com/showtime-xyz/nft-editions/commit/9464226141b4e4efe883ca23716c5a3c302eaf12)
 
 
