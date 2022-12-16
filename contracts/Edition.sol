@@ -243,8 +243,8 @@ contract Edition is
     }
 
     /// @dev stateless version of isMintingEnded
-    function enforceTimeLimit(uint64 endOfMintPeriod) internal view {
-        if (endOfMintPeriod > 0 && uint64(block.timestamp) > endOfMintPeriod) {
+    function enforceTimeLimit(uint64 _endOfMintPeriod) internal view {
+        if (_endOfMintPeriod > 0 && uint64(block.timestamp) > _endOfMintPeriod) {
             revert TimeLimitReached();
         }
     }
@@ -335,11 +335,17 @@ contract Edition is
         }
     }
 
+    /// Returns the timestamp when the minting period ends, or 0 if there is no time limit
+    function endOfMintPeriod() public view override returns (uint256) {
+        return state.endOfMintPeriod;
+    }
+
     /// Returns whether the edition can still be minted/purchased
     function isMintingEnded() public view override returns (bool) {
+        uint256 _endOfMintPeriod = state.endOfMintPeriod;
         return
-            state.endOfMintPeriod > 0 &&
-            uint64(block.timestamp) > state.endOfMintPeriod;
+            _endOfMintPeriod > 0 &&
+            uint64(block.timestamp) > _endOfMintPeriod;
     }
 
     function totalSupply() public view override returns (uint256) {
