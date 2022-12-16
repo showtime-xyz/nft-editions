@@ -22,6 +22,8 @@ interface IEdition {
         uint256 _mintPeriodSeconds
     ) external;
 
+    function endOfMintPeriod() external view returns (uint256);
+
     function isMintingEnded() external view returns (bool);
 
     function mint(address to) external payable returns (uint256);
