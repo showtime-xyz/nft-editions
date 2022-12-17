@@ -20,6 +20,7 @@ import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializabl
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
 import {IEdition} from "./interfaces/IEdition.sol";
+import {OptionalOperatorFilterer} from "./utils/OptionalOperatorFilterer.sol";
 
 import "./interfaces/Errors.sol";
 
@@ -33,7 +34,8 @@ contract Edition is
     ERC721I,
     IEdition,
     IERC2981Upgradeable,
-    OwnedInitializable
+    OwnedInitializable,
+    OptionalOperatorFilterer
 {
     struct EditionState {
         // how many tokens have been minted (can not be more than editionSize)
@@ -108,6 +110,27 @@ contract Edition is
     }
 
     /*//////////////////////////////////////////////////////////////
+                      OPERATOR FILTERER OVERRIDES
+    //////////////////////////////////////////////////////////////*/
+
+    function transferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data)
+        public
+        override
+        onlyAllowedOperator(from)
+    {
+        super.safeTransferFrom(from, to, tokenId, data);
+    }
+
+
+    /*//////////////////////////////////////////////////////////////
                   CREATOR / COLLECTION OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -175,6 +198,10 @@ contract Edition is
                 ++i;
             }
         }
+    }
+
+    function setOperatorFilter(address operatorFilter) public onlyOwner {
+        _setOperatorFilter(operatorFilter);
     }
 
     /*//////////////////////////////////////////////////////////////

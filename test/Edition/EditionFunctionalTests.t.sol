@@ -374,6 +374,12 @@ contract EditionFunctionalTests is EditionFixture {
         edition.transferOwnership(bob);
     }
 
+    function testOnlyOwnerCanSetOperatorFilter() public {
+        vm.expectRevert("UNAUTHORIZED");
+        vm.prank(bob);
+        edition.setOperatorFilter(bob);
+    }
+
 
     /*//////////////////////////////////////////////////////////////
                             SALE PRICE TESTS
