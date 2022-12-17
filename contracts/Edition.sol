@@ -90,18 +90,18 @@ contract Edition is
         animationUrl = _animationUrl;
         imageUrl = _imageUrl;
 
-        uint64 endOfMintPeriod;
+        uint64 _endOfMintPeriod;
         if (_mintPeriodSeconds > 0) {
             // overflows are not expected to happen for timestamps, and have no security implications
             unchecked {
                 uint256 endOfMintPeriodUint256 = block.timestamp + _mintPeriodSeconds;
-                endOfMintPeriod = requireUint64(endOfMintPeriodUint256);
+                _endOfMintPeriod = requireUint64(endOfMintPeriodUint256);
             }
         }
 
         state = EditionState({
             editionSize: requireUint64(_editionSize),
-            endOfMintPeriod: endOfMintPeriod,
+            endOfMintPeriod: _endOfMintPeriod,
             royaltyBPS: requireUint16(_royaltyBPS),
             salePriceTwei: 0,
             numberMinted: 0,
