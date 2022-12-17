@@ -8,3 +8,7 @@
 	path = lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
 	branch = v4.8.0
+[submodule "lib/operator-filter-registry"]
+	path = lib/operator-filter-registry
+	url = https://github.com/ProjectOpenSea/operator-filter-registry
+	branch = v1.3.1

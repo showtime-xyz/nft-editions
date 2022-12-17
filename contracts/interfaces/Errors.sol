@@ -6,6 +6,7 @@ error IntegerOverflow(uint256 value);
 error InvalidArgument();
 error LengthMismatch();
 error NotForSale();
+error OperatorNotAllowed(address operator);
 error PriceTooLow();
 error SoldOut();
 error TimeLimitReached();
