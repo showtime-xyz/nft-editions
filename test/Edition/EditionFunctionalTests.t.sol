@@ -4,7 +4,8 @@ pragma solidity ^0.8.15;
 import {stdJson} from "forge-std/StdJson.sol";
 import {console2} from "forge-std/console2.sol";
 
-import {IERC721ReceiverUpgradeable} from "@openzeppelin-contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
+import {IERC721ReceiverUpgradeable} from
+    "@openzeppelin-contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 
 import {Base64} from "contracts/utils/Base64.sol";
 import {Edition} from "contracts/Edition.sol";
@@ -131,7 +132,7 @@ contract EditionFunctionalTests is EditionFixture {
     }
 
     function testRoyaltyRecipientUpdatedAfterOwnershipTransferred() public {
-        (address recipient, ) = edition.royaltyInfo(1, 1 ether);
+        (address recipient,) = edition.royaltyInfo(1, 1 ether);
         assertEq(recipient, editionOwner);
 
         // when we transfer ownership
@@ -139,7 +140,7 @@ contract EditionFunctionalTests is EditionFixture {
         edition.transferOwnership(bob);
 
         // then the royalty recipient is updated
-        (recipient, ) = edition.royaltyInfo(1, 1 ether);
+        (recipient,) = edition.royaltyInfo(1, 1 ether);
         assertEq(recipient, bob);
     }
 
@@ -241,7 +242,7 @@ contract EditionFunctionalTests is EditionFixture {
             address(unsuspectingContract),
             /* whatever */
             0
-        );
+            );
 
         edition.mint(address(unsuspectingContract));
     }
@@ -259,7 +260,7 @@ contract EditionFunctionalTests is EditionFixture {
             address(erc721AwareContract),
             /* whatever */
             0
-        );
+            );
 
         edition.mint(address(erc721AwareContract));
     }
@@ -342,7 +343,6 @@ contract EditionFunctionalTests is EditionFixture {
         assertEq(timeLimitedEdition.totalSupply(), 0);
     }
 
-
     /*//////////////////////////////////////////////////////////////
                                AUTH TESTS
     //////////////////////////////////////////////////////////////*/
@@ -380,6 +380,11 @@ contract EditionFunctionalTests is EditionFixture {
         edition.setOperatorFilter(bob);
     }
 
+    function testOnlyOwnerCanEnableDefaultOperatorFilter() public {
+        vm.expectRevert("UNAUTHORIZED");
+        vm.prank(bob);
+        edition.enableDefaultOperatorFilter();
+    }
 
     /*//////////////////////////////////////////////////////////////
                             SALE PRICE TESTS

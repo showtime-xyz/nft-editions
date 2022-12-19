@@ -17,7 +17,7 @@ contract MockRegistry {
         filteredOperators = _filteredOperators;
     }
 
-    function isOperatorAllowed(address /* registrant */, address operator) public view returns (bool) {
+    function isOperatorAllowed(address, /* registrant */ address operator) public view returns (bool) {
         for (uint256 i = 0; i < filteredOperators.length; i++) {
             if (filteredOperators[i] == operator) {
                 return false;
@@ -80,17 +80,17 @@ contract EditionOperatorFiltering is EditionFixture {
         try vm.envString("NETWORK") returns (string memory envNetwork) {
             vm.createSelectFork(getChain(envNetwork).rpcUrl);
 
-            filteredOperators =
-                IOperatorFilterRegistry(CANONICAL_OPERATOR_FILTER_REGISTRY).filteredOperators(CANONICAL_OPENSEA_REGISTRANT);
+            filteredOperators = IOperatorFilterRegistry(CANONICAL_OPERATOR_FILTER_REGISTRY).filteredOperators(
+                CANONICAL_OPENSEA_REGISTRANT
+            );
         } catch {
             // fallback to static list
             console2.log("No network specified, using static list (Dec 2022 snapshot)");
 
-            filteredOperators =
-                abi.decode(
-                    hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000111abe46ff893f3b2fdf1f759a8a8000000000000000000000000fed24ec7e22f573c2e08aef55aa6797ca2b3a051000000000000000000000000f42aa99f011a1fa7cda90e5e98b277e306bca83e000000000000000000000000b16c1342e617a5b6e4b631eb114483fdb289c0a4000000000000000000000000d42638863462d2f21bb7d4275d7637ee5d5541eb00000000000000000000000008ce97807a81896e85841d74fb7e7b065ab3ef0500000000000000000000000092de3a1511ef22abcf3526c302159882a4755b22000000000000000000000000cd80c916b1194beb48abf007d0b79a7238436d56",
-                    (address[])
-                );
+            filteredOperators = abi.decode(
+                hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000111abe46ff893f3b2fdf1f759a8a8000000000000000000000000fed24ec7e22f573c2e08aef55aa6797ca2b3a051000000000000000000000000f42aa99f011a1fa7cda90e5e98b277e306bca83e000000000000000000000000b16c1342e617a5b6e4b631eb114483fdb289c0a4000000000000000000000000d42638863462d2f21bb7d4275d7637ee5d5541eb00000000000000000000000008ce97807a81896e85841d74fb7e7b065ab3ef0500000000000000000000000092de3a1511ef22abcf3526c302159882a4755b22000000000000000000000000cd80c916b1194beb48abf007d0b79a7238436d56",
+                (address[])
+            );
 
             MockRegistry mockRegistry = new MockRegistry();
             vm.etch(CANONICAL_OPERATOR_FILTER_REGISTRY, address(mockRegistry).code);
@@ -98,6 +98,17 @@ contract EditionOperatorFiltering is EditionFixture {
         }
     }
 
+    function testEnableDefaultOperator() public {
+        vm.startPrank(editionOwner);
+
+        edition.setOperatorFilter(address(0));
+        assertEq(edition.activeOperatorFilter(), address(0));
+
+        edition.enableDefaultOperatorFilter();
+        assertEq(edition.activeOperatorFilter(), CANONICAL_OPENSEA_REGISTRANT);
+
+        vm.stopPrank();
+    }
 
     function testOperatorFiltering() public {
         IERC721 nftContract = IERC721(contractAddress);

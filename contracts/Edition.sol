@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
 
 /**
-
-█▄░█ █▀▀ ▀█▀   █▀▀ █▀▄ █ ▀█▀ █ █▀█ █▄░█ █▀
-█░▀█ █▀░ ░█░   ██▄ █▄▀ █ ░█░ █ █▄█ █░▀█ ▄█
-
-▀█ █▀█ █▀█ ▄▀█
-█▄ █▄█ █▀▄ █▀█
-
+ * █▄░█ █▀▀ ▀█▀   █▀▀ █▀▄ █ ▀█▀ █ █▀█ █▄░█ █▀
+ * █░▀█ █▀░ ░█░   ██▄ █▄▀ █ ░█░ █ █▄█ █░▀█ ▄█
+ *
+ * ▀█ █▀█ █▀█ ▄▀█
+ * █▄ █▄█ █▀▄ █▀█
  */
 
 pragma solidity ^0.8.6;
 
-import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin-contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
+import {
+    IERC2981Upgradeable,
+    IERC165Upgradeable
+} from "@openzeppelin-contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import {ERC721, ERC721I} from "./solmate-initializable/tokens/ERC721I.sol";
@@ -129,7 +130,6 @@ contract Edition is
         super.safeTransferFrom(from, to, tokenId, data);
     }
 
-
     /*//////////////////////////////////////////////////////////////
                   CREATOR / COLLECTION OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -173,17 +173,14 @@ contract Edition is
         externalUrl = _externalUrl;
     }
 
-    function setStringProperties(
-        string[] calldata names,
-        string[] calldata values
-    ) public override onlyOwner {
+    function setStringProperties(string[] calldata names, string[] calldata values) public override onlyOwner {
         uint256 length = names.length;
         if (values.length != length) {
             revert LengthMismatch();
         }
 
         namesOfStringProperties = names;
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < length;) {
             string calldata name = names[i];
             string calldata value = values[i];
             if (bytes(name).length == 0 || bytes(value).length == 0) {
@@ -204,6 +201,10 @@ contract Edition is
         _setOperatorFilter(operatorFilter);
     }
 
+    function enableDefaultOperatorFilter() public onlyOwner {
+        _setOperatorFilter(CANONICAL_OPENSEA_SUBSCRIPTION);
+    }
+
     /*//////////////////////////////////////////////////////////////
                    COLLECTOR / TOKEN OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -222,12 +223,7 @@ contract Edition is
 
     /// @param recipients list of addresses to send the newly minted editions to
     /// @dev This mints multiple editions to the given list of addresses.
-    function mintBatch(address[] calldata recipients)
-        external
-        payable
-        override
-        returns (uint256 lastTokenId)
-    {
+    function mintBatch(address[] calldata recipients) external payable override returns (uint256 lastTokenId) {
         uint64 n = uint64(recipients.length);
         if (n == 0) {
             revert InvalidArgument();
@@ -237,7 +233,7 @@ contract Edition is
 
         unchecked {
             uint256 firstTokenId = lastTokenId + 1 - n;
-            for (uint256 i = 0; i < n; ) {
+            for (uint256 i = 0; i < n;) {
                 _safeMint(recipients[i], firstTokenId + i);
                 ++i;
             }
@@ -248,21 +244,21 @@ contract Edition is
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function requireUint16(uint256 value) internal pure returns(uint16) {
+    function requireUint16(uint256 value) internal pure returns (uint16) {
         if (value > uint256(type(uint16).max)) {
             revert IntegerOverflow(value);
         }
         return uint16(value);
     }
 
-    function requireUint32(uint256 value) internal pure returns(uint32) {
+    function requireUint32(uint256 value) internal pure returns (uint32) {
         if (value > uint256(type(uint32).max)) {
             revert IntegerOverflow(value);
         }
         return uint32(value);
     }
 
-    function requireUint64(uint256 value) internal pure returns(uint64) {
+    function requireUint64(uint256 value) internal pure returns (uint64) {
         if (value > uint256(type(uint64).max)) {
             revert IntegerOverflow(value);
         }
@@ -276,19 +272,13 @@ contract Edition is
         }
     }
 
-    function enforceSupplyLimit(uint64 _editionSize, uint64 _numberMinted)
-        internal
-        pure
-    {
+    function enforceSupplyLimit(uint64 _editionSize, uint64 _numberMinted) internal pure {
         if (_editionSize > 0 && _numberMinted > _editionSize) {
             revert SoldOut();
         }
     }
 
-    function enforceSalePrice(uint256 _salePriceTwei, uint256 quantity)
-        internal
-        view
-    {
+    function enforceSalePrice(uint256 _salePriceTwei, uint256 quantity) internal view {
         unchecked {
             if (msg.value != quantity * _salePriceTwei * 1e12) {
                 revert WrongPrice();
@@ -302,10 +292,7 @@ contract Edition is
         // 1. check allowlist/minter contracts
         // 2. open mints
         // 3. owner mints
-        return
-            allowedMinters[msg.sender] ||
-            allowedMinters[address(0x0)] ||
-            owner == msg.sender;
+        return allowedMinters[msg.sender] || allowedMinters[address(0x0)] || owner == msg.sender;
     }
 
     /// @dev Validates the supply and time limits for minting with a single SLOAD and SSTORE
@@ -370,9 +357,7 @@ contract Edition is
     /// Returns whether the edition can still be minted/purchased
     function isMintingEnded() public view override returns (bool) {
         uint256 _endOfMintPeriod = state.endOfMintPeriod;
-        return
-            _endOfMintPeriod > 0 &&
-            uint64(block.timestamp) > _endOfMintPeriod;
+        return _endOfMintPeriod > 0 && uint64(block.timestamp) > _endOfMintPeriod;
     }
 
     function totalSupply() public view override returns (uint256) {
@@ -382,12 +367,7 @@ contract Edition is
     /// @notice Get the base64-encoded json metadata for a token
     /// @param tokenId the token id to get the metadata for
     /// @return base64-encoded json metadata object
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_ownerOf[tokenId] != address(0), "No token");
 
         return createTokenMetadata(name, tokenId, state.editionSize);
@@ -412,14 +392,7 @@ contract Edition is
         return (owner, (_salePrice * state.royaltyBPS) / 10_000);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, IERC165Upgradeable)
-        returns (bool)
-    {
-        return
-            type(IERC2981Upgradeable).interfaceId == interfaceId ||
-            ERC721.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view override (ERC721, IERC165Upgradeable) returns (bool) {
+        return type(IERC2981Upgradeable).interfaceId == interfaceId || ERC721.supportsInterface(interfaceId);
     }
 }
