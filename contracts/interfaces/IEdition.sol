@@ -22,6 +22,8 @@ interface IEdition {
         uint256 _mintPeriodSeconds
     ) external;
 
+    function enableDefaultOperatorFilter() external;
+
     function endOfMintPeriod() external view returns (uint256);
 
     function isMintingEnded() external view returns (bool);
@@ -30,10 +32,7 @@ interface IEdition {
 
     function safeMint(address to) external payable returns (uint256);
 
-    function mintBatch(address[] memory recipients)
-        external
-        payable
-        returns (uint256);
+    function mintBatch(address[] memory recipients) external payable returns (uint256);
 
     function salePrice() external view returns (uint256);
 
@@ -41,10 +40,9 @@ interface IEdition {
 
     function setExternalUrl(string calldata _externalUrl) external;
 
-    function setStringProperties(
-        string[] calldata names,
-        string[] calldata values
-    ) external;
+    function setOperatorFilter(address operatorFilter) external;
+
+    function setStringProperties(string[] calldata names, string[] calldata values) external;
 
     function setSalePrice(uint256 _salePrice) external;
 

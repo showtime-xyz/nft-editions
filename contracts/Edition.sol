@@ -197,11 +197,11 @@ contract Edition is
         }
     }
 
-    function setOperatorFilter(address operatorFilter) public onlyOwner {
+    function setOperatorFilter(address operatorFilter) public override onlyOwner {
         _setOperatorFilter(operatorFilter);
     }
 
-    function enableDefaultOperatorFilter() public onlyOwner {
+    function enableDefaultOperatorFilter() public override onlyOwner {
         _setOperatorFilter(CANONICAL_OPENSEA_SUBSCRIPTION);
     }
 
