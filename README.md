@@ -53,6 +53,8 @@ See [editions-gas-bench](https://github.com/karmacoma-eth/editions-gas-bench) fo
 | testMintByOwner()       | 48457         | 49869             | 2.91%    |
 | testMintOpenEdition()   | 67489         | 64612             | \-4.26%  |
 
+💁‍♂️ we purposefully optimised for the mint-by-contract flow because this is the most common by far for us (i.e. a contract is an approved minter, e.g. to enforce some requirements such as an allowlist). We made the trade-off to deprioritize mints that come from the owner because it should be much less likely in practice.
+
 ### Batch Mint
 
 |                         | Zora editions | Showtime editions | % change |
@@ -68,11 +70,15 @@ See [editions-gas-bench](https://github.com/karmacoma-eth/editions-gas-bench) fo
 | testContractURI()       | n/a           | 42595             |          |
 | testTokenURI()          | 55674         | 42986             | \-22.79% |
 
+✨ credit to [Solady's](https://github.com/Vectorized/solady/) Base64.sol and LibString.sol for this improvement
+
 ### Other
 
 |                         | Zora editions | Showtime editions | % change |
 | ----------------------- | ------------- | ----------------- | -------- |
 | testTransferFrom()      | 43090         | 40465             | \-6.09%  |
+
+✨ credit to [solmate](https://github.com/transmissions11/solmate/)'s ERC721.sol for this improvement
 
 
 
