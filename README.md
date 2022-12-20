@@ -41,13 +41,13 @@ See [editions-gas-bench](https://github.com/karmacoma-eth/editions-gas-bench) fo
 
 ### Creating a new edition
 
-|                         | Zora editions | Showtime editions | % change |
+|                         | baseline      | this fork         | % change |
 | ----------------------- | ------------- | ----------------- | -------- |
 | testCreateNewEdition()  | 341563        | 225259            | \-34.05% |
 
 ### Single Mint
 
-|                         | Zora editions | Showtime editions | % change |
+|                         | baseline      | this fork         | % change |
 | ----------------------- | ------------- | ----------------- | -------- |
 | testMintByContract()    | 57883         | 50702             | \-12.41% |
 | testMintByOwner()       | 48457         | 49869             | 2.91%    |
@@ -57,7 +57,7 @@ See [editions-gas-bench](https://github.com/karmacoma-eth/editions-gas-bench) fo
 
 ### Batch Mint
 
-|                         | Zora editions | Showtime editions | % change |
+|                         | baseline      | this fork         | % change |
 | ----------------------- | ------------- | ----------------- | -------- |
 | testMint10ByContract()  | 525498        | 515257            | \-1.95%  |
 | testMint10ByOwner()     | 512988        | 511354            | \-0.32%  |
@@ -65,7 +65,7 @@ See [editions-gas-bench](https://github.com/karmacoma-eth/editions-gas-bench) fo
 
 ### View Functions
 
-|                         | Zora editions | Showtime editions | % change |
+|                         | baseline      | this fork         | % change |
 | ----------------------- | ------------- | ----------------- | -------- |
 | testContractURI()       | n/a           | 42595             |          |
 | testTokenURI()          | 55674         | 42986             | \-22.79% |
@@ -74,7 +74,7 @@ See [editions-gas-bench](https://github.com/karmacoma-eth/editions-gas-bench) fo
 
 ### Other
 
-|                         | Zora editions | Showtime editions | % change |
+|                         | baseline      | Showtime editions | % change |
 | ----------------------- | ------------- | ----------------- | -------- |
 | testTransferFrom()      | 43090         | 40465             | \-6.09%  |
 
