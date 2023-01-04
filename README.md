@@ -18,6 +18,7 @@ We kept the same swiss-army knife approach to editions that we used and loved fr
 ### ✨ Features
 
 - support for time-limited editions
+- support for opt-in [OpenSea operator filtering](https://github.com/ProjectOpenSea/operator-filter-registry)
 - support for `contractURI()`, which means a nicer out-of-the-box experience on OpenSea. The collection will be automatically configured with the artwork as the collection cover, and the EIP-2981 creator fees will also be reflected (through `seller_fee_basis_points` and `fee_recipient`)
 - support for `setExternalUrl(string)`, reflected in `contractURI()` and `tokenURI(uint256)`
 - support for `setStringProperties(string[] names, string[] values)`, reflected in `tokenURI(uint256)`
@@ -112,6 +113,9 @@ This will:
 - transfer ownership of the edition to the `msg.sender`
 - emit a `CreatedEdition(uint256 editionId, address creator, uint256 editionSize, address newEdition)` event
 
+## 🏴‍☠️ How do I enable OpenSea operator filtering?
+
+After deploying an edition, call `enableDefaultOperatorFilter()` to subscribe to the default OpenSea filter or `setOperatorFilter(address operatorFilter)` to pick a different one
 
 ## 💁‍♂️ How do I create different kinds of editions?
 
