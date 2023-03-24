@@ -125,20 +125,12 @@ contract SingleBatchEdition is
         }
     }
 
-    function revertIfSoldOut() internal view {
-        if (totalSupply() > 0) {
-            revert SoldOut();
-        }
-    }
-
     function mintBatch(bytes calldata addresses)
         external
         override
         returns (uint256 lastTokenId)
     {
         revertIfNotAuthorizedMinter();
-        revertIfSoldOut();
-
         lastTokenId = _mint(addresses);
     }
 
@@ -150,8 +142,6 @@ contract SingleBatchEdition is
         returns (uint256 lastTokenId)
     {
         revertIfNotAuthorizedMinter();
-        revertIfSoldOut();
-
         lastTokenId = _mint(pointer);
     }
 
