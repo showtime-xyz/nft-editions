@@ -1,13 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
 
-/**
- * █▄░█ █▀▀ ▀█▀   █▀▀ █▀▄ █ ▀█▀ █ █▀█ █▄░█ █▀
- * █░▀█ █▀░ ░█░   ██▄ █▄▀ █ ░█░ █ █▄█ █░▀█ ▄█
- *
- * ▀█ █▀█ █▀█ ▄▀█
- * █▄ █▄█ █▀▄ █▀█
- */
-
 pragma solidity ^0.8.6;
 
 import {
@@ -16,7 +8,7 @@ import {
 } from "@openzeppelin-contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {ERC721, ERC721I} from "./solmate-initializable/tokens/ERC721I.sol";
+import {ERC721, ERC721I} from "SS2ERC721/ERC721I.sol";
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";

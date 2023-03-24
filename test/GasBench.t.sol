@@ -7,10 +7,11 @@ import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/Clone
 
 import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
+import {ERC721I} from "SS2ERC721/ERC721I.sol";
+import {SS2ERC721} from "SS2ERC721/SS2ERC721.sol";
+
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {Edition} from "contracts/Edition.sol";
-import {ERC721I} from "contracts/solmate-initializable/tokens/ERC721I.sol";
-import {SS2ERC721} from "contracts/solmate-initializable/tokens/SS2ERC721.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
 
 contract SolmateERC721 is ERC721I {

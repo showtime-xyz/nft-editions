@@ -8,7 +8,7 @@ import {ERC721} from "solmate/tokens/ERC721.sol";
 import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
-import {SS2ERC721I} from "./solmate-initializable/tokens/SS2ERC721I.sol";
+import {SS2ERC721I} from "SS2ERC721/SS2ERC721I.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
 import {ISingleBatchEdition} from "./interfaces/ISingleBatchEdition.sol";
