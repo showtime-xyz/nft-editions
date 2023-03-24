@@ -424,7 +424,7 @@ contract EditionFunctionalTests is EditionFixture {
         vm.prank(editionOwner);
         edition.setSalePrice(1 ether);
 
-        assertEq(edition.salePrice(), 1 ether);
+        assertEq({a: edition.salePrice(), b: 1 ether});
     }
 
     /*//////////////////////////////////////////////////////////////

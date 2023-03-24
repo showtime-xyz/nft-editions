@@ -4,11 +4,9 @@ pragma solidity ^0.8.6;
 import {IERC2981Upgradeable, IERC165Upgradeable} from "@openzeppelin-contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {ERC721} from "solmate/tokens/ERC721.sol";
-import {SSTORE2} from "solmate/utils/SSTORE2.sol";
-
 import {OwnedInitializable} from "./solmate-initializable/auth/OwnedInitializable.sol";
 import {SS2ERC721I} from "SS2ERC721/SS2ERC721I.sol";
+import {ERC721} from "SS2ERC721/SS2ERC721.sol";
 
 import {EditionMetadataRenderer} from "./EditionMetadataRenderer.sol";
 import {ISingleBatchEdition} from "./interfaces/ISingleBatchEdition.sol";
@@ -120,12 +118,28 @@ contract SingleBatchEdition is
                    COLLECTOR / TOKEN OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function revertIfNotAuthorizedMinter() internal view {
+        State memory _state = state;
+        if (msg.sender != _state.minter) {
+            revert Unauthorized();
+        }
+    }
+
+    function revertIfSoldOut() internal view {
+        if (totalSupply() > 0) {
+            revert SoldOut();
+        }
+    }
+
     function mintBatch(bytes calldata addresses)
         external
         override
         returns (uint256 lastTokenId)
     {
-        lastTokenId = mintBatch(SSTORE2.write(addresses));
+        revertIfNotAuthorizedMinter();
+        revertIfSoldOut();
+
+        lastTokenId = _mint(addresses);
     }
 
     /// @param pointer An SSTORE2 pointer to a list of addresses to send the newly minted editions to, packed tightly
@@ -135,14 +149,8 @@ contract SingleBatchEdition is
         override
         returns (uint256 lastTokenId)
     {
-        State memory _state = state;
-        if (msg.sender != _state.minter) {
-            revert Unauthorized();
-        }
-
-        if (totalSupply() > 0) {
-            revert SoldOut();
-        }
+        revertIfNotAuthorizedMinter();
+        revertIfSoldOut();
 
         lastTokenId = _mint(pointer);
     }

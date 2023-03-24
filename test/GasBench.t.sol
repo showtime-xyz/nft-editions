@@ -5,8 +5,6 @@ import {Test} from "forge-std/Test.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import {SSTORE2} from "solmate/utils/SSTORE2.sol";
-
 import {ERC721I} from "SS2ERC721/ERC721I.sol";
 import {SS2ERC721} from "SS2ERC721/SS2ERC721.sol";
 
@@ -37,6 +35,10 @@ contract SolmateERC721 is ERC721I {
 
 contract Sstore2ERC721 is SS2ERC721 {
     constructor (string memory _name, string memory _symbol) SS2ERC721(_name, _symbol) {}
+
+    function mint(bytes calldata recipients) public {
+        _mint(recipients);
+    }
 
     function mint(address pointer) public {
         _mint(pointer);
@@ -124,9 +126,7 @@ contract GasBench is Test {
 
         sstore2Erc721ForMinting = new Sstore2ERC721("Sstore2ERC721 for Minting", "SSTORE2");
         sstore2Erc721ForTransfers = new Sstore2ERC721("Sstore2ERC721 for Transfers", "SSTORE2");
-        sstore2Erc721ForTransfers.mint(
-            SSTORE2.write(abi.encodePacked(address(this)))
-        );
+        sstore2Erc721ForTransfers.mint(abi.encodePacked(address(this)));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -279,19 +279,19 @@ contract GasBench is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test__sstore2Erc721__mint0001() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(1)));
+        sstore2Erc721ForMinting.mint(Addresses.make(1));
     }
 
     function test__sstore2Erc721__mint0010() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(10)));
+        sstore2Erc721ForMinting.mint(Addresses.make(10));
     }
 
     function test__sstore2Erc721__mint0100() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(100)));
+        sstore2Erc721ForMinting.mint(Addresses.make(100));
     }
 
     function test__sstore2Erc721__mint1000() public {
-        sstore2Erc721ForMinting.mint(SSTORE2.write(Addresses.make(1000)));
+        sstore2Erc721ForMinting.mint(Addresses.make(1000));
     }
 
     function test__sstore2Erc721__transfer() public {

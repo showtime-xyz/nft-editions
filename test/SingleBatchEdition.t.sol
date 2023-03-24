@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
-import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
@@ -198,42 +197,36 @@ contract SingleBatchEditionTest is Test {
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0001() public {
-        address pointer = SSTORE2.write(Addresses.make(1));
-        vm.prank(address(minter));
-        edition.mintBatch(pointer);
+        vm.startPrank(address(minter));
+        edition.mintBatch(Addresses.make(1));
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0010() public {
-        address pointer = SSTORE2.write(Addresses.make(10));
-        vm.prank(address(minter));
-        edition.mintBatch(pointer);
+        vm.startPrank(address(minter));
+        edition.mintBatch(Addresses.make(10));
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0100() public {
-        address pointer = SSTORE2.write(Addresses.make(100));
-        vm.prank(address(minter));
-        edition.mintBatch(pointer);
+        vm.startPrank(address(minter));
+        edition.mintBatch(Addresses.make(100));
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_0300() public {
-        address pointer = SSTORE2.write(Addresses.make(300));
-        vm.prank(address(minter));
-        edition.mintBatch(pointer);
+        vm.startPrank(address(minter));
+        edition.mintBatch(Addresses.make(300));
     }
 
     function testMintBatchDirect_0500() public {
-        address pointer = SSTORE2.write(Addresses.make(500));
-        vm.prank(address(minter));
-        edition.mintBatch(pointer);
+        vm.startPrank(address(minter));
+        edition.mintBatch(Addresses.make(500));
     }
 
     /// @dev for gas snapshot
     function testMintBatchDirect_1000() public {
-        address pointer = SSTORE2.write(Addresses.make(1000));
-        vm.prank(address(minter));
-        edition.mintBatch(pointer);
+        vm.startPrank(address(minter));
+        edition.mintBatch(Addresses.make(1000));
     }
 }
