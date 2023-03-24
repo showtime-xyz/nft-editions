@@ -3,3 +3,4 @@ forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
 @openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 operator-filter-registry/=lib/operator-filter-registry/src/
+SS2ERC721/=lib/SS2ERC721/src/

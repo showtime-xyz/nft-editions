@@ -12,3 +12,6 @@
 	path = lib/operator-filter-registry
 	url = https://github.com/ProjectOpenSea/operator-filter-registry
 	branch = v1.3.1
+[submodule "lib/SS2ERC721"]
+	path = lib/SS2ERC721
+	url = https://github.com/showtime-xyz/SS2ERC721
