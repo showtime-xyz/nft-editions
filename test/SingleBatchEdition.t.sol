@@ -56,7 +56,7 @@ contract SingleBatchEditionTest is Test {
             "description",
             "https://animation.url",
             "https://image.url",
-            1000,
+            10_00,
             address(minter)
         );
     }
@@ -135,8 +135,7 @@ contract SingleBatchEditionTest is Test {
     }
 
     function testMintingUpdatesTotalSupply(uint256 n) public {
-        vm.assume(0 < n);
-        vm.assume(n < 1200);
+        n = bound(n, 1, 1228);
         assertEq(edition.totalSupply(), 0);
 
         // when we mint n tokens
@@ -169,6 +168,18 @@ contract SingleBatchEditionTest is Test {
         vm.prank(bob);
         vm.expectRevert(Unauthorized.selector);
         edition.mintBatch(addresses);
+    }
+
+    function testCanNotMint0() public {
+        vm.expectRevert("INVALID_ADDRESSES");
+        minter.mintBatch(edition, "");
+    }
+
+    function testCanNotMintTwice() public {
+        minter.mintBatch(edition, abi.encodePacked(address(this)));
+
+        vm.expectRevert("ALREADY_MINTED");
+        minter.mintBatch(edition, abi.encodePacked(address(this)));
     }
 
     /*//////////////////////////////////////////////////////////////
