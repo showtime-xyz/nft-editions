@@ -157,6 +157,24 @@ contract SingleBatchEdition is
     }
 
     /*//////////////////////////////////////////////////////////////
+                           SS2ERC721 GOODIES
+    //////////////////////////////////////////////////////////////*/
+
+    /// Returns the SSTORE2 pointer for this edition if minted, or 0 if not minted
+    function getPrimaryOwnersPointer() public view override returns(address) {
+        return _ownersPrimaryPointer;
+    }
+
+    /// Returns true if the given address is one of the primary owners of this edition
+    /// A primary owner is defined as an address in the SSTORE2 array of primary owners
+    /// used during the initial mint of the edition.
+    /// Note that you this does not look up if the address is still a current owner (they
+    /// may have transferred or burned their token)
+    function isPrimaryOwner(address tokenOwner) public view override returns(bool) {
+        return _balanceOfPrimary(tokenOwner) != 0;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                            METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 

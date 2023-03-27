@@ -7,6 +7,8 @@ interface ISingleBatchEdition {
 
     function contractURI() external view returns (string memory);
 
+    function getPrimaryOwnersPointer() external view returns(address);
+
     function initialize(
         address _owner,
         string calldata _name,
@@ -17,6 +19,8 @@ interface ISingleBatchEdition {
         uint256 _royaltyBPS,
         address _minter
     ) external;
+
+    function isPrimaryOwner(address tokenOwner) external view returns(bool);
 
     function mintBatch(bytes calldata addresses) external returns (uint256);
 

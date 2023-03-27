@@ -5,12 +5,13 @@ import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
 import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInitializable.sol";
 import {ISingleBatchEdition} from "contracts/interfaces/ISingleBatchEdition.sol";
-import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
+import {SingleBatchEdition, ERC721} from "contracts/SingleBatchEdition.sol";
 
 import "contracts/interfaces/Errors.sol";
 
@@ -180,6 +181,42 @@ contract SingleBatchEditionTest is Test {
 
         vm.expectRevert("ALREADY_MINTED");
         minter.mintBatch(edition, abi.encodePacked(address(this)));
+    }
+
+    function testCanNotMintBadData() public {
+        vm.expectRevert("INVALID_ADDRESSES");
+        minter.mintBatch(edition, "beep boop");
+    }
+
+    function test_getPrimaryOwnersPointer_nullBeforeMint() public {
+        assertEq(edition.getPrimaryOwnersPointer(), address(0));
+    }
+
+    function test_getPrimaryOwnersPointer_setAfterMint() public {
+        minter.mintBatch(edition, abi.encodePacked(address(this)));
+
+        address pointer = edition.getPrimaryOwnersPointer();
+        bytes memory data = SSTORE2.read(pointer);
+        assertEq(data.length, 20);
+    }
+
+    function test_isPrimaryOwner() public {
+        minter.mintBatch(edition, abi.encodePacked(address(this)));
+
+        // we are a primary owner (the only one in fact), as well as a current owner
+        assertTrue(edition.isPrimaryOwner(address(this)));
+
+        // bob is neither
+        assertFalse(edition.isPrimaryOwner(bob));
+
+        // when we transfer the NFT out
+        ERC721(address(edition)).transferFrom(address(this), bob, 1);
+
+        // then we are no longer a current owner, but we are still a primary owner
+        assertTrue(edition.isPrimaryOwner(address(this)));
+
+        // and bob is a current owner, but was never a primary owner
+        assertFalse(edition.isPrimaryOwner(bob));
     }
 
     /*//////////////////////////////////////////////////////////////
