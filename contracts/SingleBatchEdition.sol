@@ -168,7 +168,7 @@ contract SingleBatchEdition is
     /// Returns true if the given address is one of the primary owners of this edition
     /// A primary owner is defined as an address in the SSTORE2 array of primary owners
     /// used during the initial mint of the edition.
-    /// Note that you this does not look up if the address is still a current owner (they
+    /// Note that this does not look up if the address is still a current owner (they
     /// may have transferred or burned their token)
     function isPrimaryOwner(address tokenOwner) public view override returns(bool) {
         return _balanceOfPrimary(tokenOwner) != 0;
