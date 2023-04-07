@@ -97,8 +97,9 @@ contract GasBench is Test {
             "description",
             "https://animation.url",
             "https://image.url",
-            10000,
-            address(this)
+            0, // editionSize
+            2_50, // royaltyBps
+            0 // mintPeriodSeconds
         );
 
         singleBatchForTransfers = SingleBatchEdition(
@@ -112,8 +113,9 @@ contract GasBench is Test {
             "description",
             "https://animation.url",
             "https://image.url",
-            10000,
-            address(this)
+            0, // editionSize
+            2_50, // royaltyBps
+            0 // mintPeriodSeconds
         );
 
         singleBatchForTransfers.mintBatch(

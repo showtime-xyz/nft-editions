@@ -2,8 +2,8 @@
 pragma solidity ^0.8.6;
 
 import {IEditionBase} from "./IEditionBase.sol";
-import {IRealTimeMintable} from "./IRealTimeMintable.sol";
+import {IBatchMintable} from "./IBatchMintable.sol";
 
-interface IEdition is IRealTimeMintable, IEditionBase {
+interface IBatchEdition is IEditionBase, IBatchMintable {
     // just a convenience wrapper for the parent editions
 }

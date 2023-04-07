@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
-
 pragma solidity ^0.8.6;
 
-import {Base64} from "./utils/Base64.sol";
-import {LibString} from "./utils/LibString.sol";
+import {Base64} from "contracts/utils/Base64.sol";
+import {LibString} from "contracts/utils/LibString.sol";
 
 import {EditionMetadataState} from "./EditionMetadataState.sol";
 
