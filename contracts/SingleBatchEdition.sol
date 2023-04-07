@@ -54,17 +54,24 @@ contract SingleBatchEdition is
         revert Unauthorized();
     }
 
-    // TODO: must update state.numMinted so that it can be reflected in totalSupply()
+    /// @param addresses A tightly packed and sorted list of at most 1228 addresses to mint to
     function mintBatch(bytes calldata addresses) external override returns (uint256 lastTokenId) {
         revertIfNotAuthorizedMinter();
+
         lastTokenId = _mint(addresses);
+
+        // update state.numMinted so that it can be reflected in totalSupply()
+        state.numberMinted = requireUint64(lastTokenId);
     }
 
     /// @param pointer An SSTORE2 pointer to a list of addresses to send the newly minted editions to, packed tightly
-    /// @dev This mints multiple editions to the given list of addresses.
     function mintBatch(address pointer) public override returns (uint256 lastTokenId) {
         revertIfNotAuthorizedMinter();
+
         lastTokenId = _mint(pointer);
+
+        // update state.numMinted so that it can be reflected in totalSupply()
+        state.numberMinted = requireUint64(lastTokenId);
     }
 
     /*//////////////////////////////////////////////////////////////

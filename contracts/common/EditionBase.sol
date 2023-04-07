@@ -122,7 +122,7 @@ abstract contract EditionBase is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev This withdraws ETH from the contract to the contract owner.
-    function withdraw() external override {
+    function withdraw() external override onlyOwner {
         // No need for gas limit to trusted address.
         AddressUpgradeable.sendValue(payable(owner), address(this).balance);
     }
