@@ -61,6 +61,9 @@ contract SingleBatchEditionTest is Test {
             10_00, // royaltyBPS
             0 // mintPeriodSeconds
         );
+
+        vm.prank(editionOwner);
+        _edition.setApprovedMinter(address(minter), true);
     }
 
     function setUp() public {
