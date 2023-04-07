@@ -10,7 +10,7 @@ import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
-import {ISingleBatchEdition} from "contracts/interfaces/ISingleBatchEdition.sol";
+import {IBatchEdition} from "contracts/interfaces/IBatchEdition.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
 
 contract CreateSingleBatchEdition is Script, Test {
@@ -18,23 +18,24 @@ contract CreateSingleBatchEdition is Script, Test {
 
     function createEdition(string memory name, address minter)
         internal
-        returns (ISingleBatchEdition _edition)
+        returns (IBatchEdition _edition)
     {
         bytes32 salt = keccak256(abi.encodePacked(name));
 
-        _edition = ISingleBatchEdition(
+        _edition = IBatchEdition(
             ClonesUpgradeable.cloneDeterministic(address(editionImpl), salt)
         );
 
         _edition.initialize(
-            minter,
+            minter, // owner
             name,
             "BATCH",
             "batchy batchy",
-            "",
+            "", // animationUrl
             "ipfs://QmfDdgDMLtXxy3MMR77qNkT9bCHqDfs9pjKFLz46karTa8",
-            1000,
-            minter
+            1_000, // editionSize
+            10_00, // royaltyBPS
+            0 // mintPeriodSeconds
         );
     }
 
@@ -51,7 +52,7 @@ contract CreateSingleBatchEdition is Script, Test {
             LibString.toString(N)
         );
         editionImpl = new SingleBatchEdition();
-        ISingleBatchEdition edition = createEdition(name, owner);
+        IBatchEdition edition = createEdition(name, owner);
 
         console2.log(name);
         console2.log("Edition address:", address(edition));

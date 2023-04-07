@@ -10,13 +10,13 @@ import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 import {Addresses} from "contracts/utils/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
 import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInitializable.sol";
-import {ISingleBatchEdition} from "contracts/interfaces/ISingleBatchEdition.sol";
+import {IBatchEdition} from "contracts/interfaces/IBatchEdition.sol";
 import {SingleBatchEdition, ERC721} from "contracts/SingleBatchEdition.sol";
 
 import "contracts/interfaces/Errors.sol";
 
 contract BatchMinter {
-    function mintBatch(ISingleBatchEdition edition, bytes calldata addresses)
+    function mintBatch(IBatchEdition edition, bytes calldata addresses)
         public
     {
         edition.mintBatch(addresses);
@@ -35,18 +35,18 @@ contract SingleBatchEditionTest is Test {
     address internal editionOwner;
     address internal bob;
 
-    ISingleBatchEdition internal editionImpl;
-    ISingleBatchEdition internal edition;
+    IBatchEdition internal editionImpl;
+    IBatchEdition internal edition;
     BatchMinter internal minter;
 
     function createEdition(string memory name)
         internal
-        returns (ISingleBatchEdition _edition)
+        returns (IBatchEdition _edition)
     {
         bytes32 salt = keccak256(abi.encodePacked(name));
 
         vm.prank(editionOwner);
-        _edition = ISingleBatchEdition(
+        _edition = IBatchEdition(
             ClonesUpgradeable.cloneDeterministic(address(editionImpl), salt)
         );
 
@@ -57,8 +57,9 @@ contract SingleBatchEditionTest is Test {
             "description",
             "https://animation.url",
             "https://image.url",
-            10_00,
-            address(minter)
+            0, // editionSize
+            10_00, // royaltyBPS
+            0 // mintPeriodSeconds
         );
     }
 
@@ -104,8 +105,9 @@ contract SingleBatchEditionTest is Test {
             "description",
             "https://animation.url",
             "https://image.url",
-            1000,
-            editionOwner
+            0, // editionSize
+            2_50, // royaltyBps
+            0 // mintPeriodSeconds
         );
     }
 
@@ -118,8 +120,9 @@ contract SingleBatchEditionTest is Test {
             "description",
             "https://animation.url",
             "https://image.url",
-            1000,
-            editionOwner
+            0, // editionSize
+            2_50, // royaltyBps
+            0 // mintPeriodSeconds
         );
     }
 
@@ -189,13 +192,13 @@ contract SingleBatchEditionTest is Test {
     }
 
     function test_getPrimaryOwnersPointer_nullBeforeMint() public {
-        assertEq(edition.getPrimaryOwnersPointer(), address(0));
+        assertEq(edition.getPrimaryOwnersPointer(0), address(0));
     }
 
     function test_getPrimaryOwnersPointer_setAfterMint() public {
         minter.mintBatch(edition, abi.encodePacked(address(this)));
 
-        address pointer = edition.getPrimaryOwnersPointer();
+        address pointer = edition.getPrimaryOwnersPointer(0);
         bytes memory data = SSTORE2.read(pointer);
         assertEq(data.length, 20);
     }
