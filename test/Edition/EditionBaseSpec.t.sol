@@ -21,10 +21,12 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
 
     address internal _editionImpl;
     address internal _edition;
+    address internal _openEdition;
 
     function setUp() public virtual {
         _editionImpl = createImpl();
         _edition = create();
+        _openEdition = create(DEFAULT_CONFIG.withName("Open Edition").withEditionSize(0));
 
         __EditionMetadataTests_init();
     }
@@ -44,6 +46,25 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
     //////////////////////////////////////////////////////////////*/
 
     function createImpl() internal virtual returns (address);
+
+    function mint(address edition, address to, address msgSender, bytes memory expectedError)
+        internal
+        virtual
+        returns (uint256 tokenId);
+
+    function mint(address edition, uint256 num, address msgSender, bytes memory expectedError) internal virtual;
+
+    /*//////////////////////////////////////////////////////////////
+                                HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    function create() internal returns (address) {
+        return create(DEFAULT_CONFIG);
+    }
+
+    function create(EditionConfig memory config) internal returns (address) {
+        return create(config, "");
+    }
 
     /// @dev create a clone of editionImpl with the given config
     /// @dev make sure to transferOwnership to editionOwner
@@ -81,25 +102,6 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
         }
 
         return newEdition;
-    }
-
-    function mint(address edition, address to, address msgSender, bytes memory expectedError)
-        internal
-        virtual
-        returns (uint256 tokenId);
-
-    function mint(address edition, uint256 num, address msgSender, bytes memory expectedError) internal virtual;
-
-    /*//////////////////////////////////////////////////////////////
-                                HELPERS
-    //////////////////////////////////////////////////////////////*/
-
-    function create() internal returns (address) {
-        return create(DEFAULT_CONFIG);
-    }
-
-    function create(EditionConfig memory config) internal returns (address) {
-        return create(config, "");
     }
 
     function mint(address edition, address to) internal returns (uint256 tokenId) {
@@ -314,13 +316,13 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
     function test_mint_updatesTotalSupply(uint256 n) public {
         n = bound(n, 1, 1000);
 
-        assertEq(IEditionBase(_edition).totalSupply(), 0);
+        assertEq(IEditionBase(_openEdition).totalSupply(), 0);
 
         // when we mint n tokens
-        mint(_edition, n);
+        mint(_openEdition, n);
 
         // then the total supply is n
-        assertEq(IEditionBase(_edition).totalSupply(), n);
+        assertEq(IEditionBase(_openEdition).totalSupply(), n);
     }
 
     function test_mint_checksAuth(address nonApproved) public {
