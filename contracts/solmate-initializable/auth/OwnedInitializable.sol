@@ -2,17 +2,12 @@
 pragma solidity >=0.8.0;
 
 import {Initializable} from "SS2ERC721/utils/Initializable.sol";
+import {IOwned} from "./IOwned.sol";
 
 /// @notice Simple single owner authorization mixin.
 /// @author karmacoma (replaced constructor with initializer)
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/auth/Owned.sol)
-abstract contract OwnedInitializable is Initializable {
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event OwnershipTransferred(address indexed user, address indexed newOwner);
-
+abstract contract OwnedInitializable is Initializable, IOwned {
     /*//////////////////////////////////////////////////////////////
                             OWNERSHIP STORAGE
     //////////////////////////////////////////////////////////////*/

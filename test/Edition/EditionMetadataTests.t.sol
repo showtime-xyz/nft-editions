@@ -3,11 +3,12 @@ pragma solidity ^0.8.15;
 
 import {stdJson} from "forge-std/StdJson.sol";
 
-import {Edition} from "contracts/Edition.sol";
+import {LibString} from "contracts/utils/LibString.sol";
+import {Base64} from "contracts/utils/Base64.sol";
+import {IOwned} from "contracts/solmate-initializable/auth/IOwned.sol";
 
 import "./fixtures/EditionFixture.sol";
 
-import {console2} from "forge-std/Test.sol";
 
 /// @dev fields need to be sorted alphabetically (see docs of vm.parseJson())
 struct ContractURISchema {
@@ -25,29 +26,43 @@ struct TokenURISchemaWithImage {
     // empty properties object does not get deserialized (`"properties":{}`)
 }
 
-contract EditionMetadataTests is EditionFixture {
+/// @dev expects dataUri to be "data:application/json;base64,..."
+function parseDataUri(string memory dataUri) pure returns (string memory json) {
+    string memory base64Slice = LibString.slice(
+        dataUri,
+        29, // length of 'data:application/json;base64,'
+        bytes(dataUri).length
+    );
+
+    json = string(Base64.decode(base64Slice));
+}
+
+abstract contract EditionMetadataTests is EditionFixture {
+    using EditionConfigWither for EditionConfig;
+
     uint256 constant INTENSE_LENGTH = 100_000;
 
-    Edition editionToEscape;
-    Edition editionIntense;
-    uint256 tokenId;
+    EditionConfig INTENSE_CONFIG = DEFAULT_CONFIG
+        .withName("This edition goes to 11")
+        .withDescription(LibString.repeat("\\", INTENSE_LENGTH));
 
-    function setUp() public {
-        __EditionFixture_setUp();
+    EditionConfig ESCAPE_CONFIG = DEFAULT_CONFIG
+        .withName('My "edition" is \t very special!\n')
+        .withDescription('My "description" is also \t \\very\\ special!\r\n');
 
-        EditionParams memory intenseParams = DEFAULT_PARAMS;
-        intenseParams.name = "This edition goes to 11";
-        intenseParams.description = LibString.repeat("\\", INTENSE_LENGTH);
-        editionIntense = createEdition(intenseParams);
+    EditionConfig REGULAR_CONFIG = DEFAULT_CONFIG
+        .withName("Regular edition")
+        .withDescription("Nothing special here");
 
-        EditionParams memory escapeParams = DEFAULT_PARAMS;
-        escapeParams.name = 'My "edition" is \t very special!\n';
-        escapeParams.description = 'My "description" is also \t \\very\\ special!\r\n';
-        editionToEscape = createEdition(escapeParams);
 
-        tokenId = edition.mint(address(this));
-        editionToEscape.mint(address(this));
-    }
+    EditionBase internal __metadata_editionToEscape;
+    EditionBase internal __metadata_editionIntense;
+    EditionBase internal __metadata_edition;
+
+
+    // implementation must initialize the __metadata_* edition contracts
+    // and mint 1 token from each of them
+    function __EditionMetadataTests_init() internal virtual;
 
     /*//////////////////////////////////////////////////////////////
                                 HELPERS
@@ -61,14 +76,14 @@ contract EditionMetadataTests is EditionFixture {
         values[0] = value;
 
         vm.prank(editionOwner);
-        edition.setStringProperties(properties, values);
+        __metadata_edition.setStringProperties(properties, values);
     }
 
     function setProperties(/* nothing */) internal {
         string[] memory properties = new string[](0);
         string[] memory values = new string[](0);
         vm.prank(editionOwner);
-        edition.setStringProperties(properties, values);
+        __metadata_edition.setStringProperties(properties, values);
     }
 
     function setProperties(
@@ -84,21 +99,21 @@ contract EditionMetadataTests is EditionFixture {
         values[1] = value2;
 
         vm.prank(editionOwner);
-        edition.setStringProperties(properties, values);
+        __metadata_edition.setStringProperties(properties, values);
     }
 
     /*//////////////////////////////////////////////////////////////
                           JSON ESCAPING TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testLongEscapeDoubleQuotes() public {
+    function test_escapeJSON_longEscapeDoubleQuotes() public {
         string memory input = LibString.repeat('"', INTENSE_LENGTH);
         string memory expected = LibString.repeat('\\"', INTENSE_LENGTH);
         string memory actual = LibString.escapeJSON(input);
         assertEq(actual, expected);
     }
 
-    function testLongEscapeControlChar() public {
+    function test_escapeJSON_longEscapeControlChar() public {
         string memory input = LibString.repeat(
             string(abi.encodePacked(bytes1(0))),
             INTENSE_LENGTH
@@ -108,8 +123,8 @@ contract EditionMetadataTests is EditionFixture {
         assertEq(actual, expected);
     }
 
-    function testNameEscapedInContractURI() public {
-        string memory json = parseDataUri(editionToEscape.contractURI());
+    function test_contractURI_nameEscaped() public {
+        string memory json = parseDataUri(__metadata_editionToEscape.contractURI());
         string memory rawName = abi.decode(stdJson.parseRaw(json, ".name"), (string));
         assertEq(rawName, 'My "edition" is \t very special!\n');
 
@@ -117,34 +132,45 @@ contract EditionMetadataTests is EditionFixture {
         assertEq(name, 'My "edition" is \t very special!\n');
     }
 
-    function testNameEscapedInTokenURI() public {
-        string memory json = parseDataUri(editionToEscape.tokenURI(tokenId));
+    function test_tokenURI_nameEscaped() public {
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_editionToEscape)).tokenURI(1));
         string memory name = stdJson.readString(json, ".name");
 
         assertEq(name, 'My "edition" is \t very special!\n #1/10');
     }
 
-    function testDescriptionEscapedInContractURI() public {
-        string memory json = parseDataUri(editionToEscape.contractURI());
+    function test_contractURI_descriptionEscaped() public {
+        string memory json = parseDataUri(__metadata_editionToEscape.contractURI());
         string memory description = stdJson.readString(json, ".description");
 
         assertEq(description, 'My "description" is also \t \\very\\ special!\r\n');
     }
 
-    function testDescriptionEscapedInTokenURI() public {
+    function test_tokenURI_descriptionEscaped() public {
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_editionToEscape)).tokenURI(1));
+        string memory description = stdJson.readString(json, ".description");
+
+        assertEq(description, 'My "description" is also \t \\very\\ special!\r\n');
+    }
+
+    function test_contractURI_propertiesEscaped() public {
         setProperty("property_name", 'property\t"value"');
-        string memory json = parseDataUri(edition.tokenURI(tokenId));
+        string memory json = parseDataUri(__metadata_edition.contractURI());
         string memory value = stdJson.readString(json, ".properties.property_name");
 
         assertEq(value, 'property\t"value"');
     }
 
-    function testStringPropertiesEscaped() public {
+    function test_tokenURI_propertiesEscaped() public {
+        setProperty("property_name", 'property\t"value"');
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
+        string memory value = stdJson.readString(json, ".properties.property_name");
 
+        assertEq(value, 'property\t"value"');
     }
 
-    function testEncodeContractURIIntenseDescription() public {
-        string memory json = parseDataUri(editionIntense.contractURI());
+    function test_contractURI_intenseDescriptionEscaped() public {
+        string memory json = parseDataUri(__metadata_editionIntense.contractURI());
         string memory description = stdJson.readString(json, ".description");
 
         assertEq(description, LibString.repeat("\\", INTENSE_LENGTH));
@@ -154,20 +180,20 @@ contract EditionMetadataTests is EditionFixture {
                         STRING PROPERTIES TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testOnlyOwnerCanSetStringProperties() public {
+    function test_setProperties_onlyOwner() public {
         string[] memory properties = new string[](0);
         string[] memory values = new string[](0);
 
         vm.expectRevert("UNAUTHORIZED");
-        edition.setStringProperties(properties, values);
+        __metadata_edition.setStringProperties(properties, values);
     }
 
-    function testRejectsEmptyPropertyNames() public {
+    function test_setProperties_rejectsEmptyPropertyNames() public {
         vm.expectRevert(newBadAttribute("", "value"));
         setProperty("", "value");
     }
 
-    function testRejectsStringPropertiesWhereTheNamesAndValueDontMatch() public {
+    function test_setProperties_rejectsLengthMismatch() public {
         string[] memory properties = new string[](1);
         properties[0] = "name1";
 
@@ -177,12 +203,12 @@ contract EditionMetadataTests is EditionFixture {
 
         vm.expectRevert(abi.encodeWithSelector(LengthMismatch.selector));
         vm.prank(editionOwner);
-        edition.setStringProperties(properties, values);
+        __metadata_edition.setStringProperties(properties, values);
     }
 
-    function testReflectsSinglePropertyInMetadata() public {
+    function test_setProperties_reflectsSinglePropertyInMetadata() public {
         setProperty("property_name", "property_value");
-        string memory json = parseDataUri(edition.tokenURI(tokenId));
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         string memory value = stdJson.readString(json, ".properties.property_name");
 
         assertEq(value, "property_value");
@@ -194,12 +220,12 @@ contract EditionMetadataTests is EditionFixture {
             "property_name2", "property_value2"
         );
 
-        string memory json = parseDataUri(edition.tokenURI(tokenId));
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         assertEq(stdJson.readString(json, ".properties.property_name1"), "property_value1");
         assertEq(stdJson.readString(json, ".properties.property_name2"), "property_value2");
     }
 
-    function testCanCreateUpdateDeleteSingleProperty() public {
+    function test_setProperties_canCreateUpdateDeleteSingleProperty() public {
         vm.expectEmit(true, true, true, true);
         emit PropertyUpdated("property_name", "", "initial_value");
         setProperty("property_name", "initial_value");
@@ -211,11 +237,11 @@ contract EditionMetadataTests is EditionFixture {
         // delete does not emit an event
         setProperties();
 
-        string memory json = parseDataUri(edition.tokenURI(tokenId));
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         assertEq(stdJson.parseRaw(json, ".properties").length, 0);
     }
 
-    function testCanCreateUpdateDeleteMultipleProperties() public {
+    function test_setProperties_canCreateUpdateDeleteMultipleProperties() public {
         // setup: start with 2 properties
         setProperties(
             "property_name1", "property_value1",
@@ -224,7 +250,7 @@ contract EditionMetadataTests is EditionFixture {
 
         // when we set properties again without property_name2
         setProperty("property_name1", "updated_value1");
-        string memory json = parseDataUri(edition.tokenURI(tokenId));
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         assertEq(stdJson.readString(json, ".properties.property_name1"), "updated_value1");
 
         // then property_name2 has been deleted
@@ -237,7 +263,7 @@ contract EditionMetadataTests is EditionFixture {
         setProperties();
 
         // then they are both removed
-        json = parseDataUri(edition.tokenURI(tokenId));
+        json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         assertEq(stdJson.parseRaw(json, ".properties").length, 0);
     }
 
@@ -245,87 +271,87 @@ contract EditionMetadataTests is EditionFixture {
                              METADATA TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testMetadataWellFormed() public {
-        assertEq(edition.name(), DEFAULT_PARAMS.name);
-        assertEq(edition.symbol(), DEFAULT_PARAMS.symbol);
-        assertEq(edition.description(), DEFAULT_PARAMS.description);
-        assertEq(edition.animationUrl(), DEFAULT_PARAMS.animationUrl);
-        assertEq(edition.imageUrl(), DEFAULT_PARAMS.imageUrl);
-        assertEq(edition.editionSize(), DEFAULT_PARAMS.editionSize);
-        assertEq(edition.owner(), editionOwner);
+    function test_metadata_wellFormed() public {
+        assertEq(IERC721Metadata(address(__metadata_edition)).name(), REGULAR_CONFIG.name);
+        assertEq(IERC721Metadata(address(__metadata_edition)).symbol(), REGULAR_CONFIG.symbol);
+        assertEq(__metadata_edition.description(), REGULAR_CONFIG.description);
+        assertEq(__metadata_edition.animationUrl(), REGULAR_CONFIG.animationUrl);
+        assertEq(__metadata_edition.imageUrl(), REGULAR_CONFIG.imageUrl);
+        assertEq(__metadata_edition.editionSize(), REGULAR_CONFIG.editionSize);
+        assertEq(IOwned(address(__metadata_edition)).owner(), editionOwner);
 
         uint256 salePrice = 1 ether;
-        (address recipient, uint256 royalties) = edition.royaltyInfo(tokenId, salePrice);
-        assertEq(royalties, (DEFAULT_PARAMS.royaltiesBps * salePrice / 100_00));
+        (address recipient, uint256 royalties) = __metadata_edition.royaltyInfo(1, salePrice);
+        assertEq(royalties, (REGULAR_CONFIG.royaltiesBps * salePrice / 100_00));
         assertEq(recipient, editionOwner);
     }
 
     /// @dev tests that the returned json object conforms exactly to the schema (no spurious fields)
-    function testContractURIWellFormed() public {
-        string memory json = parseDataUri(edition.contractURI());
+    function test_contractURI_wellFormed() public {
+        string memory json = parseDataUri(__metadata_edition.contractURI());
         ContractURISchema memory parsed = abi.decode(vm.parseJson(json), (ContractURISchema));
-        assertEq(parsed.name, DEFAULT_PARAMS.name);
-        assertEq(parsed.description, DEFAULT_PARAMS.description);
-        assertEq(parsed.image, DEFAULT_PARAMS.imageUrl);
-        assertEq(parsed.seller_fee_basis_points, DEFAULT_PARAMS.royaltiesBps);
+        assertEq(parsed.name, REGULAR_CONFIG.name);
+        assertEq(parsed.description, REGULAR_CONFIG.description);
+        assertEq(parsed.image, REGULAR_CONFIG.imageUrl);
+        assertEq(parsed.seller_fee_basis_points, REGULAR_CONFIG.royaltiesBps);
         assertEq(parsed.fee_recipient, editionOwner);
     }
 
-    function testSetExternalURLAuth() public {
+    function test_setExternalUrl_onlyOwner() public {
         vm.expectRevert("UNAUTHORIZED");
-        edition.setExternalUrl("https://example.com");
+        __metadata_edition.setExternalUrl("https://example.com");
     }
 
-    function testSetExternalURLEmitsEvent() public {
+    function test_setExternalUrl_emitsEvent() public {
         vm.expectEmit(true, true, true, true);
         emit ExternalUrlUpdated("", "https://example.com/externalUrl");
         vm.prank(editionOwner);
-        edition.setExternalUrl("https://example.com/externalUrl");
+        __metadata_edition.setExternalUrl("https://example.com/externalUrl");
     }
 
-    function testExternalURLReflectedInGetter() public {
+    function test_setExternalUrl_reflectedInGetter() public {
         vm.prank(editionOwner);
-        edition.setExternalUrl("https://example.com/externalUrl");
-        assertEq(edition.externalUrl(), "https://example.com/externalUrl");
+        __metadata_edition.setExternalUrl("https://example.com/externalUrl");
+        assertEq(__metadata_edition.externalUrl(), "https://example.com/externalUrl");
     }
 
-    function testExternalURLReflectedInContractURI() public {
+    function test_setExternalUrl_reflectedInContractURI() public {
         vm.prank(editionOwner);
-        edition.setExternalUrl("https://example.com/externalUrl");
+        __metadata_edition.setExternalUrl("https://example.com/externalUrl");
 
-        string memory json = parseDataUri(edition.contractURI());
+        string memory json = parseDataUri(__metadata_edition.contractURI());
         assertEq(stdJson.readString(json, ".external_link"), "https://example.com/externalUrl");
     }
 
-    function testExternalURLReflectedInTokenURI() public {
+    function test_setExternalUrl_reflectedInTokenURI() public {
         vm.prank(editionOwner);
-        edition.setExternalUrl("https://example.com/externalUrl");
+        __metadata_edition.setExternalUrl("https://example.com/externalUrl");
 
-        string memory json = parseDataUri(edition.tokenURI(tokenId));
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         assertEq(stdJson.readString(json, ".external_url"), "https://example.com/externalUrl");
     }
 
-    function testExternalURLCanBeUnset() public {
+    function test_setExternalUrl_canUnset() public {
         // setup
         vm.prank(editionOwner);
-        edition.setExternalUrl("https://example.com/externalUrl");
+        __metadata_edition.setExternalUrl("https://example.com/externalUrl");
 
         // when we unset it, we expect an event
         vm.expectEmit(true, true, true, true);
         emit ExternalUrlUpdated("https://example.com/externalUrl", "");
 
         vm.prank(editionOwner);
-        edition.setExternalUrl("");
+        __metadata_edition.setExternalUrl("");
 
-        assertEq(edition.externalUrl(), "");
+        assertEq(__metadata_edition.externalUrl(), "");
     }
 
-    function testTokenUri() public {
-        string memory json = parseDataUri(edition.tokenURI(tokenId));
+    function test_tokenURI() public {
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         TokenURISchemaWithImage memory parsed = abi.decode(vm.parseJson(json), (TokenURISchemaWithImage));
 
-        assertEq(parsed.name, string.concat(DEFAULT_PARAMS.name, " #1/10"));
-        assertEq(parsed.description, DEFAULT_PARAMS.description);
-        assertEq(parsed.image, DEFAULT_PARAMS.imageUrl);
+        assertEq(parsed.name, string.concat(REGULAR_CONFIG.name, " #1/10"));
+        assertEq(parsed.description, REGULAR_CONFIG.description);
+        assertEq(parsed.image, REGULAR_CONFIG.imageUrl);
     }
 }

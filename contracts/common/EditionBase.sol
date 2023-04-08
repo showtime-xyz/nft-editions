@@ -91,6 +91,10 @@ abstract contract EditionBase is
         return _endOfMintPeriod > 0 && uint64(block.timestamp) > _endOfMintPeriod;
     }
 
+    function isApprovedMinter(address minter) public view override returns (bool) {
+        return allowedMinters[minter] || allowedMinters[address(0x0)] || owner == minter;
+    }
+
     function totalSupply() public view virtual override returns (uint256) {
         return state.numberMinted;
     }
