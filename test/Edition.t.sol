@@ -11,7 +11,7 @@ import {Base64} from "contracts/utils/Base64.sol";
 import {Edition} from "contracts/Edition.sol";
 import {EditionCreator, IEdition} from "contracts/EditionCreator.sol";
 
-import "test/Edition/EditionBaseSpec.t.sol";
+import "test/common/EditionBaseSpec.t.sol";
 
 contract UnsuspectingContract {}
 

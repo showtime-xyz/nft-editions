@@ -4,7 +4,7 @@ pragma solidity ^0.8.15;
 import {console2} from "forge-std/console2.sol";
 import {IERC721} from "forge-std/interfaces/IERC721.sol";
 
-import "./fixtures/EditionFixture.sol";
+import "./EditionFixture.sol";
 
 interface IOperatorFilterRegistry {
     function filteredOperators(address addr) external returns (address[] memory);

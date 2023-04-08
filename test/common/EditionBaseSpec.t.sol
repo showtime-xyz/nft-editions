@@ -4,10 +4,10 @@ pragma solidity ^0.8.15;
 import {EditionBase, IEditionBase} from "contracts/common/EditionBase.sol";
 import {IOwned} from "contracts/solmate-initializable/auth/IOwned.sol";
 
-import {EditionMetadataTests} from "test/Edition/EditionMetadataTests.t.sol";
-import {EditionOperatorFiltering} from "test/Edition/EditionOperatorFiltering.t.sol";
+import {EditionMetadataTests} from "test/common/EditionMetadataTests.t.sol";
+import {EditionOperatorFiltering} from "test/common/EditionOperatorFiltering.t.sol";
 
-import "test/Edition/fixtures/EditionFixture.sol";
+import "test/common/EditionFixture.sol";
 
 function newIntegerOverflow(uint256 value) pure returns (bytes memory) {
     return abi.encodeWithSelector(IntegerOverflow.selector, value);
