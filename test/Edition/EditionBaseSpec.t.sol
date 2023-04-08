@@ -5,6 +5,7 @@ import {EditionBase, IEditionBase} from "contracts/common/EditionBase.sol";
 import {IOwned} from "contracts/solmate-initializable/auth/IOwned.sol";
 
 import {EditionMetadataTests} from "test/Edition/EditionMetadataTests.t.sol";
+import {EditionOperatorFiltering} from "test/Edition/EditionOperatorFiltering.t.sol";
 
 import "test/Edition/fixtures/EditionFixture.sol";
 
@@ -12,12 +13,12 @@ function newIntegerOverflow(uint256 value) pure returns (bytes memory) {
     return abi.encodeWithSelector(IntegerOverflow.selector, value);
 }
 
-abstract contract EditionBaseSpec is EditionMetadataTests {
+abstract contract EditionBaseSpec is EditionMetadataTests, EditionOperatorFiltering {
     using EditionConfigWither for EditionConfig;
 
     address constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
-    function setUp() public virtual override {
+    function setUp() public virtual override(EditionMetadataTests, EditionOperatorFiltering) {
         _editionImpl = createImpl();
         _edition = create();
         _openEdition = create(DEFAULT_CONFIG.withName("Open Edition").withEditionSize(0));
@@ -25,6 +26,7 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
             create(DEFAULT_CONFIG.withName("Time Limited Edition").withMintPeriod(2 days).withEditionSize(0));
 
         EditionMetadataTests.setUp();
+        EditionOperatorFiltering.setUp();
     }
 
 
@@ -164,45 +166,6 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
 
         // then the approved minter is set
         assertEq(IEditionBase(_edition).isApprovedMinter(newMinter), true);
-    }
-
-    function test_setOperatorFilter_onlyOwnerFail(address passerBy) public {
-        vm.assume(passerBy != editionOwner);
-
-        // when somebody else tries to set an operator filter, it reverts
-        vm.expectRevert("UNAUTHORIZED");
-        vm.prank(passerBy);
-        IEditionBase(_edition).setOperatorFilter(passerBy);
-    }
-
-    function test_setOperatorFilter_onlyOwnerPass(address newFilter) public {
-        // when the owner sets an operator filter
-        vm.prank(editionOwner);
-        IEditionBase(_edition).setOperatorFilter(newFilter);
-
-        // then the operator filter is set
-        assertEq(EditionBase(_edition).activeOperatorFilter(), newFilter);
-    }
-
-    function test_enableDefaultOperatorFilter_onlyOwnerFail(address passerBy) public {
-        vm.assume(passerBy != editionOwner);
-
-        // when somebody else tries to enable the default operator filter, it reverts
-        vm.expectRevert("UNAUTHORIZED");
-        vm.prank(passerBy);
-        IEditionBase(_edition).enableDefaultOperatorFilter();
-    }
-
-    function test_enableDefaultOperatorFilter_onlyOwnerPass() public {
-        // when the owner enables the default operator filter
-        vm.prank(editionOwner);
-        IEditionBase(_edition).enableDefaultOperatorFilter();
-
-        // then the operator filter is set
-        assertEq(
-            EditionBase(_edition).activeOperatorFilter(),
-            address(EditionBase(_edition).CANONICAL_OPENSEA_SUBSCRIPTION())
-        );
     }
 
     /*//////////////////////////////////////////////////////////////

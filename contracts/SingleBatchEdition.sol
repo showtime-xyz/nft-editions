@@ -68,6 +68,27 @@ contract SingleBatchEdition is
     }
 
     /*//////////////////////////////////////////////////////////////
+                      OPERATOR FILTERER OVERRIDES
+    //////////////////////////////////////////////////////////////*/
+
+    function transferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data)
+        public
+        override
+        onlyAllowedOperator(from)
+    {
+        super.safeTransferFrom(from, to, tokenId, data);
+    }
+
+
+    /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
