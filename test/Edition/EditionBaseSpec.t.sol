@@ -377,19 +377,30 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
         assertEq(IERC721(_edition).ownerOf(tokenId), BURN_ADDRESS);
     }
 
-    function test_transferFrom_approvedFailsWithWrongTokenId(address approved, uint256 wrongTokenId) public {
+    function test_transferFrom_approvedFailsWithWrongTokenId(address approved) public {
+        mint(_edition, 2);
+
+        vm.assume(approved != address(0));
+        vm.prank(IERC721(_edition).ownerOf(1));
+        IERC721(_edition).approve(approved, 1);
+
+        address token2Owner = IERC721(_edition).ownerOf(2);
+
+        // address is approved for token 1
+        vm.prank(approved);
+        vm.expectRevert("NOT_AUTHORIZED");
+        IERC721(_edition).transferFrom(token2Owner, BURN_ADDRESS, 2);
+    }
+
+    function test_transferFrom_approvedFailsWithUnmintedTokenId(address approved, uint256 wrongTokenId) public {
         uint256 tokenId = mint(_edition, address(this));
 
         vm.assume(approved != address(0));
         vm.assume(wrongTokenId != tokenId);
         vm.assume(wrongTokenId != 0);
 
+        vm.expectRevert("NOT_AUTHORIZED");
         IERC721(_edition).approve(approved, wrongTokenId);
-
-        // address is approved for a different token
-        vm.prank(approved);
-        vm.expectRevert("NOT_MINTED");
-        IERC721(_edition).transferFrom(address(this), BURN_ADDRESS, tokenId);
     }
 
     function test_transferFrom_approvedForAllWorks(address approved) public {
@@ -422,13 +433,13 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
         assertEq(EditionBase(_edition).supportsInterface(0x5b5e139f), true); // ERC721Metadata
     }
 
-    function testRoyaltyAmount(uint128 salePrice) public {
+    function test_royaltyInfo_royaltyAmount(uint128 salePrice) public {
         // uint128 for salePrice is plenty big and avoids overflow errors
         (, uint256 fee) = EditionBase(_edition).royaltyInfo(1, salePrice);
         assertEq(fee, uint256(salePrice) * DEFAULT_CONFIG.royaltiesBps / 100_00);
     }
 
-    function testRoyaltyRecipientUpdatedAfterOwnershipTransferred(address newOwner) public {
+    function test_royaltyInfo_royaltyRecipientUpdatedAfterOwnershipTransferred(address newOwner) public {
         (address recipient,) = EditionBase(_edition).royaltyInfo(1, 1 ether);
         assertEq(recipient, editionOwner);
 
@@ -441,7 +452,7 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
         assertEq(recipient, newOwner);
     }
 
-    function testEditionWithNoRoyalties() public {
+    function test_royaltyInfo_editionWithNoRoyalties() public {
         EditionConfig memory config = DEFAULT_CONFIG.withRoyaltiesBps(0).withName("No Royalties");
 
         EditionBase editionNoRoyalties = EditionBase(create(config));
@@ -463,7 +474,7 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
                             TIME LIMIT TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function tes_mint_fromTimeLimitedEdition_duringMintingPeriod() public {
+    function test_mint_fromTimeLimitedEdition_duringMintingPeriod() public {
         // setup
         EditionConfig memory config = DEFAULT_CONFIG.withName("Time Limited Edition").withMintPeriod(2 days);
 
@@ -474,7 +485,7 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
         mint(timeLimitedEdition, address(this));
     }
 
-    function tes_mint_fromTimeLimitedEdition_afterMintingPeriod() public {
+    function test_mint_fromTimeLimitedEdition_afterMintingPeriod() public {
         // setup
         EditionConfig memory config = DEFAULT_CONFIG.withName("Time Limited Edition").withMintPeriod(2 days);
 
