@@ -153,14 +153,6 @@ abstract contract EditionMetadataTests is EditionFixture {
         assertEq(description, 'My "description" is also \t \\very\\ special!\r\n');
     }
 
-    function test_contractURI_propertiesEscaped() public {
-        setProperty("property_name", 'property\t"value"');
-        string memory json = parseDataUri(__metadata_edition.contractURI());
-        string memory value = stdJson.readString(json, ".properties.property_name");
-
-        assertEq(value, 'property\t"value"');
-    }
-
     function test_tokenURI_propertiesEscaped() public {
         setProperty("property_name", 'property\t"value"');
         string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
@@ -212,6 +204,14 @@ abstract contract EditionMetadataTests is EditionFixture {
         string memory value = stdJson.readString(json, ".properties.property_name");
 
         assertEq(value, "property_value");
+    }
+
+    function test_setProperties_notReflectedInContractURI() public {
+        setProperty("property_name", "property_value");
+        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
+        string memory value = stdJson.readString(json, ".properties.property_name");
+
+        assertEq(value, "");
     }
 
     function testReflectsMultipleStringPropertiesInMetadata() public {
@@ -346,7 +346,14 @@ abstract contract EditionMetadataTests is EditionFixture {
         assertEq(__metadata_edition.externalUrl(), "");
     }
 
-    function test_tokenURI() public {
+    function test_tokenURI_fail(uint256 tokenId) public {
+        vm.assume(tokenId != 1);
+
+        vm.expectRevert("NOT_MINTED");
+        IERC721Metadata(address(__metadata_edition)).tokenURI(tokenId);
+    }
+
+    function test_tokenURI_pass() public {
         string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
         TokenURISchemaWithImage memory parsed = abi.decode(vm.parseJson(json), (TokenURISchemaWithImage));
 

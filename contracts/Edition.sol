@@ -200,7 +200,8 @@ contract Edition is EditionBase, ERC721I, IEdition {
     /// @param tokenId the token id to get the metadata for
     /// @return base64-encoded json metadata object
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        require(_ownerOf[tokenId] != address(0), "No token");
+        // reverts if token does not exist
+        ownerOf(tokenId);
 
         return createTokenMetadata(name, tokenId, state.editionSize);
     }

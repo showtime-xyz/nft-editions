@@ -76,7 +76,7 @@ abstract contract EditionBase is
                            METADATA FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function editionSize() external view returns (uint256) {
+    function editionSize() public view returns (uint256) {
         return state.editionSize;
     }
 
