@@ -11,7 +11,7 @@ import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInit
 import {IBatchEdition} from "contracts/interfaces/IBatchEdition.sol";
 import {SingleBatchEdition, ERC721} from "contracts/SingleBatchEdition.sol";
 
-import {EditionBaseSpec, EditionConfig, EditionConfigWither} from "test/Edition/EditionBaseSpec.t.sol";
+import {EditionBaseSpec, EditionConfig, EditionConfigWither} from "test/common/EditionBaseSpec.t.sol";
 
 import "contracts/interfaces/Errors.sol";
 

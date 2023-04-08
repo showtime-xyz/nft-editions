@@ -7,7 +7,7 @@ import {LibString} from "contracts/utils/LibString.sol";
 import {Base64} from "contracts/utils/Base64.sol";
 import {IOwned} from "contracts/solmate-initializable/auth/IOwned.sol";
 
-import "./fixtures/EditionFixture.sol";
+import "./EditionFixture.sol";
 
 
 /// @dev fields need to be sorted alphabetically (see docs of vm.parseJson())
