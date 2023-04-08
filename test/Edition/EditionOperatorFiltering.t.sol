@@ -4,7 +4,7 @@ pragma solidity ^0.8.15;
 import {console2} from "forge-std/console2.sol";
 import {IERC721} from "forge-std/interfaces/IERC721.sol";
 
-import {EditionFixture} from "./fixtures/EditionFixture.sol";
+import "./fixtures/EditionFixture.sol";
 
 interface IOperatorFilterRegistry {
     function filteredOperators(address addr) external returns (address[] memory);
@@ -29,7 +29,7 @@ contract MockRegistry {
 }
 
 /// @dev modified from operator-filter-registry/test/Validation.t.sol
-contract EditionOperatorFiltering is EditionFixture {
+abstract contract EditionOperatorFiltering is EditionFixture {
     address constant CANONICAL_OPERATOR_FILTER_REGISTRY = 0x000000000000AAeB6D7670E522A718067333cd4E;
     address constant CANONICAL_OPENSEA_REGISTRANT = 0x3cc6CddA760b79bAfa08dF41ECFA224f810dCeB6;
 
@@ -37,40 +37,50 @@ contract EditionOperatorFiltering is EditionFixture {
     address contractAddress;
 
     // Token ID to test against
-    uint256 tokenId;
+    uint256 __filtering_tokenId;
 
     // Owner of the NFT
-    address owner;
+    address __filtering_owner;
+
+    EditionBase __filtering_edition;
 
     address[] filteredOperators;
 
-    function setUp() public {
-        __EditionFixture_setUp();
+    // implementation must initialize the __filtering_* variables
+    function __EditionOperatorFiltering_init() internal virtual;
 
+    // implementation must provide a way to mint a token
+    function __EditionOperatorFiltering_mint(address someEdition, address recipient)
+        internal
+        virtual
+        returns (uint256 token);
+
+    // implementation must invoke this after init()
+    function __EditionOperatorFiltering_setUp() public {
         // try to load contract address from .env
         try vm.envAddress("CONTRACT_ADDRESS") returns (address _contractAddress) {
             contractAddress = _contractAddress;
         } catch (bytes memory) {
             // fallback to deploying new contract
-            contractAddress = address(edition);
+            contractAddress = address(__filtering_edition);
             vm.prank(editionOwner);
-            edition.setOperatorFilter(CANONICAL_OPENSEA_REGISTRANT);
+            __filtering_edition.setOperatorFilter(CANONICAL_OPENSEA_REGISTRANT);
         }
 
         // try to load token ID from .env
         try vm.envUint("TOKEN_ID") returns (uint256 _tokenId) {
-            tokenId = _tokenId;
+            __filtering_tokenId = _tokenId;
         } catch (bytes memory) {
             // fallback to minting
-            tokenId = edition.mint(address(this));
+            __filtering_tokenId = __EditionOperatorFiltering_mint(address(__filtering_edition), address(this));
         }
 
         // try to load owner from .env
         try vm.envAddress("OWNER") returns (address _owner) {
-            owner = _owner;
+            __filtering_owner = _owner;
         } catch (bytes memory) {
             // fallback to this
-            owner = address(this);
+            __filtering_owner = address(this);
         }
 
         initFilteredOperators();
@@ -101,11 +111,11 @@ contract EditionOperatorFiltering is EditionFixture {
     function testEnableDefaultOperator() public {
         vm.startPrank(editionOwner);
 
-        edition.setOperatorFilter(address(0));
-        assertEq(edition.activeOperatorFilter(), address(0));
+        __filtering_edition.setOperatorFilter(address(0));
+        assertEq(__filtering_edition.activeOperatorFilter(), address(0));
 
-        edition.enableDefaultOperatorFilter();
-        assertEq(edition.activeOperatorFilter(), CANONICAL_OPENSEA_REGISTRANT);
+        __filtering_edition.enableDefaultOperatorFilter();
+        assertEq(__filtering_edition.activeOperatorFilter(), CANONICAL_OPENSEA_REGISTRANT);
 
         vm.stopPrank();
     }
@@ -114,8 +124,8 @@ contract EditionOperatorFiltering is EditionFixture {
         IERC721 nftContract = IERC721(contractAddress);
 
         // Try to get the current owner of the NFT, falling back to value set during setup on revert
-        try nftContract.ownerOf(tokenId) returns (address _owner) {
-            owner = _owner;
+        try nftContract.ownerOf(__filtering_tokenId) returns (address _owner) {
+            __filtering_owner = _owner;
         } catch (bytes memory) {
             // Do nothing
         }
@@ -125,7 +135,7 @@ contract EditionOperatorFiltering is EditionFixture {
             console2.log("Testing operator: ", operator);
 
             // Try to set approval for the operator
-            vm.startPrank(owner);
+            vm.startPrank(__filtering_owner);
             try nftContract.setApprovalForAll(operator, true) {
                 // blocking approvals is not required, so continue to check transfers
             } catch (bytes memory) {
@@ -134,7 +144,7 @@ contract EditionOperatorFiltering is EditionFixture {
             }
 
             // also include per-token approvals as those may not be blocked
-            try nftContract.approve(operator, tokenId) {
+            try nftContract.approve(operator, __filtering_tokenId) {
                 // continue to check transfers
             } catch (bytes memory) {
                 // continue to test transfer methods, since marketplace approvals can be
@@ -145,13 +155,13 @@ contract EditionOperatorFiltering is EditionFixture {
             // Ensure operator is not able to transfer the token
             vm.startPrank(operator);
             vm.expectRevert();
-            nftContract.safeTransferFrom(owner, address(1), tokenId);
+            nftContract.safeTransferFrom(__filtering_owner, address(1), __filtering_tokenId);
 
             vm.expectRevert();
-            nftContract.safeTransferFrom(owner, address(1), tokenId, "");
+            nftContract.safeTransferFrom(__filtering_owner, address(1), __filtering_tokenId, "");
 
             vm.expectRevert();
-            nftContract.transferFrom(owner, address(1), tokenId);
+            nftContract.transferFrom(__filtering_owner, address(1), __filtering_tokenId);
             vm.stopPrank();
         }
     }

@@ -11,212 +11,79 @@ import {Base64} from "contracts/utils/Base64.sol";
 import {Edition} from "contracts/Edition.sol";
 import {EditionCreator, IEdition} from "contracts/EditionCreator.sol";
 
-import "./fixtures/EditionFixture.sol";
+import "test/Edition/EditionBaseSpec.t.sol";
 
-contract EditionFunctionalTests is EditionFixture {
-    uint256 tokenId;
+contract UnsuspectingContract {}
+
+contract ERC721AwareContract is IERC721ReceiverUpgradeable {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+}
+
+contract EditionFunctionalTests is EditionBaseSpec {
+    Edition internal edition;
+
+    ERC721AwareContract erc721AwareContract = new ERC721AwareContract();
+    UnsuspectingContract unsuspectingContract = new UnsuspectingContract();
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
     address charlie = makeAddr("charlie");
 
-    address constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    /*//////////////////////////////////////////////////////////////
+                          BASE SPEC OVERRIDES
+    //////////////////////////////////////////////////////////////*/
 
-    function setUp() public {
-        __EditionFixture_setUp();
-        tokenId = edition.mint(address(this));
+    function setUp() public override {
+        super.setUp();
+        edition = Edition(_edition);
+    }
+
+    function createImpl() internal override returns (address) {
+        return address(new Edition());
+    }
+
+    function mint(address _edition, address to, address msgSender, bytes memory expectedError)
+        internal
+        override
+        returns (uint256 tokenId)
+    {
+        vm.prank(msgSender);
+        if (expectedError.length > 0) {
+            vm.expectRevert(expectedError);
+        }
+
+        return IEdition(_edition).mint(to);
+    }
+
+    function mint(address _edition, uint256 num, address msgSender, bytes memory expectedError) internal override {
+        address[] memory recipients = new address[](num);
+        for (uint256 i = 0; i < num; i++) {
+            recipients[i] = address(this);
+        }
+
+        vm.prank(msgSender);
+        if (expectedError.length > 0) {
+            vm.expectRevert(expectedError);
+        }
+        IEdition(_edition).mintBatch(recipients);
     }
 
     /*//////////////////////////////////////////////////////////////
-                    CONSTRUCTOR / INITIALIZER TESTS
+                          MINT/SAFEMINT TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testConstructorEmitsInitializedEvent() public {
-        vm.expectEmit(true, true, true, true);
-        emit Initialized();
-        new Edition();
-    }
+    function test_mintBatch_four() public {
+        // setup edition with a regular mint beforehand
+        vm.prank(approvedMinter);
+        edition.mint(address(this));
 
-    function testNoOwnerAfterConstructor() public {
-        Edition newImpl = new Edition();
-        assertEq(newImpl.owner(), address(0));
-    }
-
-    function testInitializerEmitsOwnershipTransferredEvent() public {
-        vm.expectEmit(true, true, true, true);
-        emit OwnershipTransferred(address(0), address(this));
-        editionCreator.createEdition(
-            "name",
-            "symbol",
-            "description",
-            "https://example.com/animation.mp4",
-            "https://example.com/image.png",
-            0xcccccccccccccc, // editionSize
-            0xaaaa, // royaltyBPS
-            0xbbbbbbbbbbbbbb // mintPeriodSeconds
-        );
-    }
-
-    function testDoesNotAllowReinitializationOfTheImplContract() public {
-        Edition newImpl = new Edition();
-
-        vm.expectRevert("ALREADY_INITIALIZED");
-        newImpl.initialize(
-            bob,
-            "name",
-            "symbol",
-            "description",
-            "https://example.com/animation.mp4",
-            "https://example.com/image.png",
-            0xcccccccccccccc, // editionSize
-            0xaaaa, // royaltyBPS
-            0xbbbbbbbbbbbbbb // mintPeriodSeconds
-        );
-    }
-
-    function testDoesNotAllowReinitializationOfProxyContracts() public {
-        vm.expectRevert("ALREADY_INITIALIZED");
-        edition.initialize(
-            bob,
-            "name",
-            "symbol",
-            "description",
-            "https://example.com/animation.mp4",
-            "https://example.com/image.png",
-            0xcccccccccccccc, // editionSize
-            0xaaaa, // royaltyBPS
-            0xbbbbbbbbbbbbbb // mintPeriodSeconds
-        );
-    }
-
-    function testCreateDuplicate() public {
-        createEdition(DEFAULT_PARAMS, "ERC1167: create2 failed");
-    }
-
-    function testEditionSizeOverflow() public {
-        uint256 tooBig = uint256(type(uint64).max) + 1;
-        EditionParams memory params = DEFAULT_PARAMS;
-        params.editionSize = tooBig;
-        params.name = "Edition Size Too Big";
-
-        createEdition(params, newIntegerOverflow(tooBig));
-    }
-
-    function testMintPeriodOverflow() public {
-        uint256 tooBig = uint256(type(uint64).max) + 1;
-        EditionParams memory params = DEFAULT_PARAMS;
-        params.name = "Mint Period Too Big";
-        params.mintPeriod = tooBig;
-
-        createEdition(params, newIntegerOverflow(tooBig + block.timestamp));
-    }
-
-    function testRoyaltiesOverflow() public {
-        uint256 tooBig = uint256(type(uint16).max) + 1;
-        EditionParams memory params = DEFAULT_PARAMS;
-        params.name = "Royalties Too Big";
-        params.royaltiesBps = tooBig;
-
-        createEdition(params, newIntegerOverflow(tooBig));
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                             ERC2981 TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testERC165Impl() public {
-        assertEq(edition.supportsInterface(0x2a55205a), true); // ERC2981
-        assertEq(edition.supportsInterface(0x01ffc9a7), true); // ERC165
-        assertEq(edition.supportsInterface(0x80ac58cd), true); // ERC721
-        assertEq(edition.supportsInterface(0x5b5e139f), true); // ERC721Metadata
-    }
-
-    function testRoyaltyRecipientUpdatedAfterOwnershipTransferred() public {
-        (address recipient,) = edition.royaltyInfo(1, 1 ether);
-        assertEq(recipient, editionOwner);
-
-        // when we transfer ownership
-        vm.prank(editionOwner);
-        edition.transferOwnership(bob);
-
-        // then the royalty recipient is updated
-        (recipient,) = edition.royaltyInfo(1, 1 ether);
-        assertEq(recipient, bob);
-    }
-
-    function testRoyaltyAmount(uint128 salePrice) public {
-        // uint128 is plenty big and avoids overflow errors
-        (, uint256 fee) = edition.royaltyInfo(1, salePrice);
-        assertEq(fee, uint256(salePrice) * DEFAULT_PARAMS.royaltiesBps / 100_00);
-    }
-
-    function testEditionWithNoRoyalties() public {
-        EditionParams memory params = DEFAULT_PARAMS;
-        params.name = "No Royalties";
-        params.royaltiesBps = 0;
-        Edition editionNoRoyalties = createEdition(params);
-
-        (, uint256 royaltyAmount) = editionNoRoyalties.royaltyInfo(1, 100);
-        assertEq(royaltyAmount, 0);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            MINT/BURN TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testMintingUpdatesTotalSupply() public {
-        assertEq(edition.totalSupply(), 1);
-        edition.mint(bob);
-        assertEq(edition.totalSupply(), 2);
-        assertEq(edition.ownerOf(2), bob);
-    }
-
-    function testAllowsUserBurn() public {
-        // no burn method, burning is done by transfering to the burn address
-        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
-
-        // as a result, totalSupply is unchanged
-        assertEq(edition.totalSupply(), 1);
-
-        // and the token is owned by the burn address
-        assertEq(edition.ownerOf(tokenId), BURN_ADDRESS);
-    }
-
-    function testDoesNotAllowUnapprovedBurns() public {
-        // bob has no approval for that token
-        vm.prank(bob);
-        vm.expectRevert("NOT_AUTHORIZED");
-        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
-    }
-
-    function testAllowsBurnIfApproved() public {
-        // when we approve bob
-        edition.approve(bob, tokenId);
-
-        // then bob can burn the token
-        vm.prank(bob);
-        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
-        assertEq(edition.ownerOf(tokenId), BURN_ADDRESS);
-    }
-
-    function testAllowsBurnIfApprovedForAll() public {
-        // when we approve bob
-        edition.setApprovalForAll(bob, true);
-
-        // then bob can burn the token
-        vm.prank(bob);
-        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
-        assertEq(edition.ownerOf(tokenId), BURN_ADDRESS);
-    }
-
-    function testDoesNotAllowBurningTwice() public {
-        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
-
-        vm.expectRevert("WRONG_FROM");
-        edition.transferFrom(address(this), BURN_ADDRESS, tokenId);
-    }
-
-    function testMintBatch4() public {
         // make a batch of address with duplicates, unsorted
         address[] memory recipients = new address[](4);
         recipients[0] = alice;
@@ -224,6 +91,7 @@ contract EditionFunctionalTests is EditionFixture {
         recipients[2] = charlie;
         recipients[3] = alice;
 
+        vm.prank(approvedMinter);
         uint256 lastTokenId = edition.mintBatch(recipients);
 
         assertEq(lastTokenId, 5);
@@ -235,190 +103,87 @@ contract EditionFunctionalTests is EditionFixture {
         assertEq(edition.balanceOf(alice), 2);
     }
 
-    function testMintEditionCanMintToUnsuspectingContracts() public {
+    function test_mint_canMintToUnsuspectingContracts() public {
         vm.expectEmit(true, true, false, false);
         emit Transfer(
             address(0),
             address(unsuspectingContract),
             /* whatever */
             0
-            );
+        );
 
+        vm.prank(approvedMinter);
         edition.mint(address(unsuspectingContract));
     }
 
-    function testSafeMintEditionCanNotMintToUnsuspectingContracts() public {
+    function test_safeMint_canNotMintToUnsuspectingContracts() public {
         // the "UNSAFE_RECIPIENT" error does not bubble up to the caller
         vm.expectRevert();
         edition.safeMint(address(unsuspectingContract));
     }
 
-    function testSafeMintEditionCanMintToAwareContracts() public {
+    function test_safeMint_canMintToAwareContracts() public {
         vm.expectEmit(true, true, false, false);
         emit Transfer(
             address(0),
             address(erc721AwareContract),
             /* whatever */
             0
-            );
+        );
 
+        vm.prank(approvedMinter);
         edition.mint(address(erc721AwareContract));
     }
 
-    /*//////////////////////////////////////////////////////////////
-                           SUPPLY LIMIT TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testCanNotMintMoreThanEditionSize() public {
-        while (edition.totalSupply() < DEFAULT_PARAMS.editionSize) {
+    function test_mint_singleRespectsSupplyLimit() public {
+        vm.startPrank(approvedMinter);
+        while (edition.totalSupply() < DEFAULT_CONFIG.editionSize) {
             edition.mint(bob);
         }
 
         vm.expectRevert(SoldOut.selector);
         edition.mint(bob);
-    }
-
-    function testCanNotMintBatchBiggerThanEditionSize() public {
-        address[] memory recipients = new address[](DEFAULT_PARAMS.editionSize);
-        for (uint256 i = 0; i < DEFAULT_PARAMS.editionSize; i++) {
-            recipients[i] = bob;
-        }
-
-        vm.expectRevert(SoldOut.selector);
-        edition.mintBatch(recipients);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            TIME LIMIT TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testTimeLimitedEditionDuringMintingPeriod() public {
-        // setup
-        EditionParams memory params = DEFAULT_PARAMS;
-        params.name = "Time Limited Edition";
-        params.mintPeriod = 2 days;
-        Edition timeLimitedEdition = createEdition(params);
-
-        // minting is allowed
-        assertEq(timeLimitedEdition.isMintingEnded(), false);
-        timeLimitedEdition.mint(bob);
-    }
-
-    function testTimeLimitedEditionAfterMintingPeriod() public {
-        // setup
-        EditionParams memory params = DEFAULT_PARAMS;
-        params.name = "Time Limited Edition";
-        params.mintPeriod = 2 days;
-        Edition timeLimitedEdition = createEdition(params);
-
-        vm.prank(editionOwner);
-        timeLimitedEdition.setApprovedMinter(address(0), true); // allow anyone to mint
-
-        // after the mint period
-        vm.warp(block.timestamp + 3 days);
-
-        // isMintingEnded() returns true
-        assertEq(timeLimitedEdition.isMintingEnded(), true);
-
-        // mint() fails
-        vm.expectRevert(TimeLimitReached.selector);
-        timeLimitedEdition.mint(bob);
-
-        // mintBatch() fails
-        address[] memory recipients = new address[](1);
-        recipients[0] = bob;
-        vm.expectRevert(TimeLimitReached.selector);
-        timeLimitedEdition.mintBatch(recipients);
-
-        // mint() with salePrice fails
-        vm.prank(editionOwner);
-        timeLimitedEdition.setSalePrice(1 ether);
-        vm.deal(bob, 1 ether);
-
-        vm.expectRevert(TimeLimitReached.selector);
-        vm.prank(bob);
-        timeLimitedEdition.mint{value: 1 ether}(bob);
-
-        // it returns the expected totalSupply
-        assertEq(timeLimitedEdition.totalSupply(), 0);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                               AUTH TESTS
-    //////////////////////////////////////////////////////////////*/
-
-    function testOnlyOwnerCanSetApprovedMinter() public {
-        vm.expectRevert("UNAUTHORIZED");
-        edition.setApprovedMinter(bob, true);
-    }
-
-    function testOnlyOwnerCanWithdraw() public {
-        vm.expectRevert("UNAUTHORIZED");
-        edition.withdraw();
-    }
-
-    function testOnlyOwnerCanSetSalePrice() public {
-        vm.expectRevert("UNAUTHORIZED");
-        edition.setSalePrice(0 ether);
-    }
-
-    function testOnlyApprovedMinterCanMint() public {
-        vm.expectRevert(Unauthorized.selector);
-        vm.prank(bob);
-        edition.mint(bob);
-    }
-
-    function testOnlyOwnerCanTransferOwnership() public {
-        vm.expectRevert("UNAUTHORIZED");
-        vm.prank(bob);
-        edition.transferOwnership(bob);
-    }
-
-    function testOnlyOwnerCanSetOperatorFilter() public {
-        vm.expectRevert("UNAUTHORIZED");
-        vm.prank(bob);
-        edition.setOperatorFilter(bob);
-    }
-
-    function testOnlyOwnerCanEnableDefaultOperatorFilter() public {
-        vm.expectRevert("UNAUTHORIZED");
-        vm.prank(bob);
-        edition.enableDefaultOperatorFilter();
+        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
                             SALE PRICE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testSetSalePriceSmallest() public {
+    function test_setSalePrice_onlyOwnerFail() public {
+        vm.expectRevert("UNAUTHORIZED");
+        edition.setSalePrice(0 ether);
+    }
+
+    function test_setSalePrice_smallest() public {
         uint256 smallestPriceWei = 0.001 ether;
         vm.prank(editionOwner);
         edition.setSalePrice(smallestPriceWei);
         assertEq(edition.salePrice(), smallestPriceWei);
     }
 
-    function testSetSalePriceLargest() public {
+    function test_setSalePrice_largest() public {
         uint256 largestPriceWei = 4294.967295 ether;
         vm.prank(editionOwner);
         edition.setSalePrice(largestPriceWei);
         assertEq(edition.salePrice(), largestPriceWei);
     }
 
-    function testSetSalePriceUnderflow() public {
+    function test_setSalePrice_underflow() public {
         uint256 tooSmall = 1 wei;
         vm.prank(editionOwner);
         vm.expectRevert(abi.encodeWithSignature("PriceTooLow()"));
         edition.setSalePrice(tooSmall);
     }
 
-    function testSetSalePriceOverflow() public {
+    function test_setSalePrice_overflow() public {
         uint256 tooBig = 4294.967296 ether;
         vm.prank(editionOwner);
         vm.expectRevert(newIntegerOverflow(0x100000000));
         edition.setSalePrice(tooBig);
     }
 
-    function testSalePriceReflectedCorrectly() public {
+    function test_setSalePrice_reflected() public {
         assertEq(edition.salePrice(), 0 ether);
 
         vm.prank(editionOwner);
@@ -431,7 +196,7 @@ contract EditionFunctionalTests is EditionFixture {
                             PAID MINT TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testFreeMintRefusesEth() public {
+    function test_e2e_freeMintRejectsEth() public {
         // setup
         vm.prank(editionOwner);
         edition.setSalePrice(0);
@@ -459,7 +224,7 @@ contract EditionFunctionalTests is EditionFixture {
         edition.mintBatch{value: 1 ether}(recipients);
     }
 
-    function testPaidMint() public {
+    function test_e2e_paidMint() public {
         // setup
         uint256 price = 0.001 ether;
 
@@ -487,7 +252,7 @@ contract EditionFunctionalTests is EditionFixture {
         assertEq(edition.ownerOf(_tokenId), bob);
     }
 
-    function testPaidSafeMint() public {
+    function test_e2e_paidSafeMint() public {
         // setup
         uint256 price = 0.001 ether;
 
@@ -515,7 +280,7 @@ contract EditionFunctionalTests is EditionFixture {
         assertEq(edition.ownerOf(_tokenId), bob);
     }
 
-    function testPaidBatchMint() public {
+    function test_e2e_paidBatchMint() public {
         // setup
         uint256 price = 0.001 ether;
 
@@ -546,18 +311,5 @@ contract EditionFunctionalTests is EditionFixture {
         vm.prank(bob);
         uint256 _tokenId = edition.mintBatch{value: 3 * price}(recipients);
         assertEq(edition.ownerOf(_tokenId), bob);
-    }
-
-    function testWithdraw(uint256 balance) public {
-        // setup
-        vm.deal(address(edition), balance);
-
-        // when the owner withdraws
-        vm.prank(editionOwner);
-        edition.withdraw();
-
-        // then the balance is transferred
-        assertEq(address(edition).balance, 0);
-        assertEq(address(editionOwner).balance, balance);
     }
 }

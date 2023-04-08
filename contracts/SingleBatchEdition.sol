@@ -45,18 +45,11 @@ contract SingleBatchEdition is
                    COLLECTOR / TOKEN OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function revertIfNotAuthorizedMinter() internal view {
-        // Only allow minting if the sender is an authorized minter or the owner
-        if (allowedMinters[msg.sender] || owner == msg.sender) {
-            return;
-        }
-
-        revert Unauthorized();
-    }
-
     /// @param addresses A tightly packed and sorted list of at most 1228 addresses to mint to
     function mintBatch(bytes calldata addresses) external override returns (uint256 lastTokenId) {
-        revertIfNotAuthorizedMinter();
+        if (!isApprovedMinter(msg.sender)) {
+            revert Unauthorized();
+        }
 
         lastTokenId = _mint(addresses);
 
@@ -66,7 +59,9 @@ contract SingleBatchEdition is
 
     /// @param pointer An SSTORE2 pointer to a list of addresses to send the newly minted editions to, packed tightly
     function mintBatch(address pointer) public override returns (uint256 lastTokenId) {
-        revertIfNotAuthorizedMinter();
+        if (!isApprovedMinter(msg.sender)) {
+            revert Unauthorized();
+        }
 
         lastTokenId = _mint(pointer);
 

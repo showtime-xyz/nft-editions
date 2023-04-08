@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
 
-import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";
@@ -13,185 +11,102 @@ import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInit
 import {IBatchEdition} from "contracts/interfaces/IBatchEdition.sol";
 import {SingleBatchEdition, ERC721} from "contracts/SingleBatchEdition.sol";
 
+import {EditionBaseSpec, EditionConfig, EditionConfigWither} from "test/Edition/EditionBaseSpec.t.sol";
+
 import "contracts/interfaces/Errors.sol";
 
 contract BatchMinter {
-    function mintBatch(IBatchEdition edition, bytes calldata addresses)
-        public
-    {
+    function mintBatch(IBatchEdition edition, bytes calldata addresses) public {
         edition.mintBatch(addresses);
     }
 }
 
-contract SingleBatchEditionTest is Test {
-    event Initialized();
-    event OwnershipTransferred(address indexed user, address indexed newOwner);
-    event Transfer(
-        address indexed from,
-        address indexed to,
-        uint256 indexed tokenId
-    );
+contract SingleBatchEditionTest is EditionBaseSpec {
+    using EditionConfigWither for EditionConfig;
 
-    address internal editionOwner;
+    IBatchEdition internal edition;
+
     address internal bob;
 
-    IBatchEdition internal editionImpl;
-    IBatchEdition internal edition;
-    BatchMinter internal minter;
+    BatchMinter internal minterContract;
 
-    function createEdition(string memory name)
-        internal
-        returns (IBatchEdition _edition)
-    {
-        bytes32 salt = keccak256(abi.encodePacked(name));
+    /*//////////////////////////////////////////////////////////////
+                          BASE SPEC OVERRIDES
+    //////////////////////////////////////////////////////////////*/
 
-        vm.prank(editionOwner);
-        _edition = IBatchEdition(
-            ClonesUpgradeable.cloneDeterministic(address(editionImpl), salt)
-        );
+    function setUp() public override {
+        super.setUp();
 
-        _edition.initialize(
-            editionOwner,
-            name,
-            "SYMBOL",
-            "description",
-            "https://animation.url",
-            "https://image.url",
-            0, // editionSize
-            10_00, // royaltyBPS
-            0 // mintPeriodSeconds
-        );
-
-        vm.prank(editionOwner);
-        _edition.setApprovedMinter(address(minter), true);
-    }
-
-    function setUp() public {
-        editionOwner = makeAddr("editionOwner");
+        // bob has no special rights
         bob = makeAddr("bob");
 
-        editionImpl = new SingleBatchEdition();
-        minter = new BatchMinter();
+        edition = IBatchEdition(_edition);
+    }
 
-        edition = createEdition("edition");
+    function createImpl() internal override returns (address) {
+        return address(new SingleBatchEdition());
+    }
+
+    /// @dev create a clone of editionImpl with the given config
+    function create(EditionConfig memory config, bytes memory expectedError) internal override returns (address) {
+        address newEdition = super.create(config, expectedError);
+
+        // lazy initialization of the minter
+        if (address(minterContract) == address(0)) {
+            minterContract = new BatchMinter();
+        }
+
+        // only continue if we were not expecting an error
+        if (expectedError.length == 0) {
+            vm.prank(editionOwner);
+            IBatchEdition(newEdition).setApprovedMinter(address(minterContract), true);
+        }
+
+        return newEdition;
+    }
+
+    function _mint(address _edition, bytes memory recipients, address msgSender, bytes memory expectedError)
+        internal
+        returns (uint256 tokenId)
+    {
+        if (expectedError.length > 0) {
+            vm.expectRevert(expectedError);
+        }
+
+        vm.prank(msgSender);
+        return IBatchEdition(_edition).mintBatch(recipients);
+    }
+
+    function mint(address _edition, address to, address msgSender, bytes memory expectedError)
+        internal
+        override
+        returns (uint256 tokenId)
+    {
+        return _mint(_edition, abi.encodePacked(to), msgSender, expectedError);
+    }
+
+    function mint(address _edition, uint256 num, address msgSender, bytes memory expectedError) internal override {
+        _mint(_edition, Addresses.make(num), msgSender, expectedError);
     }
 
     /*//////////////////////////////////////////////////////////////
                             FUNCTIONAL TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testConstructorEmitsInitializedEvent() public {
-        vm.expectEmit(true, true, true, true);
-        emit Initialized();
-        new SingleBatchEdition();
+    function test_mintBatch_canNotMint0() public {
+        mint(_edition, 0, approvedMinter, "INVALID_ADDRESSES");
     }
 
-    function testNoOwnerAfterConstructor() public {
-        SingleBatchEdition newImpl = new SingleBatchEdition();
-        assertEq(OwnedInitializable(address(newImpl)).owner(), address(0));
-    }
-
-    function testInitializerEmitsOwnershipTransferredEvent() public {
-        vm.expectEmit(true, true, true, true);
-        emit OwnershipTransferred(address(0), editionOwner);
-        createEdition("testInitializerEmitsOwnershipTransferredEvent");
-    }
-
-    function testDoesNotAllowReinitializationOfTheImplContract() public {
-        SingleBatchEdition newImpl = new SingleBatchEdition();
-
-        vm.expectRevert("ALREADY_INITIALIZED");
-        newImpl.initialize(
-            editionOwner,
-            "name",
-            "SYMBOL",
-            "description",
-            "https://animation.url",
-            "https://image.url",
-            0, // editionSize
-            2_50, // royaltyBps
-            0 // mintPeriodSeconds
-        );
-    }
-
-    function testDoesNotAllowReinitializationOfProxyContracts() public {
-        vm.expectRevert("ALREADY_INITIALIZED");
-        edition.initialize(
-            editionOwner,
-            "name",
-            "SYMBOL",
-            "description",
-            "https://animation.url",
-            "https://image.url",
-            0, // editionSize
-            2_50, // royaltyBps
-            0 // mintPeriodSeconds
-        );
-    }
-
-    function testTransferOwnershipFailsForBob() public {
-        vm.expectRevert("UNAUTHORIZED");
-        vm.prank(bob);
-        OwnedInitializable(address(edition)).transferOwnership(bob);
-    }
-
-    function testTransferOwnershipWorksForOwner() public {
-        vm.prank(editionOwner);
-        OwnedInitializable(address(edition)).transferOwnership(bob);
-        assertEq(OwnedInitializable(address(edition)).owner(), bob);
-    }
-
-    function testMintingUpdatesTotalSupply(uint256 n) public {
-        n = bound(n, 1, 1228);
-        assertEq(edition.totalSupply(), 0);
-
-        // when we mint n tokens
-        minter.mintBatch(edition, Addresses.make(n));
-
-        // then the total supply is n
-        assertEq(edition.totalSupply(), n);
-    }
-
-    function testOnlyOwnerCanWithdraw() public {
-        vm.expectRevert("UNAUTHORIZED");
-        vm.prank(bob);
-        edition.withdraw();
-    }
-
-    function testOwnerCanWithdraw() public {
-        vm.deal(address(edition), 1 ether);
-
-        // when the owner withdraws from the edition
-        vm.prank(editionOwner);
-        edition.withdraw();
-
-        // then the funds are transferred
-        assertEq(address(edition).balance, 0);
-        assertEq(editionOwner.balance, 1 ether);
-    }
-
-    function testOnlyMinterCanMint() public {
-        bytes memory addresses = Addresses.make(1);
-        vm.prank(bob);
-        vm.expectRevert(Unauthorized.selector);
-        edition.mintBatch(addresses);
-    }
-
-    function testCanNotMint0() public {
-        vm.expectRevert("INVALID_ADDRESSES");
-        minter.mintBatch(edition, "");
-    }
-
-    function testCanNotMintTwice() public {
-        minter.mintBatch(edition, abi.encodePacked(address(this)));
+    function test_mintBatch_canNotMintTwice() public {
+        minterContract.mintBatch(edition, abi.encodePacked(address(this)));
 
         vm.expectRevert("ALREADY_MINTED");
-        minter.mintBatch(edition, abi.encodePacked(address(this)));
+        minterContract.mintBatch(edition, abi.encodePacked(address(this)));
     }
 
-    function testCanNotMintBadData() public {
+    function test_mintBatch_canNotMintBadData() public {
         vm.expectRevert("INVALID_ADDRESSES");
-        minter.mintBatch(edition, "beep boop");
+        minterContract.mintBatch(edition, "beep boop");
     }
 
     function test_getPrimaryOwnersPointer_nullBeforeMint() public {
@@ -199,7 +114,7 @@ contract SingleBatchEditionTest is Test {
     }
 
     function test_getPrimaryOwnersPointer_setAfterMint() public {
-        minter.mintBatch(edition, abi.encodePacked(address(this)));
+        minterContract.mintBatch(edition, abi.encodePacked(address(this)));
 
         address pointer = edition.getPrimaryOwnersPointer(0);
         bytes memory data = SSTORE2.read(pointer);
@@ -207,7 +122,7 @@ contract SingleBatchEditionTest is Test {
     }
 
     function test_isPrimaryOwner() public {
-        minter.mintBatch(edition, abi.encodePacked(address(this)));
+        minterContract.mintBatch(edition, abi.encodePacked(address(this)));
 
         // we are a primary owner (the only one in fact), as well as a current owner
         assertTrue(edition.isPrimaryOwner(address(this)));
@@ -216,7 +131,7 @@ contract SingleBatchEditionTest is Test {
         assertFalse(edition.isPrimaryOwner(bob));
 
         // when we transfer the NFT out
-        ERC721(address(edition)).transferFrom(address(this), bob, 1);
+        ERC721(_edition).transferFrom(address(this), bob, 1);
 
         // then we are no longer a current owner, but we are still a primary owner
         assertTrue(edition.isPrimaryOwner(address(this)));
@@ -225,62 +140,31 @@ contract SingleBatchEditionTest is Test {
         assertFalse(edition.isPrimaryOwner(bob));
     }
 
-    /*//////////////////////////////////////////////////////////////
-                               GAS TESTS
-    //////////////////////////////////////////////////////////////*/
+    function test_isPrimaryOwner_fuzz(uint32 num, uint32 index) public {
+        num = uint32(bound(num, 1, 1000));
+        index = uint32(bound(index, 1, num));
 
-    /// @dev for gas snapshot
-    function testMintBatchViaContract_0001() public {
-        minter.mintBatch(edition, Addresses.make(1));
-    }
+        minterContract.mintBatch(edition, Addresses.make(num));
 
-    /// @dev for gas snapshot
-    function testMintBatchViaContract_0010() public {
-        minter.mintBatch(edition, Addresses.make(10));
-    }
+        address randomPrimaryOwner = address(uint160(0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa) + index);
 
-    /// @dev for gas snapshot
-    function testMintBatchViaContract_0100() public {
-        minter.mintBatch(edition, Addresses.make(100));
-    }
+        // both a primary and a current owner
+        assertTrue(edition.isPrimaryOwner(randomPrimaryOwner));
+        assertEq(ERC721(_edition).balanceOf(randomPrimaryOwner), 1);
+        assertEq(ERC721(_edition).ownerOf(index), randomPrimaryOwner);
 
-    /// @dev for gas snapshot
-    function testMintBatchViaContract_1000() public {
-        minter.mintBatch(edition, Addresses.make(1000));
-    }
+        // bob is neither
+        assertFalse(edition.isPrimaryOwner(bob));
 
-    /// @dev for gas snapshot
-    function testMintBatchDirect_0001() public {
-        vm.startPrank(address(minter));
-        edition.mintBatch(Addresses.make(1));
-    }
+        // when we transfer the NFT out
+        vm.prank(randomPrimaryOwner);
+        ERC721(_edition).transferFrom(randomPrimaryOwner, bob, index);
 
-    /// @dev for gas snapshot
-    function testMintBatchDirect_0010() public {
-        vm.startPrank(address(minter));
-        edition.mintBatch(Addresses.make(10));
-    }
+        // then no longer a current owner, but still a primary owner
+        assertTrue(edition.isPrimaryOwner(randomPrimaryOwner));
+        assertEq(ERC721(_edition).balanceOf(randomPrimaryOwner), 0);
 
-    /// @dev for gas snapshot
-    function testMintBatchDirect_0100() public {
-        vm.startPrank(address(minter));
-        edition.mintBatch(Addresses.make(100));
-    }
-
-    /// @dev for gas snapshot
-    function testMintBatchDirect_0300() public {
-        vm.startPrank(address(minter));
-        edition.mintBatch(Addresses.make(300));
-    }
-
-    function testMintBatchDirect_0500() public {
-        vm.startPrank(address(minter));
-        edition.mintBatch(Addresses.make(500));
-    }
-
-    /// @dev for gas snapshot
-    function testMintBatchDirect_1000() public {
-        vm.startPrank(address(minter));
-        edition.mintBatch(Addresses.make(1000));
+        // and bob is a current owner, but was never a primary owner
+        assertFalse(edition.isPrimaryOwner(bob));
     }
 }

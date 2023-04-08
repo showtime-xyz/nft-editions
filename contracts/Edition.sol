@@ -146,18 +146,9 @@ contract Edition is EditionBase, ERC721I, IEdition {
         }
     }
 
-    /// @dev This helper function checks if the msg.sender is allowed to mint
-    function _isAllowedToMint() internal view returns (bool) {
-        // optimize by likelihood:
-        // 1. check allowlist/minter contracts
-        // 2. open mints
-        // 3. owner mints
-        return allowedMinters[msg.sender] || allowedMinters[address(0x0)] || owner == msg.sender;
-    }
-
     /// @dev Validates the supply and time limits for minting with a single SLOAD and SSTORE
     function _mintPreFlightChecks(uint256 quantity) internal returns (uint64 _tokenId) {
-        if (!_isAllowedToMint()) {
+        if (!isApprovedMinter(msg.sender)) {
             revert Unauthorized();
         }
 

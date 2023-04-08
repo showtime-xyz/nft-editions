@@ -41,6 +41,8 @@ interface IEditionBase {
 
     function endOfMintPeriod() external view returns (uint256);
 
+    function isApprovedMinter(address minter) external view returns (bool);
+
     function isMintingEnded() external view returns (bool);
 
     function setApprovedMinter(address minter, bool allowed) external;
