@@ -95,12 +95,10 @@ contract SingleBatchEdition is
     /// @param tokenId the token id to get the metadata for
     /// @return base64-encoded json metadata object
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        uint256 _totalSupply = totalSupply();
-        if (tokenId == 0 || tokenId > _totalSupply) {
-            revert InvalidArgument();
-        }
+        // reverts if token does not exist
+        ownerOf(tokenId);
 
-        return createTokenMetadata(name, tokenId, _totalSupply);
+        return createTokenMetadata(name, tokenId, editionSize());
     }
 
     /// @notice Get the base64-encoded json metadata object for the edition
