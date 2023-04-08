@@ -47,14 +47,11 @@ contract SingleBatchEdition is
 
     /// @param addresses A tightly packed and sorted list of at most 1228 addresses to mint to
     function mintBatch(bytes calldata addresses) external override returns (uint256 lastTokenId) {
-        if (!isApprovedMinter(msg.sender)) {
-            revert Unauthorized();
-        }
-
         lastTokenId = _mint(addresses);
 
-        // update state.numMinted so that it can be reflected in totalSupply()
-        state.numberMinted = requireUint64(lastTokenId);
+        // run the validations at the end, once we know the number minted
+        // this makes reverts more expensive, but the happy path cheaper
+        _mintChecks(lastTokenId);
     }
 
     /// @param pointer An SSTORE2 pointer to a list of addresses to send the newly minted editions to, packed tightly
@@ -65,8 +62,63 @@ contract SingleBatchEdition is
 
         lastTokenId = _mint(pointer);
 
-        // update state.numMinted so that it can be reflected in totalSupply()
-        state.numberMinted = requireUint64(lastTokenId);
+        // run the validations at the end, once we know the number minted
+        // this makes reverts more expensive, but the happy path cheaper
+        _mintChecks(lastTokenId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev stateless version of isMintingEnded
+    function enforceTimeLimit(uint64 _endOfMintPeriod) internal view {
+        if (_endOfMintPeriod > 0 && uint64(block.timestamp) > _endOfMintPeriod) {
+            revert TimeLimitReached();
+        }
+    }
+
+    function enforceSupplyLimit(uint64 _editionSize, uint64 _numberMinted) internal pure {
+        if (_editionSize > 0 && _numberMinted > _editionSize) {
+            revert SoldOut();
+        }
+    }
+
+    /// @dev Validates the supply and time limits for minting with a single SLOAD and SSTORE
+    /// @dev this is based on _mintPreFlightChecks in Edition
+    /// @dev does not enforce the sale price, as the mint functions are not payable
+    function _mintChecks(uint256 quantity) internal returns (uint64 _tokenId) {
+        if (!isApprovedMinter(msg.sender)) {
+            revert Unauthorized();
+        }
+
+        uint256 _state;
+        uint256 _postState;
+        uint64 _editionSize;
+        uint64 _endOfMintPeriod;
+
+        assembly ("memory-safe") {
+            _state := sload(state.slot)
+            _editionSize := shr(192, _state)
+            _endOfMintPeriod := shr(128, _state)
+
+            // can not realistically overflow
+            // the fields in EditionState are ordered so that incrementing state increments numberMinted
+            _postState := add(_state, quantity)
+
+            // perform the addition only once and extract numberMinted + 1 from _postState
+            _tokenId := and(_postState, 0xffffffffffffffff)
+        }
+
+        enforceSupplyLimit(_editionSize, _tokenId);
+        enforceTimeLimit(_endOfMintPeriod);
+
+        // update storage
+        assembly ("memory-safe") {
+            sstore(state.slot, _postState)
+        }
+
+        return _tokenId;
     }
 
     /*//////////////////////////////////////////////////////////////

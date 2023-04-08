@@ -64,8 +64,6 @@ contract EditionFunctionalTests is EditionBaseSpec {
 
     function mint(address _edition, uint256 num, address msgSender, bytes memory expectedError) internal override {
         address[] memory recipients = new address[](num);
-        console2.log("recipients.length:", recipients.length);
-        console2.log("num:", num);
         for (uint256 i = 0; i < num; i++) {
             recipients[i] = address(erc721AwareContract);
         }
