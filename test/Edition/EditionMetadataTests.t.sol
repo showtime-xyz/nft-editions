@@ -60,9 +60,16 @@ abstract contract EditionMetadataTests is EditionFixture {
     EditionBase internal __metadata_edition;
 
 
-    // implementation must initialize the __metadata_* edition contracts
-    // and mint 1 token from each of them
-    function __EditionMetadataTests_init() internal virtual;
+    function setUp() public virtual {
+        __metadata_editionIntense = EditionBase(create(INTENSE_CONFIG));
+        __metadata_editionToEscape = EditionBase(create(ESCAPE_CONFIG));
+        __metadata_edition = EditionBase(create(REGULAR_CONFIG));
+
+        mint(address(__metadata_editionIntense), address(this));
+        mint(address(__metadata_editionToEscape), address(this));
+        mint(address(__metadata_edition), address(this));
+    }
+
 
     /*//////////////////////////////////////////////////////////////
                                 HELPERS
