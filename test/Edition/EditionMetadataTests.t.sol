@@ -208,7 +208,7 @@ abstract contract EditionMetadataTests is EditionFixture {
 
     function test_setProperties_notReflectedInContractURI() public {
         setProperty("property_name", "property_value");
-        string memory json = parseDataUri(IERC721Metadata(address(__metadata_edition)).tokenURI(1));
+        string memory json = parseDataUri(EditionBase(address(__metadata_edition)).contractURI());
         string memory value = stdJson.readString(json, ".properties.property_name");
 
         assertEq(value, "");

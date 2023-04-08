@@ -144,27 +144,29 @@ contract SingleBatchEditionTest is EditionBaseSpec {
         num = uint32(bound(num, 1, 1000));
         index = uint32(bound(index, 1, num));
 
-        minterContract.mintBatch(edition, Addresses.make(num));
+        SingleBatchEdition openEdition = SingleBatchEdition(_openEdition);
+
+        minterContract.mintBatch(openEdition, Addresses.make(num));
 
         address randomPrimaryOwner = address(uint160(0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa) + index);
 
         // both a primary and a current owner
-        assertTrue(edition.isPrimaryOwner(randomPrimaryOwner));
-        assertEq(ERC721(_edition).balanceOf(randomPrimaryOwner), 1);
-        assertEq(ERC721(_edition).ownerOf(index), randomPrimaryOwner);
+        assertTrue(openEdition.isPrimaryOwner(randomPrimaryOwner));
+        assertEq(openEdition.balanceOf(randomPrimaryOwner), 1);
+        assertEq(openEdition.ownerOf(index), randomPrimaryOwner);
 
         // bob is neither
-        assertFalse(edition.isPrimaryOwner(bob));
+        assertFalse(openEdition.isPrimaryOwner(bob));
 
         // when we transfer the NFT out
         vm.prank(randomPrimaryOwner);
-        ERC721(_edition).transferFrom(randomPrimaryOwner, bob, index);
+        openEdition.transferFrom(randomPrimaryOwner, bob, index);
 
         // then no longer a current owner, but still a primary owner
-        assertTrue(edition.isPrimaryOwner(randomPrimaryOwner));
-        assertEq(ERC721(_edition).balanceOf(randomPrimaryOwner), 0);
+        assertTrue(openEdition.isPrimaryOwner(randomPrimaryOwner));
+        assertEq(openEdition.balanceOf(randomPrimaryOwner), 0);
 
         // and bob is a current owner, but was never a primary owner
-        assertFalse(edition.isPrimaryOwner(bob));
+        assertFalse(openEdition.isPrimaryOwner(bob));
     }
 }

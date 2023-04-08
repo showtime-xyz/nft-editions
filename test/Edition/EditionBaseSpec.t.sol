@@ -22,11 +22,14 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
     address internal _editionImpl;
     address internal _edition;
     address internal _openEdition;
+    address internal _timeLimitedEdition;
 
     function setUp() public virtual {
         _editionImpl = createImpl();
         _edition = create();
         _openEdition = create(DEFAULT_CONFIG.withName("Open Edition").withEditionSize(0));
+        _timeLimitedEdition =
+            create(DEFAULT_CONFIG.withName("Time Limited Edition").withMintPeriod(2 days).withEditionSize(0));
 
         __EditionMetadataTests_init();
     }
@@ -474,36 +477,31 @@ abstract contract EditionBaseSpec is EditionMetadataTests {
                             TIME LIMIT TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function test_mint_fromTimeLimitedEdition_duringMintingPeriod() public {
-        // setup
-        EditionConfig memory config = DEFAULT_CONFIG.withName("Time Limited Edition").withMintPeriod(2 days);
-
-        address timeLimitedEdition = create(config);
-
-        // minting is allowed
-        assertEq(EditionBase(timeLimitedEdition).isMintingEnded(), false);
-        mint(timeLimitedEdition, address(this));
+    function test_isMintingEnded_withNoTimeLimit(uint256 warpTime) public {
+        vm.warp(warpTime);
+        assertEq(EditionBase(_edition).isMintingEnded(), false);
     }
 
-    function test_mint_fromTimeLimitedEdition_afterMintingPeriod() public {
-        // setup
-        EditionConfig memory config = DEFAULT_CONFIG.withName("Time Limited Edition").withMintPeriod(2 days);
+    function test_mint_fromTimeLimitedEdition_duringMintingPeriod() public {
+        // minting is allowed
+        assertEq(EditionBase(_timeLimitedEdition).isMintingEnded(), false);
+        mint(_timeLimitedEdition, address(this));
+    }
 
-        address timeLimitedEdition = create(config);
-
+    function test_mintSingle_fromTimeLimitedEdition_afterMintingPeriod() public {
         // after the mint period
         vm.warp(block.timestamp + 3 days);
 
         // isMintingEnded() returns true
-        assertEq(EditionBase(timeLimitedEdition).isMintingEnded(), true);
+        assertEq(EditionBase(_timeLimitedEdition).isMintingEnded(), true);
 
         // minting one fails
-        mint(timeLimitedEdition, address(this), approvedMinter, abi.encodeWithSelector(TimeLimitReached.selector));
+        mint(_timeLimitedEdition, address(this), approvedMinter, abi.encodeWithSelector(TimeLimitReached.selector));
 
         // minting multiple
-        mint(timeLimitedEdition, 42, approvedMinter, abi.encodeWithSelector(TimeLimitReached.selector));
+        mint(_timeLimitedEdition, 42, approvedMinter, abi.encodeWithSelector(TimeLimitReached.selector));
 
         // it returns the expected totalSupply
-        assertEq(EditionBase(timeLimitedEdition).totalSupply(), 0);
+        assertEq(EditionBase(_timeLimitedEdition).totalSupply(), 0);
     }
 }
