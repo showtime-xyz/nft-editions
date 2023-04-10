@@ -6,10 +6,11 @@ import {console2} from "forge-std/console2.sol";
 import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
 import {Addresses} from "SS2ERC721/../test/helpers/Addresses.sol";
+
 import {LibString} from "contracts/utils/LibString.sol";
 import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInitializable.sol";
 import {IBatchEdition} from "contracts/interfaces/IBatchEdition.sol";
-import {SingleBatchEdition, ERC721} from "contracts/SingleBatchEdition.sol";
+import {MultiBatchEdition, ERC721} from "contracts/MultiBatchEdition.sol";
 
 import {EditionBaseSpec, EditionConfig, EditionConfigWither} from "test/common/EditionBaseSpec.t.sol";
 
@@ -21,7 +22,8 @@ contract BatchMinter {
     }
 }
 
-contract SingleBatchEditionTest is EditionBaseSpec {
+contract MultiBatchEditionTest is EditionBaseSpec {
+    using Addresses for uint256;
     using EditionConfigWither for EditionConfig;
 
     IBatchEdition internal edition;
@@ -44,7 +46,7 @@ contract SingleBatchEditionTest is EditionBaseSpec {
     }
 
     function createImpl() internal override returns (address) {
-        return address(new SingleBatchEdition());
+        return address(new MultiBatchEdition());
     }
 
     /// @dev create a clone of editionImpl with the given config
@@ -97,10 +99,10 @@ contract SingleBatchEditionTest is EditionBaseSpec {
         mint(_edition, 0, approvedMinter, "INVALID_ADDRESSES");
     }
 
-    function test_mintBatch_canNotMintTwice() public {
+    function test_mintBatch_canNotAfterIncompleteBatch() public {
         minterContract.mintBatch(edition, abi.encodePacked(address(this)));
 
-        vm.expectRevert("ALREADY_MINTED");
+        vm.expectRevert("INCOMPLETE_BATCH");
         minterContract.mintBatch(edition, abi.encodePacked(address(this)));
     }
 
@@ -146,7 +148,7 @@ contract SingleBatchEditionTest is EditionBaseSpec {
         num = uint32(bound(num, 1, 1228));
         index = uint32(bound(index, 0, num - 1));
 
-        SingleBatchEdition openEdition = SingleBatchEdition(_openEdition);
+        MultiBatchEdition openEdition = MultiBatchEdition(_openEdition);
 
         address startAddr = address(1);
         minterContract.mintBatch(openEdition, Addresses.make(startAddr, num));
@@ -174,5 +176,28 @@ contract SingleBatchEditionTest is EditionBaseSpec {
         assertEq(openEdition.ownerOf(tokenId), bob);
         assertEq(openEdition.balanceOf(bob), 1);
         assertFalse(openEdition.isPrimaryOwner(bob));
+    }
+
+    function test_e2e_multiBatch() public {
+        uint256 batchSize = 1228;
+        uint256 editionSize = 2000;
+
+        IBatchEdition edition2k = IBatchEdition(create(DEFAULT_CONFIG.withName("Y2K").withEditionSize(editionSize), ""));
+
+        minterContract.mintBatch(edition2k, Addresses.make(address(1), batchSize));
+
+        // we can't mint more than the edition size
+        bytes memory secondBatchTooBig = Addresses.make((batchSize + 1).to_addr(), editionSize - batchSize + 1);
+
+        vm.expectRevert(abi.encodeWithSelector(SoldOut.selector));
+        vm.prank(approvedMinter);
+        edition2k.mintBatch(secondBatchTooBig);
+
+        // but we can mint exactly the edition size
+        bytes memory secondBatch = Addresses.make((batchSize + 1).to_addr(), editionSize - batchSize);
+        vm.prank(approvedMinter);
+        edition2k.mintBatch(secondBatch);
+
+        assertEq(edition2k.totalSupply(), editionSize);
     }
 }

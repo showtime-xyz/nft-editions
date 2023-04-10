@@ -180,6 +180,7 @@ abstract contract EditionBase is
         _setOperatorFilter(CANONICAL_OPENSEA_SUBSCRIPTION);
     }
 
+
     /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

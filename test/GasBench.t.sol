@@ -8,7 +8,7 @@ import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/Clone
 import {ERC721I} from "SS2ERC721/common/ERC721I.sol";
 import {SS2ERC721} from "SS2ERC721/SS2ERC721.sol";
 
-import {Addresses} from "contracts/utils/Addresses.sol";
+import {Addresses} from "SS2ERC721/../test/helpers/Addresses.sol";
 import {Edition} from "contracts/Edition.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";
 
