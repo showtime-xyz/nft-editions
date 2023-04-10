@@ -251,14 +251,15 @@ abstract contract EditionBaseSpec is EditionMetadataTests, EditionOperatorFilter
 
     function test_transferFrom_approvedFailsWithWrongTokenId(address approved) public {
         mint(_edition, 2);
+        address token2Owner = IERC721(_edition).ownerOf(2);
 
         vm.assume(approved != address(0));
+        vm.assume(approved != token2Owner);
+
         vm.prank(IERC721(_edition).ownerOf(1));
         IERC721(_edition).approve(approved, 1);
 
-        address token2Owner = IERC721(_edition).ownerOf(2);
-
-        // address is approved for token 1
+        // address is approved for token 1 but not token 2
         vm.prank(approved);
         vm.expectRevert("NOT_AUTHORIZED");
         IERC721(_edition).transferFrom(token2Owner, BURN_ADDRESS, 2);

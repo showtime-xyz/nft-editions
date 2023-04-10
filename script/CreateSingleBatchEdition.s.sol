@@ -8,7 +8,7 @@ import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/Clone
 
 import {SSTORE2} from "solmate/utils/SSTORE2.sol";
 
-import {Addresses} from "contracts/utils/Addresses.sol";
+import {Addresses} from "SS2ERC721/../test/helpers/Addresses.sol";
 import {LibString} from "contracts/utils/LibString.sol";
 import {IBatchEdition} from "contracts/interfaces/IBatchEdition.sol";
 import {SingleBatchEdition} from "contracts/SingleBatchEdition.sol";

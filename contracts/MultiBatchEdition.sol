@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.6;
 
-import {SS2ERC721I} from "SS2ERC721/SS2ERC721I.sol";
+import {MultiSS2ERC721I} from "SS2ERC721/MultiSS2ERC721I.sol";
 import {ERC721} from "SS2ERC721/SS2ERC721.sol";
 
 import {EditionBase} from "contracts/common/EditionBase.sol";
@@ -11,9 +11,9 @@ import "./interfaces/Errors.sol";
 
 /// @notice This is a smart contract optimized for minting editions in one single batch
 /// @dev This allows creators to mint a unique serial edition of the same media within a custom contract
-contract SingleBatchEdition is
+contract MultiBatchEdition is
     EditionBase,
-    SS2ERC721I,
+    MultiSS2ERC721I,
     IBatchEdition
 {
     /// @param _owner User that owns and can mint the edition, gets royalty and sales payouts and can update the base url if needed.
@@ -36,7 +36,7 @@ contract SingleBatchEdition is
         uint256 _royaltyBPS,
         uint256 _mintPeriodSeconds
     ) public override initializer {
-        __SS2ERC721_init(_name, _symbol);
+        __MultiSS2ERC721_init(_name, _symbol);
         __EditionBase_init(_owner, _description, _animationUrl, _imageUrl, _editionSize, _royaltyBPS, _mintPeriodSeconds);
     }
 
@@ -130,8 +130,8 @@ contract SingleBatchEdition is
     //////////////////////////////////////////////////////////////*/
 
     /// Returns the SSTORE2 pointer for this edition if minted, or 0 if not minted
-    function getPrimaryOwnersPointer(uint256) public view override returns (address) {
-        return _ownersPrimaryPointer;
+    function getPrimaryOwnersPointer(uint256 index) public view override returns (address) {
+        return index < _ownersPrimaryPointers.length ? _ownersPrimaryPointers[index] : address(0);
     }
 
     /// Returns true if the given address is one of the primary owners of this edition
