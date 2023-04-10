@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import {ERC721, ERC721I} from "SS2ERC721/ERC721I.sol";
+import {ERC721, ERC721I} from "SS2ERC721/common/ERC721I.sol";
 
 contract GenericTokenUri is ERC721I {
     function tokenURI(uint256) public view virtual override returns (string memory) {
