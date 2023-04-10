@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {Initializable} from "SS2ERC721/utils/Initializable.sol";
+import {Initializable} from "SS2ERC721/common/utils/Initializable.sol";
 import {IOwned} from "./IOwned.sol";
 
 /// @notice Simple single owner authorization mixin.

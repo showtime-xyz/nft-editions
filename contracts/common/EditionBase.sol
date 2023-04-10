@@ -8,7 +8,7 @@ import {
 } from "@openzeppelin-contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import {AddressUpgradeable} from "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {Initializable} from "SS2ERC721/utils/Initializable.sol";
+import {Initializable} from "SS2ERC721/common/utils/Initializable.sol";
 import {OwnedInitializable} from "contracts/solmate-initializable/auth/OwnedInitializable.sol";
 
 import {EditionMetadataRenderer} from "contracts/common/EditionMetadataRenderer.sol";
@@ -183,6 +183,19 @@ abstract contract EditionBase is
     /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @dev stateless version of isMintingEnded
+    function enforceTimeLimit(uint64 _endOfMintPeriod) internal view {
+        if (_endOfMintPeriod > 0 && uint64(block.timestamp) > _endOfMintPeriod) {
+            revert TimeLimitReached();
+        }
+    }
+
+    function enforceSupplyLimit(uint64 _editionSize, uint64 _numberMinted) internal pure {
+        if (_editionSize > 0 && _numberMinted > _editionSize) {
+            revert SoldOut();
+        }
+    }
 
     function requireUint16(uint256 value) internal pure returns (uint16) {
         if (value > uint256(type(uint16).max)) {

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.6;
 
-import {ERC721, ERC721I} from "SS2ERC721/ERC721I.sol";
+import {ERC721, ERC721I} from "SS2ERC721/common/ERC721I.sol";
 
 import {EditionBase} from "./common/EditionBase.sol";
 import {IEdition} from "./interfaces/IEdition.sol";
@@ -124,19 +124,6 @@ contract Edition is EditionBase, ERC721I, IEdition {
     /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @dev stateless version of isMintingEnded
-    function enforceTimeLimit(uint64 _endOfMintPeriod) internal view {
-        if (_endOfMintPeriod > 0 && uint64(block.timestamp) > _endOfMintPeriod) {
-            revert TimeLimitReached();
-        }
-    }
-
-    function enforceSupplyLimit(uint64 _editionSize, uint64 _numberMinted) internal pure {
-        if (_editionSize > 0 && _numberMinted > _editionSize) {
-            revert SoldOut();
-        }
-    }
 
     function enforceSalePrice(uint256 _salePriceTwei, uint256 quantity) internal view {
         unchecked {

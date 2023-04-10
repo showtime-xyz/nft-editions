@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {ClonesUpgradeable} from "@openzeppelin-contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import {ERC721I} from "SS2ERC721/ERC721I.sol";
+import {ERC721I} from "SS2ERC721/common/ERC721I.sol";
 import {SS2ERC721} from "SS2ERC721/SS2ERC721.sol";
 
 import {Addresses} from "contracts/utils/Addresses.sol";
@@ -84,11 +84,13 @@ contract GasBench is Test {
         );
 
         edition.mint(address(this));
+        vm.label(address(edition), "edition");
 
         singleBatchImpl = new SingleBatchEdition();
         singleBatchForMinting = SingleBatchEdition(
             ClonesUpgradeable.clone(address(singleBatchImpl))
         );
+        vm.label(address(singleBatchForMinting), "singleBatchForMinting");
 
         singleBatchForMinting.initialize(
             address(this),
@@ -105,6 +107,7 @@ contract GasBench is Test {
         singleBatchForTransfers = SingleBatchEdition(
             ClonesUpgradeable.clone(address(singleBatchImpl))
         );
+        vm.label(address(singleBatchForTransfers), "singleBatchForTransfers");
 
         singleBatchForTransfers.initialize(
             address(this),

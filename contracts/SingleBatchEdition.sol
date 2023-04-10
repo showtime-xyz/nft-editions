@@ -92,19 +92,6 @@ contract SingleBatchEdition is
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev stateless version of isMintingEnded
-    function enforceTimeLimit(uint64 _endOfMintPeriod) internal view {
-        if (_endOfMintPeriod > 0 && uint64(block.timestamp) > _endOfMintPeriod) {
-            revert TimeLimitReached();
-        }
-    }
-
-    function enforceSupplyLimit(uint64 _editionSize, uint64 _numberMinted) internal pure {
-        if (_editionSize > 0 && _numberMinted > _editionSize) {
-            revert SoldOut();
-        }
-    }
-
     /// @dev Validates the supply and time limits for minting with a single SLOAD and SSTORE
     /// @dev this is based on _mintPreFlightChecks in Edition
     /// @dev does not enforce the sale price, as the mint functions are not payable
