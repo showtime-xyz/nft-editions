@@ -197,6 +197,7 @@ abstract contract EditionBaseSpec is EditionMetadataTests, EditionOperatorFilter
     }
 
     function test_mint_checksAuth(address nonApproved) public {
+        vm.assume(nonApproved != address(0));
         vm.assume(nonApproved != approvedMinter);
         vm.assume(nonApproved != editionOwner);
 
