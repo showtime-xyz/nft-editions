@@ -200,6 +200,7 @@ abstract contract EditionBaseSpec is EditionMetadataTests, EditionOperatorFilter
         vm.assume(nonApproved != address(0));
         vm.assume(nonApproved != approvedMinter);
         vm.assume(nonApproved != editionOwner);
+        vm.assume(IEditionBase(_edition).isApprovedMinter(nonApproved) == false);
 
         bytes memory expectedError = abi.encodeWithSelector(Unauthorized.selector);
 
@@ -229,6 +230,7 @@ abstract contract EditionBaseSpec is EditionMetadataTests, EditionOperatorFilter
 
     function test_transferFrom_unapprovedReverts(address unapproved) public {
         vm.assume(unapproved != address(this));
+        vm.assume(unapproved != address(0));
 
         uint256 tokenId = mint(_edition, address(this));
 
