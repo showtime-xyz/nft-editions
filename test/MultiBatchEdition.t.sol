@@ -17,8 +17,12 @@ import {EditionBaseSpec, EditionConfig, EditionConfigWither} from "test/common/E
 import "contracts/interfaces/Errors.sol";
 
 contract BatchMinter {
-    function mintBatch(IBatchEdition edition, bytes calldata addresses) public {
-        edition.mintBatch(addresses);
+    function mintBatch(IBatchEdition edition, bytes calldata addresses) public returns (uint256) {
+        return edition.mintBatch(addresses);
+    }
+
+    function mintBatch(IBatchEdition edition, address startAddr, uint256 num) public returns (uint256) {
+        return edition.mintBatch(Addresses.make(startAddr, num));
     }
 }
 
@@ -200,4 +204,25 @@ contract MultiBatchEditionTest is EditionBaseSpec {
 
         assertEq(edition2k.totalSupply(), editionSize);
     }
+
+    function test_e2e_1M() public {
+        MultiBatchEdition edition1M = MultiBatchEdition(_openEdition);
+
+        uint256 ONE_MILLION = 1_000_000;
+        uint256 leftToMint = ONE_MILLION;
+        address startAddr = address(1);
+        uint256 batchSize = 1228;
+
+        while (leftToMint > 0) {
+            uint256 thisBatch = leftToMint > batchSize ? batchSize : leftToMint;
+            uint256 numMinted = minterContract.mintBatch(edition1M, startAddr, thisBatch);
+            assertEq(numMinted, thisBatch);
+
+            leftToMint -= thisBatch;
+            startAddr = (uint160(startAddr) + thisBatch).to_addr();
+        }
+
+        assertEq(edition1M.totalSupply(), ONE_MILLION);
+        assertEq(edition1M.ownerOf(ONE_MILLION), ONE_MILLION.to_addr());
+     }
 }
