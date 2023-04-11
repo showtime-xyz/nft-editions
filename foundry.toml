@@ -11,3 +11,12 @@ polygon = "${POLYGON_RPC_URL}"
 [etherscan]
 mumbai = { key = "${ETHERSCAN_API_KEY}" }
 polygon = { key = "${ETHERSCAN_API_KEY}" }
+
+[profile.somewhat_heavy_fuzz.fuzz]
+runs = 1000
+
+[profile.heavy_fuzz.fuzz]
+runs = 10000
+
+[profile.superheavy_fuzz.fuzz]
+runs = 100000
