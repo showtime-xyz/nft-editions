@@ -26,7 +26,7 @@ contract ERC721AwareContract is IERC721ReceiverUpgradeable {
     }
 }
 
-contract EditionFunctionalTests is EditionBaseSpec {
+contract EditionTest is EditionBaseSpec {
     Edition internal edition;
 
     ERC721AwareContract erc721AwareContract = new ERC721AwareContract();
