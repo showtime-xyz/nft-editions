@@ -130,7 +130,11 @@ contract SingleBatchEdition is
     //////////////////////////////////////////////////////////////*/
 
     /// Returns the SSTORE2 pointer for this edition if minted, or 0 if not minted
-    function getPrimaryOwnersPointer(uint256) public view override returns (address) {
+    function getPrimaryOwnersPointer(uint256 index) public view override returns (address) {
+        if (index > 0) {
+            return address(0);
+        }
+
         return _ownersPrimaryPointer;
     }
 
