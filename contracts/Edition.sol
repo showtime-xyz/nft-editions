@@ -5,7 +5,7 @@ pragma solidity ^0.8.6;
 import {ERC721, ERC721I} from "SS2ERC721/common/ERC721I.sol";
 
 import {EditionBase} from "./common/EditionBase.sol";
-import {IEdition} from "./interfaces/IEdition.sol";
+import {IRealTimeMintable} from "./interfaces/IRealTimeMintable.sol";
 
 import "./interfaces/Errors.sol";
 
@@ -14,7 +14,7 @@ import "./interfaces/Errors.sol";
 /// @dev This is a fork of ZORA Editions for Showtime Drops
 /// @author karmacoma [Showtime Drops](https://github.com/showtime-xyz/nft-editions)
 /// @author iain nash [ZORA Editions](https://github.com/ourzora/nft-editions)
-contract Edition is EditionBase, ERC721I, IEdition {
+contract Edition is EditionBase, ERC721I, IRealTimeMintable {
     /*//////////////////////////////////////////////////////////////
                               INITIALIZER
     //////////////////////////////////////////////////////////////*/
