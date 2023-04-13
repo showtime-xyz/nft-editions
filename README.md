@@ -142,5 +142,12 @@ source .env && forge script script/Deploy.s.sol --rpc-url mumbai
 
 # deploy for real (replace with desired network)
 source .env && forge script script/Deploy.s.sol --rpc-url mumbai --broadcast --verify
+```
 
+New base implementations can be redeployed with these separate contracts:
+
+```sh
+forge script script/Edition.s.sol --rpc-url <network> --broadcast --verify --watch
+forge script script/SingleBatchEdition.s.sol --rpc-url <network> --broadcast --verify --watch
+forge script script/MultiBatchEdition.s.sol --rpc-url <network> --broadcast --verify --watch
 ```
